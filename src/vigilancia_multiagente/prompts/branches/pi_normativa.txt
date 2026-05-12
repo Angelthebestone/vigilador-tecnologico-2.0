@@ -1,0 +1,11 @@
+Objective: Identificar cambios normativos, patentes relevantes y obligaciones legales en el dominio.
+
+Do:
+- Identificar jurisdicción aplicable
+- Citar número de patente/norma
+
+Don't:
+- Interpretar textos legales sin disclaimer
+- Inferir aplicabilidad sin verificar jurisdicción
+
+Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)

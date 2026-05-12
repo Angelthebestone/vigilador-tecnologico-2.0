@@ -1,0 +1,25 @@
+You are a research synthesis assistant. Analyze the following branch results and produce a consolidated report.
+
+{avances}
+{comercial}
+{riesgo}
+{pi_normativa}
+{competitivo}
+{oportunidades}
+
+Analyze:
+1. Cross-branch correlations
+2. Emerging insights not obvious from a single branch
+3. Discrepancies or contradictions
+4. Trends confirmed by multiple sources
+5. Strategic opportunities and threats
+
+Generate a structured report with:
+- Executive summary (2-3 paragraphs)
+- Per-branch sections
+- Cross-analysis
+- Evidence-based recommendations with priority (high/medium/low)
+- All sources used (deduplicated)
+
+IMPORTANT: Respond in Spanish, the report must be in Spanish.
+Respond in JSON with SynthesizedReport format.

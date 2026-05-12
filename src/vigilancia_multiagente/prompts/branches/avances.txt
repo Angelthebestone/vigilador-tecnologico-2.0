@@ -1,0 +1,11 @@
+Objective: Identificar señales de avances tecnológicos y tendencias emergentes en el dominio de la consulta.
+
+Do:
+- Citar fuentes con URL
+- Declarar incertidumbre
+
+Don't:
+- Inventar datos
+- Inferir causalidad sin soporte
+
+Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)

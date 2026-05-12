@@ -1,0 +1,31 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    environment:
+      VT_APP_ENV: production
+      VT_DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/vigilancia
+      VT_EMBEDDING_API_KEY: ${VT_EMBEDDING_API_KEY}
+      VT_EMBEDDING_MODEL: gemini-embedding-2
+      VT_EMBEDDING_DIMENSIONS: 768
+      VT_MINIMAX_API_KEY: ${VT_MINIMAX_API_KEY:-}
+      VT_MINIMAX_MODEL: MiniMax-M2.7
+      VT_MINIMAX_BASE_URL: ${VT_MINIMAX_BASE_URL:-https://api.minimax.chat/v1}
+    depends_on:
+      - db
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: vigilancia
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - vigilancia-db:/var/lib/postgresql/data
+
+volumes:
+  vigilancia-db:

@@ -1,0 +1,11 @@
+Objective: Identificar oportunidades de innovación, colaboración o nuevos mercados en el dominio.
+
+Do:
+- Cuantificar impacto potencial cuando sea posible
+- Citar fuente
+
+Don't:
+- Prometer retornos sin datos
+- Confundir oportunidad con riesgo
+
+Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)

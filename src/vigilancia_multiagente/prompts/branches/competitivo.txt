@@ -1,0 +1,11 @@
+Objective: Analizar el panorama competitivo, posicionamiento de competidores y ventajas diferenciales.
+
+Do:
+- Nombrar competidores específicos
+- Citar fuente de inteligencia competitiva
+
+Don't:
+- Hacer juicios de valor sin respaldo
+- Mezclar rumores con hechos confirmados
+
+Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)

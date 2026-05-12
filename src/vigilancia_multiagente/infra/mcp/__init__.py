@@ -1,0 +1,2 @@
+"""MCP infrastructure package."""
+

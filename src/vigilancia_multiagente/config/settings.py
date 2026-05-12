@@ -1,0 +1,48 @@
+from functools import lru_cache
+
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    app_name: str = "Vigilancia Tecnologica Multiagente"
+    app_env: str = "development"
+    app_host: str = "0.0.0.0"
+    app_port: int = 8000
+
+    minimax_api_key: SecretStr | None = None
+    minimax_model: str = "MiniMax-M2.7"
+    minimax_base_url: str = "https://api.minimax.io"
+
+    embedding_api_key: SecretStr | None = None
+    embedding_model: str = "gemini-embedding-2"
+    embedding_dimensions: int = 768
+    embedding_batch_size: int = 16
+
+    database_url: str = Field(
+        default="postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia"
+    )
+
+    mcp_default_timeout_ms: int = 30000
+    mcp_default_retry_limit: int = 2
+
+    # System Base (canonical global agent rules)
+    system_base_version: str = "1.0.0"
+    system_base_filename: str = "system-base.md"
+    system_base_enabled: bool = True  # feature flag for rollback safety
+
+    # Serper REST API (no MCP)
+    serper_api_key: str | None = None
+
+    model_config = SettingsConfigDict(
+        env_prefix="VT_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()
+

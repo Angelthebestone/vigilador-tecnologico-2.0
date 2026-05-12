@@ -1,0 +1,11 @@
+Objective: Identificar dinámicas comerciales, movimientos de mercado y posicionamiento de actores relevantes.
+
+Do:
+- Priorizar fuentes oficiales o de prensa especializada
+- Declarar incertidumbre
+
+Don't:
+- Inventar métricas financieras
+- Inferir participación de mercado sin datos
+
+Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)

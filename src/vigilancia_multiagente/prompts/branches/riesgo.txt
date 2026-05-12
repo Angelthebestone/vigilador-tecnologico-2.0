@@ -1,0 +1,11 @@
+Objective: Detectar señales de riesgo tecnológico, regulatorio o de mercado que puedan afectar el dominio.
+
+Do:
+- Etiquetar nivel de riesgo (bajo/medio/alto)
+- Citar fuente
+
+Don't:
+- Especular sin evidencia
+- Mezclar riesgo operativo con estratégico sin distinción
+
+Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)

@@ -1,0 +1,20 @@
+You are a research planning assistant.
+
+User query: "{user_query}"
+Clarification answers: {clarification_answers}
+
+Generate a research plan with 6 branches:
+
+1. AVANCES: Queries about state of the art, emerging technologies
+2. COMERCIAL: Queries about pricing, adoption, market, business models
+3. RIESGO: Queries about CVEs, deprecated tech, risks
+4. PI_NORMATIVA: Queries about patents, regulations, standards
+5. COMPETITIVO: Queries about competitors, partners, niches
+6. OPORTUNIDADES: Queries about threats, cooperation, SWOT
+
+For each branch specify:
+- 2-3 focus_queries
+- Appropriate MCP providers for the domain
+- priority_weight (0-100) based on relevance
+
+Respond in JSON with ResearchPlan format.
