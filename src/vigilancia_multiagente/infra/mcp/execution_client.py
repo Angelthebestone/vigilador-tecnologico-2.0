@@ -1,7 +1,6 @@
 import asyncio
 from dataclasses import dataclass
 import json
-import shlex
 from asyncio.subprocess import PIPE
 from typing import Any
 
@@ -85,8 +84,9 @@ class MCPExecutionClient:
         tool_name: str,
         arguments: dict[str, Any],
     ) -> dict[str, Any]:
+        base = provider.base_url_or_command.split("?")[0].rstrip("/")
         response = await self._http_client.post(
-            provider.base_url_or_command.rstrip("/") + "/tools/execute",
+            base + "/tools/execute",
             json={"tool": tool_name, "arguments": arguments},
             headers=provider.headers,
             timeout=provider.timeout_ms / 1000,
@@ -103,7 +103,7 @@ class MCPExecutionClient:
         tool_name: str,
         arguments: dict[str, Any],
     ) -> dict[str, Any]:
-        command = shlex.split(provider.base_url_or_command, posix=False)
+        command = [provider.base_url_or_command] + list(provider.arguments)
         process = await asyncio.create_subprocess_exec(*command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         request = json.dumps({"tool": tool_name, "arguments": arguments}).encode("utf-8")
         stdout, stderr = await process.communicate(request)

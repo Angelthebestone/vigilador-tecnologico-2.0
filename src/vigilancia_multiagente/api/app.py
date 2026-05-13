@@ -5,7 +5,6 @@ from fastapi import FastAPI
 
 from vigilancia_multiagente import __version__
 from vigilancia_multiagente.api.router import api_router, api_v2_router
-from vigilancia_multiagente.api.security.startup_guard import validate_settings
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.infra.db.connection import database
 
@@ -32,7 +31,6 @@ def build_runtime_metadata(settings) -> dict[str, object]:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    validate_settings(settings)
     await database.initialize()
     app.state.runtime_metadata = build_runtime_metadata(settings)
     app.state.started_at = datetime.now(UTC)

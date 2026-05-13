@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Protocol
 from uuid import UUID
 
-from vigilancia_multiagente.domain.models import BranchResult, ResearchPlan, ResearchSession
+from vigilancia_multiagente.domain.models import BranchResult, FinalReport, ResearchPlan, ResearchSession
 
 
 class SessionRepository(Protocol):
@@ -40,7 +40,7 @@ class GraphSnapshotRepository(Protocol):
 
 
 class ReportRepository(Protocol):
-    async def save_final_report(self, session_id: UUID, report_markdown: str) -> str: ...
+    async def save_final_report(self, session_id: UUID, report: FinalReport) -> FinalReport: ...
 
-    async def get(self, session_id: UUID) -> str | None: ...
+    async def get(self, session_id: UUID) -> FinalReport | None: ...
 

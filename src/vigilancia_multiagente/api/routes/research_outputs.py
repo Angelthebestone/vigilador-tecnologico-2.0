@@ -16,6 +16,8 @@ from vigilancia_multiagente.api.dependencies import (
     metrics_service,
     provider_registry,
     report_repository,
+    serper_client,
+    session_repository,
     vector_index,
 )
 
@@ -27,11 +29,26 @@ router = APIRouter(prefix="/research")
 
 
 @router.get("/{session_id}/report")
-async def get_report(session_id: UUID) -> dict[str, str]:
+async def get_report(session_id: UUID) -> dict[str, object]:
     report = await report_repository.get(session_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
-    return {"session_id": str(session_id), "report": report}
+    return {
+        "session_id": str(session_id),
+        "executive_summary": report.executive_summary,
+        "technical_section": report.technical_section,
+        "commercial_section": report.commercial_section,
+        "risk_section": report.risk_section,
+        "cross_analysis": report.cross_analysis,
+        "recommendations": [
+            {"text": r.text, "priority": r.priority, "based_on": r.based_on}
+            for r in report.recommendations
+        ],
+        "total_sources_consulted": report.total_sources_consulted,
+        "total_learnings": report.total_learnings,
+        "confidence_score": report.confidence_score,
+        "generated_at": report.generated_at.isoformat() if hasattr(report.generated_at, "isoformat") else report.generated_at,
+    }
 
 
 @router.get("/{session_id}/sources")
@@ -160,7 +177,19 @@ async def _graph_for_session(session_id: UUID):
     results = await branch_result_repository.list_by_session(session_id)
     findings = [finding for result in results for finding in result.findings]
     sources = evidence_linker.deduplicate_sources(list(results))
-    return graph_service.build(session_id, findings, sources)
+
+    topic: str | None = None
+    patents: list[dict] = []
+    try:
+        session = await session_repository.get_by_id(session_id)
+        topic = session.user_query
+        if serper_client is not None:
+            patent_result = await serper_client.search_patents(topic)
+            patents = patent_result.items
+    except Exception:
+        pass
+
+    return graph_service.build(session_id, findings, sources, topic=topic, patents=patents)
 
 
 def _graph_payload(graph) -> dict[str, object]:
@@ -231,11 +260,6 @@ async def hype_analysis(session_id: UUID, tech: str = Query(...)) -> dict:
     exa_results = None
     firecrawl_results = None
     serper_results = None
-
-    try:
-        pass
-    except Exception:
-        pass
 
     detector = HypeDetector()
     report = await detector.analyze(

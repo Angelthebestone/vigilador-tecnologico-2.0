@@ -13,7 +13,9 @@ from vigilancia_multiagente.domain.models import (
     BranchResult,
     BranchStatus,
     BranchType,
+    FinalReport,
     Finding,
+    Recommendation,
     ResearchPlan,
     ResearchSession,
     SourceRef,
@@ -245,7 +247,7 @@ class PostgresReportRepository(ReportRepository):
     def __init__(self, database: Database) -> None:
         self._database = database
 
-    async def save_final_report(self, session_id: UUID, report_markdown: str) -> str:
+    async def save_final_report(self, session_id: UUID, report: FinalReport) -> FinalReport:
         async with self._database.session() as db:
             await db.execute(
                 text(
@@ -257,19 +259,24 @@ class PostgresReportRepository(ReportRepository):
                                   generated_at = NOW()
                     """
                 ),
-                {"session_id": str(session_id), "report_markdown": report_markdown},
+                {"session_id": str(session_id), "report_markdown": _json_dump(_final_report_to_dict(report))},
             )
             await db.commit()
-            return report_markdown
+            return report
 
-    async def get(self, session_id: UUID) -> str | None:
+    async def get(self, session_id: UUID) -> FinalReport | None:
         async with self._database.session() as db:
             result = await db.execute(
                 text("SELECT report_markdown FROM research_reports WHERE session_id = :session_id"),
                 {"session_id": str(session_id)},
             )
             row = result.first()
-            return None if row is None else str(row[0])
+            if row is None:
+                return None
+            data = _json_load(row[0])
+            if not isinstance(data, dict):
+                return None
+            return _final_report_from_dict(data)
 
 
 class PostgresGraphSnapshotRepository(GraphSnapshotRepository):
@@ -548,3 +555,45 @@ def _optional_float(value: object | None) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
+    return {
+        "session_id": str(report.session_id),
+        "generated_at": report.generated_at.isoformat() if isinstance(report.generated_at, datetime) else report.generated_at,
+        "markdown": report.markdown,
+        "executive_summary": report.executive_summary,
+        "technical_section": report.technical_section,
+        "commercial_section": report.commercial_section,
+        "risk_section": report.risk_section,
+        "cross_analysis": report.cross_analysis,
+        "recommendations": [
+            {"text": r.text, "priority": r.priority, "based_on": r.based_on}
+            for r in report.recommendations
+        ],
+        "all_sources": [_source_to_dict(s) for s in report.all_sources],
+        "total_sources_consulted": report.total_sources_consulted,
+        "total_learnings": report.total_learnings,
+        "confidence_score": report.confidence_score,
+    }
+
+
+def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
+    return FinalReport(
+        session_id=UUID(str(data["session_id"])),
+        generated_at=_ensure_datetime(data["generated_at"]) if isinstance(data.get("generated_at"), str) else data.get("generated_at"),
+        markdown=str(data.get("markdown", "")),
+        executive_summary=str(data.get("executive_summary", "")),
+        technical_section=str(data.get("technical_section", "")),
+        commercial_section=str(data.get("commercial_section", "")),
+        risk_section=str(data.get("risk_section", "")),
+        cross_analysis=str(data.get("cross_analysis", "")),
+        recommendations=[
+            Recommendation(text=str(r["text"]), priority=str(r.get("priority", "medium")), based_on=[str(b) for b in r.get("based_on", [])])
+            for r in (data.get("recommendations") or [])
+        ],
+        all_sources=[_source_from_dict(s) for s in (data.get("all_sources") or [])],
+        total_sources_consulted=int(data.get("total_sources_consulted", 0)),
+        total_learnings=int(data.get("total_learnings", 0)),
+        confidence_score=float(data.get("confidence_score", 0.0)),
+    )

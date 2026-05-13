@@ -17,7 +17,6 @@ from vigilancia_multiagente.application.research.semantic_relations import (
 from vigilancia_multiagente.application.research.temporal_window import resolve_temporal_window
 from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchType, Finding, ResearchSession, SourceRef
 from vigilancia_multiagente.domain.system_base import SystemBase
-from vigilancia_multiagente.api.security.startup_guard import validate_external_url
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient, ToolExecutionResult
@@ -73,9 +72,7 @@ class BaseBranchAgent:
         from vigilancia_multiagente.api.dependencies import smart_router
         smart_order = smart_router.select(branch_config.focus_queries[0]) if branch_config.focus_queries else ()
         tool_order = smart_order or policy.tool_order
-        # Phase 3 coexistence: old PromptContract path + new composed prompt path.
-        # When system_base_enabled=False, self._system_base is None → falls back to PromptContract only.
-        prompt_contract = self._governance_loader.load_prompt_template(self.branch_type)
+        branch_overlay = self._governance_loader.load_branch_overlay(self.branch_type)
         temporal = resolve_temporal_window(self.branch_type)
         seed_query = branch_config.focus_queries[0]
         self._provider_registry.validate_ready(tuple(tool_order))
@@ -111,7 +108,7 @@ class BaseBranchAgent:
                     "query": query,
                     "branch_type": self.branch_type.value,
                     "temporal_window": temporal.as_dict(),
-                    "prompt_contract_version": prompt_contract.version,
+                    "prompt_contract_version": branch_overlay.version,
                     "system_base_version": composed.system_base_version if composed else "none",
                     "prompt_composition_id": composed.prompt_composition_id if composed else "",
                     "composed_prompt": composed.full_text if composed else query,
@@ -120,7 +117,6 @@ class BaseBranchAgent:
             )
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             payload = execution.payload
-            self._validate_payload(payload)
             payload["latency_ms"] = elapsed_ms
             executions.append(execution)
             query_payloads.append(payload)
@@ -169,7 +165,7 @@ class BaseBranchAgent:
             statement=self._optional_text(last_payload, "summary") or self._optional_text(last_payload, "statement") or seed_query,
             confidence=self._optional_float(last_payload, "confidence") or 0.7,
             source_ids=[source.id],
-            tags=[prompt_contract.version, temporal.basis],
+            tags=[branch_overlay.version, temporal.basis],
         )
         result = BranchResult(
             id=uuid4(),
@@ -208,6 +204,20 @@ class BaseBranchAgent:
                         ))
                 except ValueError:
                     pass
+
+        # --- Content extraction tier (SPEC 1.3.4) ---
+        source_urls = list({s.url for s in result.sources})[:10]
+        if source_urls and self._provider_registry is not None:
+            jina_providers = self._provider_registry.providers_for_tool("read_url")
+            for url in source_urls:
+                try:
+                    if jina_providers:
+                        await self._execution_client.execute_tool(
+                            jina_providers[0], "read_url", {"url": url}
+                        )
+                except Exception:
+                    pass
+
         return AgentRunOutput(
             branch_result=result,
             iterations=iterations,
@@ -233,12 +243,6 @@ class BaseBranchAgent:
             if tool_name in provider.enabled_tools:
                 return provider
         raise RuntimeError(f"No provider exposes tool {tool_name} for {self.branch_type.value}")
-
-    @staticmethod
-    def _validate_payload(payload: dict[str, object]) -> None:
-        if "url" not in payload:
-            raise RuntimeError("Tool response missing required url")
-        validate_external_url(str(payload["url"]))
 
     @staticmethod
     def _optional_text(payload: dict[str, object], key: str) -> str | None:

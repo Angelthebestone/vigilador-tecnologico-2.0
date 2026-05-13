@@ -1,8 +1,9 @@
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID
 
-from vigilancia_multiagente.domain.models import BranchResult, Finding, SourceRef
+from vigilancia_multiagente.domain.models import BranchResult, Finding, FinalReport, Recommendation, SourceRef
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
@@ -26,19 +27,30 @@ class ReportSynthesizer:
         self,
         session_id: UUID,
         branch_results: list[BranchResult],
-        findings: list[Finding],
-        sources: list[SourceRef],
+        linked_findings: list[Finding],
+        all_sources: list[SourceRef],
         llm: MiniMaxClient | None = None,
-    ) -> SynthesizedReport:
+    ) -> FinalReport:
+        from vigilancia_multiagente.api.dependencies import event_log
+        from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
+
+        event_log[str(session_id)].append(format_sse(SessionEvent.now("FusionStarted", session_id, {
+            "message": "Synthesizing cross-branch results...",
+        })))
         branch_sections = {
             result.branch_type.value.lower(): "\n".join(f"- {item.statement}" for item in result.findings)
             for result in branch_results
         }
-        opportunities = [item.statement for item in findings[:3]]
+        opportunities = [item.statement for item in linked_findings[:3]]
         recommendations = [
             {"text": f"Investigate {item.topic}", "priority": "medium"}
-            for item in findings[:3]
+            for item in linked_findings[:3]
         ]
+
+        event_log[str(session_id)].append(format_sse(SessionEvent.now("FusionProgress", session_id, {
+            "progress": 50,
+            "current_analysis": "cross-branch correlations",
+        })))
 
         if llm is not None:
             import json
@@ -58,16 +70,22 @@ class ReportSynthesizer:
                 response = await llm.complete(messages=[MiniMaxMessage(role="user", content=prompt + "\n\n" + sections_text)])
                 data = json.loads(response.content)
                 if "executive_summary" in data:
-                    return SynthesizedReport(
+                    return FinalReport(
                         session_id=session_id,
-                        generated_at=data.get("generated_at", datetime.now(UTC).isoformat()),
+                        markdown=json.dumps(data, indent=2),
                         executive_summary=data.get("executive_summary", ""),
-                        branch_sections=data.get("branch_sections", branch_sections),
-                        contradictions=data.get("contradictions", []),
-                        opportunities=data.get("opportunities", opportunities),
-                        recommendations=data.get("recommendations", recommendations),
-                        all_source_ids=[str(source.id) for source in sources],
-                        markdown=_render_markdown(session_id, branch_sections, opportunities, recommendations),
+                        technical_section=data.get("technical_section", ""),
+                        commercial_section=data.get("commercial_section", ""),
+                        risk_section=data.get("risk_section", ""),
+                        cross_analysis=data.get("cross_analysis", ""),
+                        recommendations=[
+                            Recommendation(text=r["text"], priority=r.get("priority", "medium"))
+                            for r in (data.get("recommendations", []) if isinstance(data.get("recommendations"), list) else [])
+                        ],
+                        all_sources=all_sources,
+                        total_sources_consulted=len(all_sources),
+                        total_learnings=len(linked_findings),
+                        confidence_score=float(data.get("confidence_score", 0.72)),
                     )
             except (json.JSONDecodeError, KeyError, TypeError, RuntimeError):
                 pass
@@ -78,15 +96,19 @@ class ReportSynthesizer:
             opportunities=opportunities,
             recommendations=recommendations,
         )
-        return SynthesizedReport(
+        return FinalReport(
             session_id=session_id,
-            generated_at=datetime.now(UTC).isoformat(),
-            executive_summary="Multi-branch analysis completed with traceable evidence.",
-            branch_sections=branch_sections,
-            opportunities=opportunities,
-            recommendations=recommendations,
-            all_source_ids=[str(source.id) for source in sources],
             markdown=markdown,
+            executive_summary=extract_section(markdown, "Resumen Ejecutivo"),
+            technical_section=extract_section(markdown, "Avances"),
+            commercial_section=extract_section(markdown, "Comercial"),
+            risk_section=extract_section(markdown, "Riesgo"),
+            cross_analysis="",
+            recommendations=[],
+            all_sources=all_sources,
+            total_sources_consulted=len(all_sources),
+            total_learnings=len(linked_findings),
+            confidence_score=0.72,
         )
 
 
@@ -105,4 +127,16 @@ def _render_markdown(
     lines.extend(["", "## Recommendations"])
     lines.extend(f"- [{item['priority']}] {item['text']}" for item in recommendations)
     return "\n".join(lines) + "\n"
+
+
+def extract_section(markdown: str, section_name: str) -> str:
+    for name in (section_name, section_name.lower()):
+        match = re.search(
+            rf"^#{{2,3}}\s+{re.escape(name)}\s*$(.*?)(?=^#|\Z)",
+            markdown,
+            re.MULTILINE | re.DOTALL,
+        )
+        if match:
+            return match.group(1).strip()
+    return ""
 

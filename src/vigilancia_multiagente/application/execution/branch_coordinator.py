@@ -1,5 +1,9 @@
 import asyncio
+from datetime import datetime
+import logging
 from uuid import UUID, uuid4
+
+logger = logging.getLogger(__name__)
 
 from vigilancia_multiagente.application.agents.base import BaseBranchAgent, SignalPayload
 from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchType, ResearchPlan, ResearchSession
@@ -25,9 +29,20 @@ class BranchCoordinator:
     async def execute(self, session: ResearchSession, plan: ResearchPlan) -> list[BranchResult]:
         depth_limit = int(plan.global_constraints.get("depth_limit", 3))
         coroutines = [self._run_branch(session, branch, depth_limit) for branch in plan.branches]
-        outputs = await asyncio.gather(*coroutines)
+        outputs = await asyncio.gather(*coroutines, return_exceptions=True)
         results: list[BranchResult] = []
-        for output in outputs:
+        for idx, output in enumerate(outputs):
+            if isinstance(output, Exception):
+                branch_type = list(plan.branches)[idx].branch_type
+                logger.warning("Branch %s failed: %s", branch_type, output)
+                results.append(BranchResult(
+                    branch_type=branch_type,
+                    queries_executed=[],
+                    findings=[],
+                    sources=[],
+                    errors=[str(output)],
+                ))
+                continue
             result = output.branch_result
             results.append(result)
             self._iterations_by_session.setdefault(session.id, []).extend(
@@ -100,8 +115,28 @@ class BranchCoordinator:
         branch: BranchConfig,
         depth_limit: int,
     ):
+        from vigilancia_multiagente.api.dependencies import event_log
+        from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
+
         agent = self._agents[branch.branch_type]
-        return await agent.run(session, branch, depth_limit)
+        event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchStarted", session.id, {
+            "branch": branch.branch_type.value,
+            "started_at": datetime.now().isoformat(),
+        })))
+        try:
+            result = await agent.run(session, branch, depth_limit)
+            event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchCompleted", session.id, {
+                "branch": branch.branch_type.value,
+                "findings_count": len(result.findings),
+                "sources_count": len(result.sources),
+            })))
+            return result
+        except Exception as e:
+            event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchFailed", session.id, {
+                "branch": branch.branch_type.value,
+                "error": str(e),
+            })))
+            raise
 
     def queue_signal(self, signal: SignalPayload) -> None:
         """Add a cross-branch signal to the processing queue."""

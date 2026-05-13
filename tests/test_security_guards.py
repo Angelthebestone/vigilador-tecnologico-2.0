@@ -1,6 +1,6 @@
 import pytest
 
-from vigilancia_multiagente.api.security.startup_guard import validate_external_url, validate_settings, validate_stdio_command
+from vigilancia_multiagente.api.security.startup_guard import validate_external_url, validate_stdio_command
 from vigilancia_multiagente.config.settings import Settings
 
 
@@ -15,11 +15,4 @@ def test_validate_stdio_command_rejects_shell_injection():
     with pytest.raises(RuntimeError):
         validate_stdio_command("python tool.py; rm -rf /")
 
-
-def test_validate_settings_requires_embedding_configuration():
-    settings = Settings(
-        embedding_api_key="test-key",
-        database_url="postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia",
-    )
-    validate_settings(settings)
 

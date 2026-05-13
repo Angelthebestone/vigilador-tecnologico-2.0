@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     # Serper REST API (no MCP)
     serper_api_key: str | None = None
 
+    # MCP Provider API Keys (all optional — system falls back gracefully)
+    tavily_api_key: SecretStr | None = None
+    exa_api_key: SecretStr | None = None
+    jina_api_key: SecretStr | None = None
+    brave_api_key: SecretStr | None = None
+    firecrawl_api_key: SecretStr | None = None
+
     model_config = SettingsConfigDict(
         env_prefix="VT_",
         env_file=".env",

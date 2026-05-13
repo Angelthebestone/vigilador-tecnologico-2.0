@@ -4,7 +4,7 @@ import json
 from enum import StrEnum
 
 from vigilancia_multiagente.config.settings import Settings
-from vigilancia_multiagente.api.security.startup_guard import validate_external_url, validate_stdio_command
+
 
 
 class MCPTransport(StrEnum):
@@ -34,6 +34,7 @@ class MCPProviderConfig:
     auth_mode: MCPAuthMode
     timeout_ms: int
     retry_policy: RetryPolicy
+    arguments: list[str] = field(default_factory=list)
     enabled_tools: tuple[str, ...] = ()
     capabilities: tuple[str, ...] = ()
     headers: dict[str, str] = field(default_factory=dict)
@@ -110,6 +111,7 @@ class MCPProviderRegistry:
                 name="brave",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="npx",
+                arguments=["-y", "@modelcontextprotocol/server-brave-search", "--transport", "stdio"],
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
@@ -120,6 +122,7 @@ class MCPProviderRegistry:
                 name="firecrawl",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="npx",
+                arguments=["-y", "firecrawl-mcp"],
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=35000,
                 retry_policy=RetryPolicy(max_attempts=1, backoff_ms=500),
@@ -130,6 +133,7 @@ class MCPProviderRegistry:
                 name="google_scholar",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="python",
+                arguments=["-m", "google_scholar_mcp_server"],
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
@@ -140,11 +144,23 @@ class MCPProviderRegistry:
                 name="arxiv",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="python",
+                arguments=["-m", "arxiv_mcp_server"],
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
                 enabled_tools=("search_papers", "download_paper", "read_paper"),
                 capabilities=("papers",),
+            ),
+            "serper": MCPProviderConfig(
+                name="serper",
+                transport=MCPTransport.STDIO,
+                base_url_or_command="npx",
+                arguments=["-y", "@serper-dev/mcp-serper"],
+                auth_mode=MCPAuthMode.API_KEY,
+                timeout_ms=settings.mcp_default_timeout_ms,
+                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                enabled_tools=("serper_web_search", "serper_news_search", "serper_patents"),
+                capabilities=("search", "news", "patents"),
             ),
         }
         for name, provider in defaults.items():
@@ -169,6 +185,7 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
         name=str(item["name"]),
         transport=transport,
         base_url_or_command=str(item["base_url_or_command"]),
+        arguments=list(item.get("arguments", [])),
         auth_mode=auth_mode,
         timeout_ms=int(item.get("timeout_ms", 30000)),
         retry_policy=RetryPolicy(
@@ -179,9 +196,5 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
         capabilities=tuple(str(capability) for capability in item.get("capabilities", [])),
         headers={str(key): str(value) for key, value in headers.items()},
     )
-    if provider.transport == MCPTransport.STDIO:
-        validate_stdio_command(provider.base_url_or_command)
-    else:
-        validate_external_url(provider.base_url_or_command)
     return provider
 

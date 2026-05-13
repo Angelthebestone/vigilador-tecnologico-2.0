@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from heapq import heappop, heappush
-from math import cos, pi, sin, sqrt
+from math import sqrt
 from uuid import UUID
+
+import networkx as nx
+from networkx.algorithms.community import label_propagation_communities
+from scipy.spatial.distance import cosine as _cosine
 
 from vigilancia_multiagente.domain.models import (
     Finding,
@@ -35,10 +38,39 @@ class GraphAnalyticsPayload:
 
 
 class KnowledgeGraphService:
-    def build(self, session_id: UUID, findings: list[Finding], sources: list[SourceRef]) -> GraphPayload:
+    def build(self, session_id: UUID, findings: list[Finding], sources: list[SourceRef], topic: str | None = None, patents: list[dict] | None = None) -> GraphPayload:
         nodes: list[dict[str, object]] = []
         edges: list[dict[str, object]] = []
         source_nodes = {source.id: f"source:{source.id}" for source in sources}
+
+        # --- Technology node from session topic ---
+        if topic:
+            nodes.append({
+                "id": "technology:main",
+                "type": "TECHNOLOGY",
+                "label": topic,
+                "metadata": {"category": "emerging", "status": "active"},
+            })
+
+        # --- Patent nodes from Serper results ---
+        if patents:
+            for patent in patents:
+                patent_num = patent.get("patentNumber") or patent.get("title", "")
+                patent_id = f"patent:{patent_num}"
+                nodes.append({
+                    "id": patent_id,
+                    "type": "PATENT",
+                    "label": patent.get("title", ""),
+                    "metadata": {
+                        "patent_number": patent.get("patentNumber", ""),
+                        "assignee": patent.get("assignee", ""),
+                        "filing_date": patent.get("filingDate", ""),
+                        "status": patent.get("status", ""),
+                        "snippet": patent.get("snippet", ""),
+                        "url": patent.get("link", ""),
+                    },
+                })
+
         for source in sources:
             nodes.append(
                 {
@@ -76,34 +108,134 @@ class KnowledgeGraphService:
                         "source": finding_node,
                         "target": source_node,
                         "relation_type": "REFERENCES",
-                        "weight": 1.0,
+                        "weight": round(finding.confidence, 4),
                     }
                 )
+
+        # --- Concept nodes from unique tags ---
+        concept_data: dict[str, dict[str, object]] = {}
+        for finding in findings:
+            for tag in finding.tags:
+                if tag not in concept_data:
+                    concept_data[tag] = {"frequency": 0, "node_id": f"concept:{tag}"}
+                concept_data[tag]["frequency"] += 1  # type: ignore[operator]
+        for tag, data in concept_data.items():
+            nodes.append({
+                "id": data["node_id"],
+                "type": "CONCEPT",
+                "label": tag,
+                "metadata": {"frequency": data["frequency"]},
+            })
+
+        # --- related_to edges via bipartite projection ---
+        concept_names = {tag for f in findings for tag in f.tags}
+        if concept_names:
+            B = nx.Graph()
+            for finding in findings:
+                fid = str(finding.id)
+                B.add_node(fid, bipartite=0)
+                for tag in finding.tags:
+                    if not B.has_node(tag):
+                        B.add_node(tag, bipartite=1)
+                    B.add_edge(fid, tag)
+            proj = nx.bipartite.weighted_projected_graph(B, concept_names, ratio=True)
+            for tag_a, tag_b, data in proj.edges(data=True):
+                edges.append({
+                    "id": f"concept:{tag_a}->concept:{tag_b}",
+                    "source": f"concept:{tag_a}",
+                    "target": f"concept:{tag_b}",
+                    "relation_type": "related_to",
+                    "weight": round(data["weight"], 4),
+                })
+
+        # --- references edges: SOURCE to CONCEPT ---
+        source_concepts: dict[str, set[str]] = {}
+        for finding in findings:
+            for source_id in finding.source_ids:
+                source_key = source_nodes.get(source_id)
+                if source_key is None:
+                    continue
+                if source_key not in source_concepts:
+                    source_concepts[source_key] = set()
+                for tag in finding.tags:
+                    source_concepts[source_key].add(tag)
+        for source_key, concept_tags in source_concepts.items():
+            for tag in sorted(concept_tags):
+                edges.append({
+                    "id": f"{source_key}->concept:{tag}",
+                    "source": source_key,
+                    "target": f"concept:{tag}",
+                    "relation_type": "REFERENCES",
+                    "weight": 1.0,
+                })
+
         return GraphPayload(session_id=session_id, nodes=nodes, edges=edges)
 
+    # ------------------------------------------------------------------
+    # Internal: construir nx.Graph a partir del payload
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _to_nx(graph: GraphPayload) -> nx.Graph:
+        G = nx.Graph()
+        for node in graph.nodes:
+            G.add_node(str(node["id"]))
+        for edge in graph.edges:
+            G.add_edge(
+                str(edge["source"]),
+                str(edge["target"]),
+                id=str(edge["id"]),
+                weight=float(edge.get("weight", 1.0)),
+            )
+        return G
+
+    # ------------------------------------------------------------------
+    # Analítica completa (centralidad, clusters, layout, recorridos)
+    # ------------------------------------------------------------------
+
     def analytics(self, graph: GraphPayload) -> GraphAnalyticsPayload:
-        adjacency, undirected_edges = self._adjacency(graph)
-        node_ids = [str(node["id"]) for node in graph.nodes]
-        degree = self._degree_centrality(node_ids, adjacency)
-        betweenness = self._betweenness_centrality(node_ids, adjacency)
-        pagerank = self._pagerank(node_ids, adjacency)
+        if not graph.nodes:
+            return GraphAnalyticsPayload(
+                session_id=graph.session_id,
+                node_count=0,
+                edge_count=0,
+                centrality=[],
+                clusters=[],
+                layout=[],
+                traversals={"bfs": [], "dfs": []},
+            )
+
+        G = self._to_nx(graph)
+        node_ids = list(G.nodes())
+
+        # Centralidad
+        deg = nx.degree_centrality(G)
+        btw = nx.betweenness_centrality(G)
+        pr = nx.pagerank(G, weight="weight")
         centrality = [
             GraphCentrality(
-                node_id=node_id,
-                degree=degree.get(node_id, 0.0),
-                betweenness=betweenness.get(node_id, 0.0),
-                pagerank=pagerank.get(node_id, 0.0),
+                node_id=nid,
+                degree=round(deg.get(nid, 0.0), 4),
+                betweenness=round(btw.get(nid, 0.0), 4),
+                pagerank=round(pr.get(nid, 0.0), 4),
             )
-            for node_id in node_ids
+            for nid in node_ids
         ]
-        clusters = self._clusters(node_ids, adjacency)
-        layout = self._layout(node_ids, adjacency)
-        root = self._primary_node(node_ids, adjacency)
-        traversals = {
-            "bfs": self.traverse(graph, root, "bfs") if root else [],
-            "dfs": self.traverse(graph, root, "dfs") if root else [],
-        }
-        del undirected_edges
+
+        # Clusters via Label Propagation
+        clusters = self._clusters(G, node_ids)
+
+        # Layout force-directed (Fruchterman-Reingold) → normalizado [-1, 1]
+        layout = self._layout(G, node_ids)
+
+        # Recorridos BFS/DFS desde el nodo con mayor grado
+        root = max(node_ids, key=lambda nid: G.degree(nid)) if node_ids else None
+        if root:
+            bfs = [root] + [v for _, v in nx.bfs_edges(G, source=root)]
+            dfs = [root] + [v for _, v in nx.dfs_edges(G, source=root)]
+        else:
+            bfs = dfs = []
+
         return GraphAnalyticsPayload(
             session_id=graph.session_id,
             node_count=len(graph.nodes),
@@ -111,64 +243,39 @@ class KnowledgeGraphService:
             centrality=centrality,
             clusters=clusters,
             layout=layout,
-            traversals=traversals,
+            traversals={"bfs": bfs, "dfs": dfs},
         )
 
+    # ------------------------------------------------------------------
+    # Recorridos y caminos
+    # ------------------------------------------------------------------
+
     def traverse(self, graph: GraphPayload, start_node_id: str, strategy: str = "bfs") -> list[str]:
-        adjacency, _ = self._adjacency(graph)
-        if start_node_id not in adjacency:
+        G = self._to_nx(graph)
+        if start_node_id not in G:
             return []
-        visited: set[str] = set()
-        order: list[str] = []
         if strategy == "dfs":
-            stack = [start_node_id]
-            while stack:
-                node_id = stack.pop()
-                if node_id in visited:
-                    continue
-                visited.add(node_id)
-                order.append(node_id)
-                stack.extend(reversed(adjacency[node_id]))
-            return order
-        queue: deque[str] = deque([start_node_id])
-        while queue:
-            node_id = queue.popleft()
-            if node_id in visited:
-                continue
-            visited.add(node_id)
-            order.append(node_id)
-            queue.extend(adjacency[node_id])
-        return order
+            return [start_node_id] + [v for _, v in nx.dfs_edges(G, source=start_node_id)]
+        return [start_node_id] + [v for _, v in nx.bfs_edges(G, source=start_node_id)]
 
     def shortest_path(self, graph: GraphPayload, source_node_id: str, target_node_id: str) -> GraphPathResult:
-        adjacency, edge_lookup = self._adjacency(graph)
-        if source_node_id not in adjacency or target_node_id not in adjacency:
+        G = self._to_nx(graph)
+        if source_node_id not in G or target_node_id not in G:
             return GraphPathResult(source_node_id, target_node_id, [], [], float("inf"))
-        queue: list[tuple[float, str]] = [(0.0, source_node_id)]
-        distances: dict[str, float] = {source_node_id: 0.0}
-        previous: dict[str, str] = {}
-        while queue:
-            cost, node_id = heappop(queue)
-            if node_id == target_node_id:
-                break
-            if cost > distances.get(node_id, float("inf")):
-                continue
-            for neighbor in adjacency[node_id]:
-                new_cost = cost + 1.0
-                if new_cost < distances.get(neighbor, float("inf")):
-                    distances[neighbor] = new_cost
-                    previous[neighbor] = node_id
-                    heappush(queue, (new_cost, neighbor))
-        if target_node_id not in distances:
+        try:
+            node_ids = nx.shortest_path(G, source=source_node_id, target=target_node_id, weight="weight")
+        except nx.NetworkXNoPath:
             return GraphPathResult(source_node_id, target_node_id, [], [], float("inf"))
-        node_ids = [target_node_id]
-        while node_ids[-1] != source_node_id:
-            node_ids.append(previous[node_ids[-1]])
-        node_ids.reverse()
         edge_ids = []
-        for left, right in zip(node_ids, node_ids[1:], strict=True):
-            edge_ids.append(edge_lookup[frozenset({left, right})])
-        return GraphPathResult(source_node_id, target_node_id, node_ids, edge_ids, distances[target_node_id])
+        for left, right in zip(node_ids, node_ids[1:]):
+            eid = G.edges[left, right].get("id", f"{left}->{right}")
+            edge_ids.append(eid)
+        total_cost = float(len(edge_ids))
+        return GraphPathResult(source_node_id, target_node_id, node_ids, edge_ids, total_cost)
+
+    # ------------------------------------------------------------------
+    # Búsqueda cross-session (vectores)
+    # ------------------------------------------------------------------
 
     async def search_across_sessions(
         self,
@@ -201,19 +308,20 @@ class KnowledgeGraphService:
             for score, ref_id, node_id in candidates[:limit]
         ]
 
-    def discover_ecosystem(
-        self, seed: str, graph: GraphPayload, depth: int = 2
-    ) -> dict[str, object]:
+    # ------------------------------------------------------------------
+    # Descubrimiento de ecosistema
+    # ------------------------------------------------------------------
+
+    def discover_ecosystem(self, seed: str, graph: GraphPayload, depth: int = 2) -> dict[str, object]:
         if not graph or not graph.nodes:
             return {}
         node_by_id = {str(node["id"]): node for node in graph.nodes}
-        adjacency, edge_lookup = self._adjacency(graph)
-        seed_nodes: list[str] = []
-        for node in graph.nodes:
-            node_id = str(node["id"])
-            label = str(node.get("label", ""))
-            if seed.lower() in label.lower():
-                seed_nodes.append(node_id)
+        G = self._to_nx(graph)
+        seed_nodes = [
+            str(node["id"])
+            for node in graph.nodes
+            if seed.lower() in str(node.get("label", "")).lower()
+        ]
         if not seed_nodes:
             return {}
         visited: set[str] = set(seed_nodes)
@@ -230,7 +338,7 @@ class KnowledgeGraphService:
             current, cur_depth = queue.popleft()
             if cur_depth >= depth:
                 continue
-            for neighbor in adjacency.get(current, []):
+            for neighbor in list(G.neighbors(current)) if current in G else []:
                 is_new = neighbor not in visited
                 if is_new:
                     visited.add(neighbor)
@@ -287,6 +395,10 @@ class KnowledgeGraphService:
                 })
         return result
 
+    # ------------------------------------------------------------------
+    # Búsqueda textual + vectorial en el grafo
+    # ------------------------------------------------------------------
+
     def search(
         self,
         graph: GraphPayload,
@@ -328,144 +440,61 @@ class KnowledgeGraphService:
                 related_source_ids.add(str(edge["source"]))
         return sorted(related_source_ids)
 
-    def _adjacency(self, graph: GraphPayload) -> tuple[dict[str, list[str]], dict[frozenset[str], str]]:
-        adjacency: dict[str, list[str]] = defaultdict(list)
-        edge_lookup: dict[frozenset[str], str] = {}
-        for edge in graph.edges:
-            source = str(edge["source"])
-            target = str(edge["target"])
-            adjacency[source].append(target)
-            adjacency[target].append(source)
-            edge_lookup[frozenset({source, target})] = str(edge["id"])
-        for node in graph.nodes:
-            adjacency.setdefault(str(node["id"]), [])
-        for neighbors in adjacency.values():
-            neighbors[:] = sorted(dict.fromkeys(neighbors))
-        return adjacency, edge_lookup
+    # ------------------------------------------------------------------
+    # Clusters con NetworkX + score de densidad interna
+    # ------------------------------------------------------------------
 
-    def _degree_centrality(self, node_ids: list[str], adjacency: dict[str, list[str]]) -> dict[str, float]:
-        if len(node_ids) <= 1:
-            return {node_id: 0.0 for node_id in node_ids}
-        denominator = len(node_ids) - 1
-        return {node_id: len(adjacency[node_id]) / denominator for node_id in node_ids}
-
-    def _betweenness_centrality(self, node_ids: list[str], adjacency: dict[str, list[str]]) -> dict[str, float]:
-        betweenness = {node_id: 0.0 for node_id in node_ids}
-        for source in node_ids:
-            stack: list[str] = []
-            predecessors: dict[str, list[str]] = {node_id: [] for node_id in node_ids}
-            sigma = {node_id: 0.0 for node_id in node_ids}
-            sigma[source] = 1.0
-            distance = {node_id: -1 for node_id in node_ids}
-            distance[source] = 0
-            queue: deque[str] = deque([source])
-            while queue:
-                v = queue.popleft()
-                stack.append(v)
-                for w in adjacency[v]:
-                    if distance[w] < 0:
-                        queue.append(w)
-                        distance[w] = distance[v] + 1
-                    if distance[w] == distance[v] + 1:
-                        sigma[w] += sigma[v]
-                        predecessors[w].append(v)
-            delta = {node_id: 0.0 for node_id in node_ids}
-            while stack:
-                w = stack.pop()
-                for v in predecessors[w]:
-                    if sigma[w]:
-                        delta[v] += (sigma[v] / sigma[w]) * (1.0 + delta[w])
-                if w != source:
-                    betweenness[w] += delta[w]
-        scale = 1.0 / max(1, (len(node_ids) - 1) * (len(node_ids) - 2))
-        return {node_id: value * scale for node_id, value in betweenness.items()}
-
-    def _pagerank(self, node_ids: list[str], adjacency: dict[str, list[str]]) -> dict[str, float]:
-        if not node_ids:
-            return {}
-        damping = 0.85
-        n = len(node_ids)
-        ranks = {node_id: 1.0 / n for node_id in node_ids}
-        for _ in range(25):
-            new_ranks = {node_id: (1.0 - damping) / n for node_id in node_ids}
-            sink_rank = sum(ranks[node_id] for node_id in node_ids if not adjacency[node_id])
-            for node_id in node_ids:
-                neighbors = adjacency[node_id]
-                if not neighbors:
-                    continue
-                share = ranks[node_id] / len(neighbors)
-                for neighbor in neighbors:
-                    new_ranks[neighbor] += damping * share
-            if sink_rank:
-                sink_share = damping * sink_rank / n
-                for node_id in node_ids:
-                    new_ranks[node_id] += sink_share
-            delta = sum(abs(new_ranks[node_id] - ranks[node_id]) for node_id in node_ids)
-            ranks = new_ranks
-            if delta < 1e-8:
-                break
-        total = sum(ranks.values()) or 1.0
-        return {node_id: value / total for node_id, value in ranks.items()}
-
-    def _clusters(self, node_ids: list[str], adjacency: dict[str, list[str]]) -> list[GraphCluster]:
-        labels = {node_id: node_id for node_id in node_ids}
-        changed = True
-        iterations = 0
-        while changed and iterations < 20:
-            changed = False
-            iterations += 1
-            for node_id in node_ids:
-                neighbors = adjacency[node_id]
-                if not neighbors:
-                    continue
-                counts: dict[str, int] = defaultdict(int)
-                for neighbor in neighbors:
-                    counts[labels[neighbor]] += 1
-                best_label = max(counts.items(), key=lambda item: (item[1], item[0]))[0]
-                if labels[node_id] != best_label:
-                    labels[node_id] = best_label
-                    changed = True
-        clusters_by_label: dict[str, list[str]] = defaultdict(list)
-        for node_id, label in labels.items():
-            clusters_by_label[label].append(node_id)
+    @staticmethod
+    def _clusters(G: nx.Graph, node_ids: list[str]) -> list[GraphCluster]:
+        communities = list(label_propagation_communities(G))
         clusters: list[GraphCluster] = []
-        for index, (label, members) in enumerate(sorted(clusters_by_label.items()), start=1):
-            if len(members) == 1:
-                score = 0.0
-            else:
-                internal_edges = 0
-                for node_id in members:
-                    internal_edges += sum(1 for neighbor in adjacency[node_id] if neighbor in members)
-                possible_edges = max(1, len(members) * (len(members) - 1))
-                score = internal_edges / possible_edges
-            clusters.append(GraphCluster(cluster_id=f"cluster-{index}", node_ids=sorted(members), score=round(score, 4)))
+        for index, community in enumerate(communities, start=1):
+            members = sorted(community)
+            sub = G.subgraph(members)
+            internal = sub.number_of_edges()
+            possible = max(1, len(members) * (len(members) - 1) // 2)
+            score = internal / possible if len(members) > 1 else 0.0
+            clusters.append(GraphCluster(cluster_id=f"cluster-{index}", node_ids=members, score=round(score, 4)))
         return clusters
 
-    def _layout(self, node_ids: list[str], adjacency: dict[str, list[str]]) -> list[dict[str, object]]:
+    # ------------------------------------------------------------------
+    # Layout force-directed (Fruchterman-Reingold vía NetworkX)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _layout(G: nx.Graph, node_ids: list[str]) -> list[dict[str, object]]:
         if not node_ids:
             return []
-        center = (0.0, 0.0)
-        radius = max(1.0, len(node_ids) / pi)
+        k = 2.0 / max(sqrt(len(node_ids)), 1.0)
+        pos = nx.spring_layout(G, k=k, iterations=100, seed=42)
+        xs = [pos[n][0] for n in node_ids]
+        ys = [pos[n][1] for n in node_ids]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        range_x = max(max_x - min_x, 1.0)
+        range_y = max(max_y - min_y, 1.0)
+        max_deg = max(G.degree(n) for n in node_ids) or 1
         layout = []
-        for index, node_id in enumerate(node_ids):
-            angle = 2 * pi * index / len(node_ids)
-            neighbor_count = len(adjacency[node_id])
-            layout.append(
-                {
-                    "node_id": node_id,
-                    "x": round(center[0] + radius * cos(angle), 4),
-                    "y": round(center[1] + radius * sin(angle), 4),
-                    "size": 1.0 + neighbor_count * 0.15,
-                }
-            )
+        for nid in node_ids:
+            nx_pos = pos[nid]
+            nx_norm = ((nx_pos[0] - min_x) / range_x) * 2.0 - 1.0
+            ny_norm = ((nx_pos[1] - min_y) / range_y) * 2.0 - 1.0
+            deg = G.degree(nid)
+            size = 0.8 + (deg / max_deg) * 2.2
+            layout.append({
+                "node_id": nid,
+                "x": round(nx_norm, 4),
+                "y": round(ny_norm, 4),
+                "size": round(size, 4),
+            })
         return layout
 
-    def _primary_node(self, node_ids: list[str], adjacency: dict[str, list[str]]) -> str | None:
-        if not node_ids:
-            return None
-        return max(node_ids, key=lambda node_id: (len(adjacency[node_id]), node_id))
+    # ------------------------------------------------------------------
+    # Helpers de búsqueda vectorial y textual
+    # ------------------------------------------------------------------
 
-    def _vector_lookup(self, vector_records: list[dict[str, object]]) -> dict[str, list[float]]:
+    @staticmethod
+    def _vector_lookup(vector_records: list[dict[str, object]]) -> dict[str, list[float]]:
         lookup: dict[str, list[float]] = {}
         for record in vector_records:
             content_ref_id = str(record.get("content_ref_id", ""))
@@ -475,17 +504,14 @@ class KnowledgeGraphService:
             lookup[f"finding:{content_ref_id}"] = [float(item) for item in vector]
         return lookup
 
-    def _vector_score(self, query_vector: list[float] | None, candidate_vector: list[float] | None) -> float:
+    @staticmethod
+    def _vector_score(query_vector: list[float] | None, candidate_vector: list[float] | None) -> float:
         if not query_vector or not candidate_vector:
             return 0.0
-        numerator = sum(left * right for left, right in zip(query_vector, candidate_vector, strict=False))
-        left_norm = sqrt(sum(left * left for left in query_vector))
-        right_norm = sqrt(sum(right * right for right in candidate_vector))
-        if not left_norm or not right_norm:
-            return 0.0
-        return numerator / (left_norm * right_norm)
+        return round(1.0 - _cosine(query_vector, candidate_vector), 4)
 
-    def _text_score(self, query_terms: set[str], label: str, metadata: dict[str, object]) -> float:
+    @staticmethod
+    def _text_score(query_terms: set[str], label: str, metadata: dict[str, object]) -> float:
         text = f"{label} " + " ".join(str(value) for value in metadata.values())
         tokens = {token.strip(".,:/_-").lower() for token in text.split() if token}
         if not tokens:

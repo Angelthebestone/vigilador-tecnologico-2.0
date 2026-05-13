@@ -27,6 +27,10 @@ async def start_research(payload: StartRequest) -> dict[str, object]:
     questions = await clarification_service.generate_questions(payload.user_query, llm=minimax_client)
     event = format_sse(SessionEvent.now("SessionStarted", session.id, {"status": session.status, "user_query": payload.user_query}))
     event_log[str(session.id)] = [event]
+    event_log[str(session.id)].append(format_sse(SessionEvent.now("ClarificationRequested", session.id, {
+        "questions": [asdict(q) for q in questions],
+    })))
+    event_log[str(session.id)] = [event]
     return {
         "session_id": str(session.id),
         "status": session.status.lower(),

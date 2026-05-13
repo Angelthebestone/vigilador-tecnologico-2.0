@@ -37,7 +37,6 @@ from vigilancia_multiagente.infra.persistence.postgres_repositories import (
     PostgresReportRepository,
     PostgresSessionRepository,
 )
-from vigilancia_multiagente.application.evaluation.parameter_learner import ParameterLearner
 from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 from vigilancia_multiagente.application.governance.smart_router import SmartToolRouter
 from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
@@ -92,7 +91,6 @@ artifact_service = SessionArtifactService()
 source_scorer = SourceScorer()
 mcp_cache = MCPSmartCache()
 smart_router = SmartToolRouter()
-parameter_learner = ParameterLearner()
 contracts_root = Path("specs/002-vigilancia-multiagente/contracts")
 governance_loader = GovernanceContractLoader(contracts_root)
 graph_snapshot_repository = PostgresGraphSnapshotRepository(database)

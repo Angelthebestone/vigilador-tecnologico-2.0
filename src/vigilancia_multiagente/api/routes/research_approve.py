@@ -64,7 +64,7 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     all_sources = evidence_linker.deduplicate_sources(branch_results)
     linked_findings = evidence_linker.link_findings(branch_results, all_sources)
     report = await report_synthesizer.synthesize(session_id, branch_results, linked_findings, all_sources, llm=minimax_client)
-    await report_repository.save_final_report(session_id, report.markdown)
+    await report_repository.save_final_report(session_id, report)
     session_root = artifact_service.ensure_session_tree(str(session_id))
     (session_root / "report" / "final-report.md").write_text(report.markdown, encoding="utf-8")
 
@@ -93,8 +93,15 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
 
     session.final_report_id = session_id
     session = await session_repository.update(session)
-    graph_payload = graph_service.build(session_id, linked_findings, all_sources)
+    event_log[str(session_id)].append(format_sse(SessionEvent.now("GraphBuildingStarted", session_id, {
+        "message": "Building knowledge graph...",
+    })))
+    graph_payload = graph_service.build(session_id, linked_findings, all_sources, topic=session.user_query)
     graph_analytics = graph_service.analytics(graph_payload)
+    event_log[str(session_id)].append(format_sse(SessionEvent.now("GraphAnalyticsComputed", session_id, {
+        "nodes": len(graph_payload.nodes),
+        "edges": len(graph_payload.edges),
+    })))
     artifact_service.write_json(
         session_root / "graph" / "graph.json",
         {"session_id": str(graph_payload.session_id), "nodes": graph_payload.nodes, "edges": graph_payload.edges},
@@ -129,7 +136,7 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     )
     event_log.setdefault(str(session_id), []).extend(
         [
-            format_sse(SessionEvent.now("PlanApproved", session_id, {"approved_at": report.generated_at})),
+            format_sse(SessionEvent.now("PlanApproved", session_id, {"approved_at": report.generated_at.isoformat()})),
             format_sse(SessionEvent.now("AllBranchesCompleted", session_id, {"completed_branches": len(branch_results), "failed_branches": 0})),
             format_sse(SessionEvent.now("ReportGenerated", session_id, {"report_id": str(session.final_report_id), "confidence_score": 0.72})),
         ]

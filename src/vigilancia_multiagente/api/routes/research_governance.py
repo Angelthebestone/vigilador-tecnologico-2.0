@@ -24,7 +24,7 @@ async def get_iterations(session_id: UUID) -> dict[str, object]:
 @router.get("/{session_id}/agent-contracts")
 async def get_agent_contracts(session_id: UUID) -> dict[str, object]:
     skill_matrix = governance_loader.load_skill_matrix()
-    prompt_contracts = [governance_loader.load_prompt_template(branch_type) for branch_type in skill_matrix]
+    branch_overlays = [governance_loader.load_branch_overlay(branch_type) for branch_type in skill_matrix]
     return {
         "session_id": str(session_id),
         "skill_matrix": [
@@ -38,19 +38,19 @@ async def get_agent_contracts(session_id: UUID) -> dict[str, object]:
             }
             for policy in skill_matrix.values()
         ],
-        "prompt_contracts": [
+        "branch_overlays": [
             {
-                "branch_type": contract.branch_type.value,
-                "objective": contract.objective,
-                "required_context": list(contract.required_context),
-                "output_schema": contract.output_schema,
-                "quality_criteria": list(contract.quality_criteria),
-                "do_rules": list(contract.do_rules),
-                "dont_rules": list(contract.dont_rules),
-                "uncertainty_handling": contract.uncertainty_handling,
-                "version": contract.version,
+                "branch_type": overlay.branch_type.value,
+                "objective": overlay.objective,
+                "required_context": list(overlay.required_context),
+                "output_schema": overlay.output_schema,
+                "quality_criteria": list(overlay.quality_criteria),
+                "do_rules": list(overlay.do_rules),
+                "dont_rules": list(overlay.dont_rules),
+                "uncertainty_handling": overlay.uncertainty_handling,
+                "version": overlay.version,
             }
-            for contract in prompt_contracts
+            for overlay in branch_overlays
         ],
     }
 

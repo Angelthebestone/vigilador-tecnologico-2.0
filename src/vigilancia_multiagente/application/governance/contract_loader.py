@@ -15,25 +15,6 @@ class AgentSkillPolicy:
     substitution_policy: str = "none"
 
 
-@dataclass(slots=True)
-class PromptContract:
-    """Deprecated: use BranchOverlay instead.
-
-    Kept for backward compatibility during migration (Phase 2-3 rollout).
-    Will be removed in a future version (post Phase 4 validation).
-    """
-
-    branch_type: BranchType
-    objective: str
-    required_context: tuple[str, ...]
-    output_schema: dict[str, str]
-    quality_criteria: tuple[str, ...]
-    do_rules: tuple[str, ...]
-    dont_rules: tuple[str, ...]
-    uncertainty_handling: str
-    version: str
-
-
 # Branch-specific overlay definitions aligned with agent-governance.md section 2.
 _BRANCH_OVERLAYS: dict[BranchType, dict[str, object]] = {
     BranchType.AVANCES: {
@@ -131,31 +112,6 @@ class GovernanceContractLoader:
                 retry_limit_per_tool={"tavily_search": 2, "web_search_exa": 2, "brave_web_search": 2},
             ),
         }
-
-    def load_prompt_template(self, branch_type: BranchType) -> PromptContract:
-        """Deprecated: use ``load_branch_overlay()`` instead.
-
-        Returns a PromptContract for backward compatibility.
-        """
-        import warnings
-
-        warnings.warn(
-            "load_prompt_template() is deprecated, use load_branch_overlay() instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        overlay = self.load_branch_overlay(branch_type)
-        return PromptContract(
-            branch_type=overlay.branch_type,
-            objective=overlay.objective,
-            required_context=overlay.required_context,
-            output_schema=overlay.output_schema,
-            quality_criteria=overlay.quality_criteria,
-            do_rules=overlay.do_rules,
-            dont_rules=overlay.dont_rules,
-            uncertainty_handling=overlay.uncertainty_handling,
-            version=overlay.version,
-        )
 
     def load_branch_overlay(self, branch_type: BranchType) -> BranchOverlay:
         """Load the branch-specific overlay for the given branch type.

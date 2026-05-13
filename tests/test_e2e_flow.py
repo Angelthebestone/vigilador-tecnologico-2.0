@@ -20,7 +20,7 @@ def test_research_lifecycle_end_to_end(memory_repositories):
 
     report_response = client.get(f"/research/{session_id}/report")
     assert report_response.status_code == 200
-    assert "# Final Report" in report_response.json()["report"]
+    assert "total_sources_consulted" in report_response.json()
 
     sources_response = client.get(f"/research/{session_id}/sources")
     assert sources_response.status_code == 200

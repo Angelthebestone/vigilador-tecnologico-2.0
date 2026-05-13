@@ -198,15 +198,16 @@ def test_all_branch_types_have_overlays() -> None:
 
 
 def test_contract_loader_backward_compatible() -> None:
-    """The deprecated load_prompt_template should still work."""
-    from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader, PromptContract
+    """The overlay loader returns BranchOverlay with all expected fields."""
+    from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
+    from vigilancia_multiagente.domain.system_base import BranchOverlay
     from pathlib import Path
 
     contracts_root = Path("specs/002-vigilancia-multiagente/contracts")
     loader = GovernanceContractLoader(contracts_root)
 
-    contract = loader.load_prompt_template(BranchType.AVANCES)
-    assert isinstance(contract, PromptContract)
-    assert contract.branch_type == BranchType.AVANCES
-    assert contract.objective
-    assert contract.version == "1.0.0"
+    overlay = loader.load_branch_overlay(BranchType.AVANCES)
+    assert isinstance(overlay, BranchOverlay)
+    assert overlay.branch_type == BranchType.AVANCES
+    assert overlay.objective
+    assert overlay.version == "1.0.0"

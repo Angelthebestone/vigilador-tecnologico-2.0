@@ -118,6 +118,30 @@ class GraphSearchHit:
 
 
 @dataclass(slots=True)
+class Recommendation:
+    text: str
+    priority: str
+    based_on: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class FinalReport:
+    session_id: UUID
+    generated_at: datetime = field(default_factory=datetime.now)
+    markdown: str = ""
+    executive_summary: str = ""
+    technical_section: str = ""
+    commercial_section: str = ""
+    risk_section: str = ""
+    cross_analysis: str = ""
+    recommendations: list[Recommendation] = field(default_factory=list)
+    all_sources: list[SourceRef] = field(default_factory=list)
+    total_sources_consulted: int = 0
+    total_learnings: int = 0
+    confidence_score: float = 0.0
+
+
+@dataclass(slots=True)
 class BranchResult:
     id: UUID
     session_id: UUID

@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from vigilancia_multiagente.application.orchestration.orchestrator_service import OrchestratorService
-from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchStatus, BranchType, Finding, ResearchPlan, ResearchSession, SourceRef
+from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchStatus, BranchType, Finding, FinalReport, ResearchPlan, ResearchSession, SourceRef
 from vigilancia_multiagente.domain.session_state import SessionStatus
 
 from tests.conftest import FakeDatabase, FakeResult, MemorySessionRepository
@@ -219,9 +219,19 @@ async def test_postgres_repositories_roundtrip_serialization():
     assert len(listed) == 1
     assert listed[0].findings[0].statement == "signal detected"
 
-    report_db = FakeDatabase([FakeResult(), FakeResult(row={"report_markdown": "# report"})])
+    report_db = FakeDatabase([FakeResult(), FakeResult(row={"report_markdown": '{"session_id":"' + str(session_id) + '","markdown":"# Test Report\\n\\nContent here","executive_summary":"Test","technical_section":"","commercial_section":"","risk_section":"","cross_analysis":"","recommendations":[],"total_sources_consulted":5,"total_learnings":3,"confidence_score":0.8}'})])
     report_repo = PostgresReportRepository(report_db)
-    report = await report_repo.save_final_report(session_id, "# report")
-    assert report == "# report"
-    assert await report_repo.get(session_id) == "# report"
+    report = await report_repo.save_final_report(session_id, FinalReport(
+        session_id=session_id,
+        markdown="# Test Report\n\nContent here",
+        executive_summary="Test",
+        total_sources_consulted=5,
+        total_learnings=3,
+        confidence_score=0.8,
+    ))
+    assert report.markdown == "# Test Report\n\nContent here"
+    read = await report_repo.get(session_id)
+    assert read is not None
+    assert read.executive_summary == "Test"
+    assert read.markdown == "# Test Report\n\nContent here"
 
