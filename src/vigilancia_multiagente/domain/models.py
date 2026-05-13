@@ -82,6 +82,7 @@ class SourceRef:
     accessed_at: datetime
     title: str | None = None
     content_hash: str | None = None
+    confidence: float = 0.7  # default neutral, overridden by SourceScorer
 
 
 @dataclass(slots=True)

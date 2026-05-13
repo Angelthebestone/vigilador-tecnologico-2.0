@@ -31,25 +31,44 @@ class MCPExecutionClient:
         tool_name: str,
         arguments: dict[str, Any],
     ) -> ToolExecutionResult:
+        # Cache-first check (lazy import avoids circular dependency)
+        from vigilancia_multiagente.api.dependencies import mcp_cache as _mcp_cache
+
+        query = str(arguments.get("query") or arguments.get("url") or "")
+        cached = _mcp_cache.get(tool_name, query)
+        if cached is not None:
+            return ToolExecutionResult(
+                provider=provider.name,
+                tool_name=tool_name,
+                payload=cached,
+                attempt_count=0,
+            )
+
         if provider.transport == MCPTransport.STDIO:
             payload = await self._execute_stdio_tool(provider, tool_name, arguments)
-            return ToolExecutionResult(
+            result = ToolExecutionResult(
                 provider=provider.name,
                 tool_name=tool_name,
                 payload=payload,
                 attempt_count=1,
             )
+            if result.payload:
+                _mcp_cache.set(tool_name, query, result.payload)
+            return result
 
         last_error: Exception | None = None
         for attempt in range(1, provider.retry_policy.max_attempts + 1):
             try:
                 payload = await self._execute_http_tool(provider, tool_name, arguments)
-                return ToolExecutionResult(
+                result = ToolExecutionResult(
                     provider=provider.name,
                     tool_name=tool_name,
                     payload=payload,
                     attempt_count=attempt,
                 )
+                if result.payload:
+                    _mcp_cache.set(tool_name, query, result.payload)
+                return result
             except (httpx.HTTPError, TimeoutError) as exc:
                 last_error = exc
                 if attempt == provider.retry_policy.max_attempts:

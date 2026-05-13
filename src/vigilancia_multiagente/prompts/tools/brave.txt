@@ -1,0 +1,12 @@
+## brave_web_search(query: str, count: 1-20, freshness: "pd"|"pw"|"pm"|"py")
+- Best for: general web search, privacy-focused
+- Max query length: 400 chars
+- freshness="pd" = past day, "pw" = past week, "pm" = past month
+- Timeout: 20s, retries: 2
+
+## brave_news_search(query: str, count: 1-50, freshness: "pd"|"pw"|"pm"|"py")
+- Best for: real-time news search
+- Default freshness="pd" (last 24 hours)
+- Timeout: 15s, retries: 2
+
+Rules: Brave is best for real-time news. Use freshness="pd" by default.

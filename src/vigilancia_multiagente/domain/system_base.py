@@ -53,4 +53,38 @@ class ComposedPrompt:
     user_query: str
     sections: dict[str, str]
     full_text: str
-    prompt_composition_id: str = ""  # set by PromptComposer, used for MCP traceability
+    prompt_composition_id: str = ""
+
+
+class MiniMaxMessage:
+    """A single message in a MiniMax chat conversation.
+
+    Supports all roles documented in the MiniMax API:
+    ``system``, ``user``, ``assistant``, ``user_system``,
+    ``group``, ``sample_message_user``, ``sample_message_ai``.
+    """
+
+    __slots__ = ("role", "content", "name")
+
+    def __init__(self, role: str, content: str, name: str = "") -> None:
+        self.role = role
+        self.content = content
+        self.name = name
+
+    def to_dict(self) -> dict[str, str]:
+        """Serialize to the MiniMax API payload format."""
+        d: dict[str, str] = {"role": self.role, "content": self.content}
+        if self.name:
+            d["name"] = self.name
+        return d
+
+    def __repr__(self) -> str:
+        return f"MiniMaxMessage(role={self.role!r}, name={self.name!r}, content={self.content[:50]}...)"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MiniMaxMessage):
+            return NotImplemented
+        return self.role == other.role and self.name == other.name and self.content == other.content
+
+    def __hash__(self) -> int:
+        return hash((self.role, self.name, self.content))

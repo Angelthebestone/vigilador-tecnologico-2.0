@@ -1,0 +1,12 @@
+## search_google_scholar_key_words(query: str, num_results: 5)
+- Best for: academic paper search by keywords
+- No API key required
+- Slow (scrapes Google Scholar)
+- Keep num_results low (5-10)
+- Timeout: 25s, retries: 2
+
+## search_google_scholar_advanced(query: str, author: str, year_range: [start, end])
+- Best for: advanced academic search with filters
+- Timeout: 25s, retries: 2
+
+Rules: Combine with ArXiv for better coverage.

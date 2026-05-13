@@ -1,0 +1,16 @@
+## read_url(url: str)
+- Best for: extracting clean markdown from any URL
+- FREE tier available (rate-limited without API key)
+- Converts HTML to clean LLM-friendly markdown
+- Timeout: 20s, retries: 1
+
+## search_web(query: str)
+- Best for: web search with content extraction
+- Requires JINA_API_KEY
+- Timeout: 20s, retries: 1
+
+## guess_datetime_url(url: str)
+- Best for: detecting when a page was last updated
+- Timeout: 15s, retries: 1
+
+Rules: Always prefer read_url over Firecrawl (free).

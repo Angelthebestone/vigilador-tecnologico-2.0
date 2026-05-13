@@ -1,0 +1,16 @@
+[
+  {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "branches_executed": ["avances", "comercial", "riesgo", "pi_normativa", "competitivo", "oportunidades"],
+    "findings_per_branch": {
+      "avances": 12,
+      "comercial": 8,
+      "riesgo": 6,
+      "pi_normativa": 4,
+      "competitivo": 9,
+      "oportunidades": 5
+    },
+    "total_sources": 47,
+    "elapsed_seconds": 128
+  }
+]

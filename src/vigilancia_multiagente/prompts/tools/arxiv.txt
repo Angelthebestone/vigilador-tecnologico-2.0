@@ -1,0 +1,17 @@
+## search_papers(query: str, max_results: int, categories: ["cs.AI","cs.LG",...], sort_by: "date"|"relevance")
+- Best for: technical paper search on ArXiv
+- categories filter by CS, physics, math, etc.
+- sort_by="date" for latest papers
+- Timeout: 25s, retries: 2
+
+## download_paper(paper_id: str)
+- Downloads paper content for reading
+- Must call BEFORE read_paper
+- Timeout: 25s, retries: 2
+
+## read_paper(paper_id: str)
+- Reads downloaded paper content
+- Requires download_paper first
+- Timeout: 25s, retries: 2
+
+Rules: search_papers first, then download, then read.

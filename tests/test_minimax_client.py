@@ -6,7 +6,8 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import SecretStr
 
-from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient, MiniMaxMessage, _parse_response
+from vigilancia_multiagente.domain.system_base import MiniMaxMessage
+from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient, _parse_response
 
 
 @dataclass
@@ -28,6 +29,7 @@ def client(monkeypatch):
 def _ok_response(choices: list[dict]) -> AsyncMock:
     resp = AsyncMock()
     resp.status_code = 200
+    resp.raise_for_status = lambda: None  # not a coroutine — matches httpx.Response
     resp.json = lambda: {"choices": choices}
     return resp
 

@@ -1,0 +1,13 @@
+## web_search_exa(query: str, numResults: 1-100, type: "auto"|"fast"|"deep")
+- Best for: general web search with semantic understanding
+- Timeout: 20s, retries: 2
+
+## web_search_advanced_exa(query: str, category: "company"|"news"|"people"|"research paper"|"personal site", numResults: 1-100, includeDomains: str[], startPublishedDate: str)
+- Best for: company research (category="company"), people (category="people")
+- ⚠️ category="company" does NOT accept includeDomains
+- ⚠️ includeText only supports single-item arrays
+- Timeout: 25s, retries: 2
+
+## web_fetch_exa(url: str)
+- Best for: getting full content from a single URL
+- Timeout: 20s, retries: 2

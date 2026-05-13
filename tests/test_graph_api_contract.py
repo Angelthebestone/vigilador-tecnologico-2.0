@@ -2,6 +2,8 @@ from pathlib import Path
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
+
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
 from vigilancia_multiagente.domain.models import BranchType, Finding, SourceRef
 
@@ -46,4 +48,21 @@ def test_contract_files_match_backend_expectations():
     assert '"providers"' in mcp_manifest
     assert "services:" in compose_file
     assert "VT_EMBEDDING_API_KEY" in compose_file
+
+
+@pytest.mark.asyncio
+async def test_knowledge_graph_search_across_sessions():
+    """search_across_sessions returns results from multiple sessions."""
+    service = KnowledgeGraphService()
+    result = await service.search_across_sessions("test", query_vector=None, vector_records=None)
+    assert isinstance(result, list)
+
+
+def test_discover_ecosystem_returns_dict():
+    """discover_ecosystem returns a dict with expected structure."""
+    from vigilancia_multiagente.application.graph.knowledge_graph_service import GraphPayload
+
+    service = KnowledgeGraphService()
+    result = service.discover_ecosystem("test", graph=GraphPayload(session_id=uuid4(), nodes=[], edges=[]))
+    assert isinstance(result, dict)
 

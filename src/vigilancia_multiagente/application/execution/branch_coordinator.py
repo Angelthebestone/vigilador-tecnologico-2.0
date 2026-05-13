@@ -1,9 +1,10 @@
 import asyncio
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from vigilancia_multiagente.application.agents.base import BaseBranchAgent
+from vigilancia_multiagente.application.agents.base import BaseBranchAgent, SignalPayload
 from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchType, ResearchPlan, ResearchSession
 from vigilancia_multiagente.domain.repositories import SessionTelemetryRepository
+from vigilancia_multiagente.application.planning.plan_builder import DEFAULT_PROVIDERS as _DEFAULT_PROVIDERS
 
 
 class BranchCoordinator:
@@ -17,6 +18,9 @@ class BranchCoordinator:
         self._iterations_by_session: dict[UUID, list[dict[str, str | int | bool | None]]] = {}
         self._relations_by_session: dict[UUID, list[dict[str, str | float]]] = {}
         self._provider_usage_by_session: dict[UUID, list[dict[str, str | int]]] = {}
+        self._signal_queue: list[SignalPayload] = []
+        self._signals_by_session: dict[UUID, list[dict[str, str | float]]] = {}
+        self._sub_results: list[BranchResult] = []
 
     async def execute(self, session: ResearchSession, plan: ResearchPlan) -> list[BranchResult]:
         depth_limit = int(plan.global_constraints.get("depth_limit", 3))
@@ -84,6 +88,10 @@ class BranchCoordinator:
                     ],
                 )
                 await self._telemetry_repository.append_provider_telemetry(session.id, output.provider_usage)
+        await self._process_cross_signals(session, plan)
+        for sub_result in self._sub_results:
+            results.append(sub_result)
+        self._sub_results.clear()
         return results
 
     async def _run_branch(
@@ -94,6 +102,45 @@ class BranchCoordinator:
     ):
         agent = self._agents[branch.branch_type]
         return await agent.run(session, branch, depth_limit)
+
+    def queue_signal(self, signal: SignalPayload) -> None:
+        """Add a cross-branch signal to the processing queue."""
+        self._signal_queue.append(signal)
+
+    async def _process_cross_signals(self, session: ResearchSession, plan: ResearchPlan) -> None:
+        """Process queued signals and spawn sub-executions."""
+        while self._signal_queue:
+            signal = self._signal_queue.pop(0)
+            agent = self._agents.get(signal.target_branch)
+            if agent is None:
+                continue
+            sub_branch = BranchConfig(
+                branch_type=signal.target_branch,
+                focus_queries=[signal.query],
+                mcp_providers=list(
+                    _DEFAULT_PROVIDERS.get(signal.target_branch, [])
+                ),
+            )
+            try:
+                output = await agent.run(session, sub_branch, depth_limit=2)
+                self._sub_results.append(output.branch_result)
+                self._signals_by_session.setdefault(uuid4(), []).append({
+                    "source": signal.source_branch.value,
+                    "target": signal.target_branch.value,
+                    "query": signal.query,
+                    "source_url": signal.source_url,
+                    "relevance": signal.relevance,
+                    "sub_executed": True,
+                })
+            except Exception:
+                self._signals_by_session.setdefault(uuid4(), []).append({
+                    "source": signal.source_branch.value,
+                    "target": signal.target_branch.value,
+                    "query": signal.query,
+                    "source_url": signal.source_url,
+                    "relevance": signal.relevance,
+                    "sub_executed": False,
+                })
 
     def get_iterations(self, session_id: UUID) -> list[dict[str, str | int | bool | None]]:
         return self._iterations_by_session.get(session_id, [])

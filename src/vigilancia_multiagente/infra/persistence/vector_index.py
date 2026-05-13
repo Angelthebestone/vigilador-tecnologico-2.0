@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from math import sqrt
 from uuid import UUID, uuid4
@@ -55,20 +56,19 @@ class PostgresVectorIndex:
             vector=normalized,
         )
 
-    async def list_by_session(self, session_id: UUID) -> list[VectorRecord]:
+    async def list_by_session(self, session_id: UUID | None = None) -> list[VectorRecord]:
+        query = """
+            SELECT session_id, content_type, content_ref_id, vector::text AS vector_text
+            FROM embedding_vectors
+        """
+        params: dict[str, object] = {}
+        if session_id is not None:
+            query += " WHERE session_id = :session_id"
+            params["session_id"] = str(session_id)
+        query += " ORDER BY content_type, content_ref_id"
         async with self._database.session() as db:
-            result = await db.execute(
-                text(
-                    """
-                    SELECT session_id, content_type, content_ref_id, vector::text AS vector_text
-                    FROM embedding_vectors
-                    WHERE session_id = :session_id
-                    ORDER BY content_type, content_ref_id
-                    """
-                ),
-                {"session_id": str(session_id)},
-            )
-            rows = result.mappings().all()
+            result = await db.execute(text(query), params)
+            rows: Sequence = result.mappings().all()
         return [
             VectorRecord(
                 session_id=UUID(str(row["session_id"])),

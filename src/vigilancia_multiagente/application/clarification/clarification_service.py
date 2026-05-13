@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient, MiniMaxMessage
+from vigilancia_multiagente.domain.system_base import MiniMaxMessage
+from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 

@@ -25,6 +25,15 @@ from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderConfig
 
 
 @dataclass(slots=True)
+class SignalPayload:
+    source_branch: BranchType
+    target_branch: BranchType
+    query: str
+    source_url: str
+    relevance: float  # 0.0-1.0
+
+
+@dataclass(slots=True)
 class AgentRunOutput:
     branch_result: BranchResult
     iterations: list[IterationResult]
@@ -54,15 +63,23 @@ class BaseBranchAgent:
         self._prompt_composer = prompt_composer or PromptComposer()
         self._validator = PromptValidator()
 
+    async def signal_branch(self, target: BranchType, payload: SignalPayload) -> None:
+        """Queue a cross-branch signal for processing by BranchCoordinator."""
+        from vigilancia_multiagente.api.dependencies import branch_coordinator
+        branch_coordinator.queue_signal(payload)
+
     async def run(self, session: ResearchSession, branch_config: BranchConfig, depth_limit: int) -> AgentRunOutput:
         policy = self._governance_loader.load_skill_matrix()[self.branch_type]
+        from vigilancia_multiagente.api.dependencies import smart_router
+        smart_order = smart_router.select(branch_config.focus_queries[0]) if branch_config.focus_queries else ()
+        tool_order = smart_order or policy.tool_order
         # Phase 3 coexistence: old PromptContract path + new composed prompt path.
         # When system_base_enabled=False, self._system_base is None → falls back to PromptContract only.
         prompt_contract = self._governance_loader.load_prompt_template(self.branch_type)
         temporal = resolve_temporal_window(self.branch_type)
         seed_query = branch_config.focus_queries[0]
-        self._provider_registry.validate_ready(tuple(policy.tool_order))
-        provider_names = branch_config.mcp_providers or list(policy.tool_order)
+        self._provider_registry.validate_ready(tuple(tool_order))
+        provider_names = branch_config.mcp_providers or list(tool_order)
         providers = self._resolve_providers(provider_names, policy)
         if not providers:
             raise RuntimeError(f"No MCP providers configured for {self.branch_type.value}")
@@ -176,6 +193,21 @@ class BaseBranchAgent:
             }
             for execution, payload in zip(executions, query_payloads, strict=True)
         ]
+        # Cross-branch signaling: notify other branches about relevant findings
+        for finding in result.findings:
+            for tag in finding.tags:
+                try:
+                    target = BranchType(tag.upper())
+                    if target != self.branch_type:
+                        await self.signal_branch(target, SignalPayload(
+                            source_branch=self.branch_type,
+                            target_branch=target,
+                            query=finding.statement,
+                            source_url=finding.source_ids[0] if finding.source_ids else "",
+                            relevance=finding.confidence,
+                        ))
+                except ValueError:
+                    pass
         return AgentRunOutput(
             branch_result=result,
             iterations=iterations,

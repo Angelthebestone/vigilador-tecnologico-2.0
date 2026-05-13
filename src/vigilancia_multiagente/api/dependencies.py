@@ -37,6 +37,10 @@ from vigilancia_multiagente.infra.persistence.postgres_repositories import (
     PostgresReportRepository,
     PostgresSessionRepository,
 )
+from vigilancia_multiagente.application.evaluation.parameter_learner import ParameterLearner
+from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
+from vigilancia_multiagente.application.governance.smart_router import SmartToolRouter
+from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
 from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex, VectorRecord
 
 
@@ -66,6 +70,7 @@ provider_registry.validate_ready(
         "firecrawl_scrape",
         "search_google_scholar_key_words",
         "search_papers",
+        "fetch",
     )
 )
 
@@ -82,6 +87,12 @@ branch_kpi_service = BranchKPIService()
 prompt_regression_service = PromptRegressionService()
 golden_cases_runner = GoldenCasesRunner()
 artifact_service = SessionArtifactService()
+
+# Backend Intelligence v3 services
+source_scorer = SourceScorer()
+mcp_cache = MCPSmartCache()
+smart_router = SmartToolRouter()
+parameter_learner = ParameterLearner()
 contracts_root = Path("specs/002-vigilancia-multiagente/contracts")
 governance_loader = GovernanceContractLoader(contracts_root)
 graph_snapshot_repository = PostgresGraphSnapshotRepository(database)

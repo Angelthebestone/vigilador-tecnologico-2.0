@@ -1,0 +1,7 @@
+## firecrawl_scrape(url: str, formats: ["markdown"], onlyMainContent: bool)
+- Best for: scraping JavaScript-heavy sites and SPAs
+- Use ONLY when Jina read_url fails (Firecrawl costs credits)
+- Prefer formats=["markdown"] with onlyMainContent=true
+- Timeout: 35s, retries: 1
+
+Rules: Last resort for extraction. Try Jina first.

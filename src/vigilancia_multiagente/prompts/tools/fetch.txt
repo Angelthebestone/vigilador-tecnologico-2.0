@@ -1,0 +1,9 @@
+## fetch(url: str, max_length: 5000, start_index: 0, raw: bool)
+- Best for: simple HTML to markdown conversion
+- FREE, no API key required
+- For long content, use start_index to paginate
+- raw=true returns raw HTML without markdown conversion
+- Timeout: 20s, retries: 2
+
+Rules: Free alternative to Jina for simple URLs.
+For LLM-optimized content, prefer Jina read_url.

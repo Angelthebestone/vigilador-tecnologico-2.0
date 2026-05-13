@@ -170,6 +170,123 @@ class KnowledgeGraphService:
             edge_ids.append(edge_lookup[frozenset({left, right})])
         return GraphPathResult(source_node_id, target_node_id, node_ids, edge_ids, distances[target_node_id])
 
+    async def search_across_sessions(
+        self,
+        query: str,
+        query_vector: list[float] | None = None,
+        vector_records: list[dict[str, object]] | None = None,
+        limit: int = 10,
+    ) -> list[dict[str, object]]:
+        if not vector_records or not query_vector:
+            return []
+        candidates: list[tuple[float, str, str]] = []
+        for record in vector_records:
+            ref_id = str(record.get("content_ref_id", ""))
+            raw_vector = record.get("vector")
+            if not ref_id or not isinstance(raw_vector, list):
+                continue
+            node_vector = [float(item) for item in raw_vector]
+            score = self._vector_score(query_vector, node_vector)
+            if score <= 0.0:
+                continue
+            candidates.append((score, ref_id, f"finding:{ref_id}"))
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return [
+            {
+                "score": round(score, 4),
+                "content_ref_id": ref_id,
+                "node_id": node_id,
+                "explanation": "embedding similarity",
+            }
+            for score, ref_id, node_id in candidates[:limit]
+        ]
+
+    def discover_ecosystem(
+        self, seed: str, graph: GraphPayload, depth: int = 2
+    ) -> dict[str, object]:
+        if not graph or not graph.nodes:
+            return {}
+        node_by_id = {str(node["id"]): node for node in graph.nodes}
+        adjacency, edge_lookup = self._adjacency(graph)
+        seed_nodes: list[str] = []
+        for node in graph.nodes:
+            node_id = str(node["id"])
+            label = str(node.get("label", ""))
+            if seed.lower() in label.lower():
+                seed_nodes.append(node_id)
+        if not seed_nodes:
+            return {}
+        visited: set[str] = set(seed_nodes)
+        queue: deque[tuple[str, int]] = deque((n, 0) for n in seed_nodes)
+        result: dict[str, object] = {
+            "seed": seed,
+            "seed_nodes": seed_nodes,
+            "competes_with": [],
+            "adopted_by": [],
+            "depends_on": [],
+            "emerging": [],
+        }
+        while queue:
+            current, cur_depth = queue.popleft()
+            if cur_depth >= depth:
+                continue
+            for neighbor in adjacency.get(current, []):
+                is_new = neighbor not in visited
+                if is_new:
+                    visited.add(neighbor)
+                    queue.append((neighbor, cur_depth + 1))
+                current_node = node_by_id.get(current, {})
+                neighbor_node = node_by_id.get(neighbor, {})
+                cur_type = current_node.get("type", "")
+                nbr_type = neighbor_node.get("type", "")
+                if cur_type == "FINDING" and nbr_type == "SOURCE":
+                    adopted = result.setdefault("adopted_by", [])
+                    adopted.append({
+                        "finding_id": current,
+                        "finding_label": current_node.get("label", ""),
+                        "source_id": neighbor,
+                        "source_label": neighbor_node.get("label", ""),
+                    })
+                if cur_depth > 0 and nbr_type == "FINDING":
+                    depends = result.setdefault("depends_on", [])
+                    depends.append({
+                        "source_node": current,
+                        "target_node": neighbor,
+                    })
+        source_findings: dict[str, list[str]] = defaultdict(list)
+        for edge in graph.edges:
+            src = str(edge["source"])
+            tgt = str(edge["target"])
+            if src.startswith("finding:") and tgt.startswith("source:"):
+                source_findings[tgt].append(src)
+        for source_id, finding_ids in source_findings.items():
+            in_reach = [fid for fid in finding_ids if fid in visited]
+            if len(in_reach) > 1:
+                for i in range(len(in_reach)):
+                    for j in range(i + 1, len(in_reach)):
+                        result.setdefault("competes_with", []).append({
+                            "source_id": source_id,
+                            "finding_a": in_reach[i],
+                            "finding_b": in_reach[j],
+                        })
+        for node in graph.nodes:
+            node_id = str(node["id"])
+            if node_id not in visited or node.get("type") != "FINDING":
+                continue
+            metadata = node.get("metadata")
+            if not isinstance(metadata, dict):
+                continue
+            confidence = metadata.get("confidence", 0)
+            if isinstance(confidence, (int, float)) and confidence >= 0.8:
+                tags = metadata.get("tags", [])
+                result.setdefault("emerging", []).append({
+                    "node_id": node_id,
+                    "label": node.get("label", ""),
+                    "confidence": confidence,
+                    "tags": list(tags) if isinstance(tags, list) else [],
+                })
+        return result
+
     def search(
         self,
         graph: GraphPayload,

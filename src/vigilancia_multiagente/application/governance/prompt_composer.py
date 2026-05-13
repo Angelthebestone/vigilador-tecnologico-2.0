@@ -14,6 +14,7 @@ from vigilancia_multiagente.application.governance.contract_loader import AgentS
 from vigilancia_multiagente.application.governance.validators import PromptValidator
 from vigilancia_multiagente.domain.models import BranchConfig
 from vigilancia_multiagente.domain.system_base import BranchOverlay, ComposedPrompt, SystemBase
+from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 
 class PromptComposer:
@@ -78,6 +79,18 @@ class PromptComposer:
         if policy is not None:
             sections["skill_matrix"] = _render_skill_matrix(policy)
 
+        # --- Tool Usage Guides ---
+        if policy is not None:
+            tool_sections = []
+            for tool in policy.tool_order:
+                try:
+                    content = load_prompt(f"tools/{tool.split('_')[0]}")
+                    tool_sections.append(f"### {tool}\n\n{content}")
+                except FileNotFoundError:
+                    pass
+            if tool_sections:
+                sections["tool_usage"] = "## Tool Usage Guides\n\n" + "\n\n".join(tool_sections)
+
         # --- User input ---
         sections["user_query"] = f"## User Query\n\n{user_query}"
 
@@ -106,6 +119,7 @@ class PromptComposer:
             "dont_rules",
             "uncertainty_handling",
             "skill_matrix",
+            "tool_usage",
             "user_query",
             "branch_config",
         ]

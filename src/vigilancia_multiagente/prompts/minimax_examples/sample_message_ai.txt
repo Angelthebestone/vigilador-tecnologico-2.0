@@ -1,0 +1,17 @@
+[
+  {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "completed",
+    "executive_summary": "The analysis identified 3 key technology trends in edge AI for manufacturing: (1) predictive maintenance using tinyML showing 40% cost reduction in pilot deployments, (2) real-time quality inspection with computer vision achieving 99.2% accuracy, and (3) digital twin integration growing at 28% CAGR. Two high-priority risks were detected: cybersecurity vulnerabilities in legacy OT systems and shortage of skilled MLOps engineers.",
+    "confidence": 0.87,
+    "recommendations": [
+      {"text": "Implement predictive maintenance pilot in 2 highest-value production lines within 90 days", "priority": "high"},
+      {"text": "Audit OT/IT integration points for CVE-2025-XXX vulnerability patching", "priority": "high"},
+      {"text": "Start skills development program for MLOps for manufacturing", "priority": "medium"}
+    ],
+    "risks": [
+      {"risk": "OT security vulnerabilities unpatched", "probability": 0.65, "impact": "critical"},
+      {"risk": "Talent shortage delays implementation", "probability": 0.45, "impact": "high"}
+    ]
+  }
+]
