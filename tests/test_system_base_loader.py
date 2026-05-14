@@ -108,7 +108,7 @@ def test_missing_frontmatter_defaults_to_0_0_0(contracts_root: Path) -> None:
     # Remove frontmatter
     lines = content.splitlines()
     if lines and lines[0] == "---":
-        end = next((i for i, l in enumerate(lines[1:], 1) if l == "---"), None)
+        end = next((i for i, line in enumerate(lines[1:], 1) if line == "---"), None)
         if end is not None:
             lines = lines[end + 1 :]
     path.write_text("\n".join(lines), encoding="utf-8")

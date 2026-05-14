@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field
-from pathlib import Path
 import json
+from dataclasses import dataclass, field
 from enum import StrEnum
+from pathlib import Path
 
 from vigilancia_multiagente.config.settings import Settings
 
@@ -38,6 +38,7 @@ class MCPProviderConfig:
     enabled_tools: tuple[str, ...] = ()
     capabilities: tuple[str, ...] = ()
     headers: dict[str, str] = field(default_factory=dict)
+    environment: dict[str, str] = field(default_factory=dict)
 
 
 class MCPProviderRegistry:
@@ -73,9 +74,16 @@ class MCPProviderRegistry:
         if not isinstance(providers, list):
             raise TypeError("MCP provider manifest must contain a provider list")
         for item in providers:
+            if str(item.get("name")) == "serper":
+                continue
             self.register(_provider_from_manifest(item))
 
     def ensure_standard_providers(self, settings: Settings) -> None:
+        tavily_key = _secret(settings.tavily_api_key)
+        exa_key = _secret(settings.exa_api_key)
+        jina_key = _secret(settings.jina_api_key)
+        brave_key = _secret(settings.brave_api_key)
+        firecrawl_key = _secret(settings.firecrawl_api_key)
         defaults = {
             "tavily": MCPProviderConfig(
                 name="tavily",
@@ -86,6 +94,7 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
                 enabled_tools=("tavily_search", "tavily_extract"),
                 capabilities=("search", "extract"),
+                headers=_auth_headers(tavily_key, extra_name="X-API-Key"),
             ),
             "exa": MCPProviderConfig(
                 name="exa",
@@ -96,6 +105,7 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
                 enabled_tools=("web_search_exa", "web_fetch_exa", "web_search_advanced_exa"),
                 capabilities=("search", "company"),
+                headers=_auth_headers(exa_key, extra_name="x-api-key"),
             ),
             "jina": MCPProviderConfig(
                 name="jina",
@@ -106,6 +116,7 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
                 enabled_tools=("read_url", "search_web", "guess_datetime_url"),
                 capabilities=("read", "search", "metadata"),
+                headers=_auth_headers(jina_key),
             ),
             "brave": MCPProviderConfig(
                 name="brave",
@@ -117,6 +128,7 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
                 enabled_tools=("brave_web_search", "brave_news_search"),
                 capabilities=("search", "news"),
+                environment=_env("BRAVE_API_KEY", brave_key),
             ),
             "firecrawl": MCPProviderConfig(
                 name="firecrawl",
@@ -128,6 +140,7 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(max_attempts=1, backoff_ms=500),
                 enabled_tools=("firecrawl_scrape",),
                 capabilities=("scrape",),
+                environment=_env("FIRECRAWL_API_KEY", firecrawl_key),
             ),
             "google_scholar": MCPProviderConfig(
                 name="google_scholar",
@@ -151,20 +164,21 @@ class MCPProviderRegistry:
                 enabled_tools=("search_papers", "download_paper", "read_paper"),
                 capabilities=("papers",),
             ),
-            "serper": MCPProviderConfig(
-                name="serper",
+            "fetch": MCPProviderConfig(
+                name="fetch",
                 transport=MCPTransport.STDIO,
-                base_url_or_command="npx",
-                arguments=["-y", "@serper-dev/mcp-serper"],
-                auth_mode=MCPAuthMode.API_KEY,
+                base_url_or_command="python",
+                arguments=["-m", "mcp_server_fetch"],
+                auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
-                enabled_tools=("serper_web_search", "serper_news_search", "serper_patents"),
-                capabilities=("search", "news", "patents"),
+                enabled_tools=("fetch",),
+                capabilities=("fetch",),
             ),
         }
         for name, provider in defaults.items():
-            self._providers.setdefault(name, provider)
+            current = self._providers.get(name)
+            self._providers[name] = _merge_provider(current, provider) if current else provider
 
     def validate_ready(self, required_tools: tuple[str, ...]) -> None:
         missing_tools = [tool_name for tool_name in required_tools if not self.providers_for_tool(tool_name)]
@@ -176,11 +190,7 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
     transport = MCPTransport(str(item["transport"]))
     auth_mode = MCPAuthMode(str(item.get("auth_mode", "NONE")))
     retry_payload = item.get("retry_policy") or {}
-    if not isinstance(retry_payload, dict):
-        raise TypeError("retry_policy must be an object")
     headers = item.get("headers") or {}
-    if not isinstance(headers, dict):
-        raise TypeError("headers must be an object")
     provider = MCPProviderConfig(
         name=str(item["name"]),
         transport=transport,
@@ -197,4 +207,41 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
         headers={str(key): str(value) for key, value in headers.items()},
     )
     return provider
+
+
+def _secret(value: object) -> str | None:
+    if value is None:
+        return None
+    return value.get_secret_value() if hasattr(value, "get_secret_value") else str(value)
+
+
+def _auth_headers(api_key: str | None, *, extra_name: str | None = None) -> dict[str, str]:
+    if not api_key:
+        return {}
+    headers = {"Authorization": f"Bearer {api_key}"}
+    if extra_name:
+        headers[extra_name] = api_key
+    return headers
+
+
+def _env(name: str, value: str | None) -> dict[str, str]:
+    return {name: value} if value else {}
+
+
+def _merge_provider(current: MCPProviderConfig, default: MCPProviderConfig) -> MCPProviderConfig:
+    headers = {**default.headers, **current.headers}
+    environment = {**default.environment, **current.environment}
+    return MCPProviderConfig(
+        name=current.name,
+        transport=current.transport,
+        base_url_or_command=current.base_url_or_command,
+        auth_mode=current.auth_mode,
+        timeout_ms=current.timeout_ms,
+        retry_policy=current.retry_policy,
+        arguments=current.arguments,
+        enabled_tools=current.enabled_tools,
+        capabilities=current.capabilities,
+        headers=headers,
+        environment=environment,
+    )
 

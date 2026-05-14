@@ -27,6 +27,7 @@ def test_api_v2_plan_and_graph_routes(memory_repositories):
 
     approve_response = client.post(f"/api/v2/research/{session_id}/approve", json={"approved": True})
     assert approve_response.status_code == 200
+    assert approve_response.json()["status"] == "completed"
 
     analytics_response = client.get(f"/api/v2/research/{session_id}/graph/analytics")
     assert analytics_response.status_code == 200
@@ -48,6 +49,11 @@ def test_api_v2_plan_and_graph_routes(memory_repositories):
         params={"source_node_id": source_node_id, "target_node_id": target_node_id},
     )
     assert path_response.status_code in (200, 404)
+    post_path_response = client.post(
+        f"/api/v2/research/{session_id}/graph/path",
+        params={"source_node_id": source_node_id, "target_node_id": target_node_id},
+    )
+    assert post_path_response.status_code in (200, 404)
 
     search_response = client.get(
         f"/api/v2/research/{session_id}/graph/search",

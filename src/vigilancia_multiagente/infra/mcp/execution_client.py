@@ -1,7 +1,8 @@
 import asyncio
-from dataclasses import dataclass
 import json
+import os
 from asyncio.subprocess import PIPE
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -15,6 +16,7 @@ class ToolExecutionResult:
     tool_name: str
     payload: dict[str, Any]
     attempt_count: int
+    result_status: str = "SUCCESS"
 
 
 class MCPExecutionClient:
@@ -33,14 +35,15 @@ class MCPExecutionClient:
         # Cache-first check (lazy import avoids circular dependency)
         from vigilancia_multiagente.api.dependencies import mcp_cache as _mcp_cache
 
-        query = str(arguments.get("query") or arguments.get("url") or "")
-        cached = _mcp_cache.get(tool_name, query)
+        cache_key = json.dumps(arguments, sort_keys=True, default=str)
+        cached = _mcp_cache.get(tool_name, cache_key)
         if cached is not None:
             return ToolExecutionResult(
                 provider=provider.name,
                 tool_name=tool_name,
                 payload=cached,
                 attempt_count=0,
+                result_status="CACHED",
             )
 
         if provider.transport == MCPTransport.STDIO:
@@ -50,9 +53,10 @@ class MCPExecutionClient:
                 tool_name=tool_name,
                 payload=payload,
                 attempt_count=1,
+                result_status="SUCCESS",
             )
             if result.payload:
-                _mcp_cache.set(tool_name, query, result.payload)
+                _mcp_cache.set(tool_name, cache_key, result.payload)
             return result
 
         last_error: Exception | None = None
@@ -64,9 +68,10 @@ class MCPExecutionClient:
                     tool_name=tool_name,
                     payload=payload,
                     attempt_count=attempt,
+                    result_status="SUCCESS",
                 )
                 if result.payload:
-                    _mcp_cache.set(tool_name, query, result.payload)
+                    _mcp_cache.set(tool_name, cache_key, result.payload)
                 return result
             except (httpx.HTTPError, TimeoutError) as exc:
                 last_error = exc
@@ -104,7 +109,14 @@ class MCPExecutionClient:
         arguments: dict[str, Any],
     ) -> dict[str, Any]:
         command = [provider.base_url_or_command] + list(provider.arguments)
-        process = await asyncio.create_subprocess_exec(*command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        env = {**os.environ, **provider.environment}
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            env=env,
+        )
         request = json.dumps({"tool": tool_name, "arguments": arguments}).encode("utf-8")
         stdout, stderr = await process.communicate(request)
         if process.returncode != 0:

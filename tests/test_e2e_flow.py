@@ -8,6 +8,8 @@ def test_research_lifecycle_end_to_end(memory_repositories):
     assert start_response.status_code == 200
     session_id = UUID(start_response.json()["session_id"])
     assert start_response.json()["status"] == "clarifying"
+    stream_response = client.get(f"/research/{session_id}/stream")
+    assert "ClarificationRequested" in stream_response.text
 
     clarify_response = client.post(f"/research/{session_id}/clarify", json={"answers": {"scope-horizon": "mid-term", "scope-geo": "global"}})
     assert clarify_response.status_code == 200
@@ -16,7 +18,7 @@ def test_research_lifecycle_end_to_end(memory_repositories):
 
     approve_response = client.post(f"/research/{session_id}/approve", json={"approved": True})
     assert approve_response.status_code == 200
-    assert approve_response.json()["status"] == "executing"
+    assert approve_response.json()["status"] == "completed"
 
     report_response = client.get(f"/research/{session_id}/report")
     assert report_response.status_code == 200

@@ -313,14 +313,14 @@ class KnowledgeGraphService:
     # ------------------------------------------------------------------
 
     def discover_ecosystem(self, seed: str, graph: GraphPayload, depth: int = 2) -> dict[str, object]:
-        if not graph or not graph.nodes:
+        if not graph.nodes:
             return {}
         node_by_id = {str(node["id"]): node for node in graph.nodes}
         G = self._to_nx(graph)
         seed_nodes = [
             str(node["id"])
             for node in graph.nodes
-            if seed.lower() in str(node.get("label", "")).lower()
+            if seed.lower() in node["label"].lower()
         ]
         if not seed_nodes:
             return {}
@@ -381,9 +381,7 @@ class KnowledgeGraphService:
             node_id = str(node["id"])
             if node_id not in visited or node.get("type") != "FINDING":
                 continue
-            metadata = node.get("metadata")
-            if not isinstance(metadata, dict):
-                continue
+            metadata = node["metadata"]
             confidence = metadata.get("confidence", 0)
             if isinstance(confidence, (int, float)) and confidence >= 0.8:
                 tags = metadata.get("tags", [])
@@ -413,7 +411,7 @@ class KnowledgeGraphService:
         for node in graph.nodes:
             node_id = str(node["id"])
             label = str(node.get("label", ""))
-            metadata = node.get("metadata") if isinstance(node.get("metadata"), dict) else {}
+            metadata = node["metadata"]
             text_score = self._text_score(query_terms, label, metadata)
             vector_score = self._vector_score(query_vector, vector_by_node_id.get(node_id))
             score = max(text_score, vector_score)

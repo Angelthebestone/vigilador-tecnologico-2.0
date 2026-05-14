@@ -1,7 +1,6 @@
 import pytest
 
 from vigilancia_multiagente.api.security.startup_guard import validate_external_url, validate_stdio_command
-from vigilancia_multiagente.config.settings import Settings
 
 
 def test_validate_external_url_accepts_https_and_rejects_internal():

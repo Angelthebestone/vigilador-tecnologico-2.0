@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -21,6 +22,9 @@ from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddi
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient, ToolExecutionResult
 from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderConfig, MCPProviderRegistry
+
+logger = logging.getLogger(__name__)
+
 
 
 @dataclass(slots=True)
@@ -124,7 +128,8 @@ class BaseBranchAgent:
             next_query = payload.get("next_query")
             needs_follow_up = bool(payload.get("needs_follow_up", index < depth_limit and confidence < 0.8))
             if needs_follow_up and not isinstance(next_query, str):
-                raise RuntimeError(f"MCP tool response missing next_query for {provider.name}:{tool_name}")
+                logger.warning("MCP tool %s missing next_query, stopping follow-up", tool_name)
+                return False, None
             return needs_follow_up, str(next_query) if needs_follow_up else None
 
         iterations = await run_followup_loop(
@@ -133,8 +138,6 @@ class BaseBranchAgent:
             depth_limit=depth_limit,
             execute=execute,
         )
-        if not executions:
-            raise RuntimeError(f"No tool executions recorded for {self.branch_type.value}")
 
         embedding_texts = [
             f"{iteration.query}\n{payload.get('title', '')}\n{payload.get('summary') or payload.get('statement') or ''}"
@@ -186,38 +189,10 @@ class BaseBranchAgent:
                 "tool": execution.tool_name,
                 "latency_ms": int(self._optional_float(payload, "latency_ms") or 0),
                 "attempt_count": execution.attempt_count,
+                "result_status": execution.result_status,
             }
             for execution, payload in zip(executions, query_payloads, strict=True)
         ]
-        # Cross-branch signaling: notify other branches about relevant findings
-        for finding in result.findings:
-            for tag in finding.tags:
-                try:
-                    target = BranchType(tag.upper())
-                    if target != self.branch_type:
-                        await self.signal_branch(target, SignalPayload(
-                            source_branch=self.branch_type,
-                            target_branch=target,
-                            query=finding.statement,
-                            source_url=finding.source_ids[0] if finding.source_ids else "",
-                            relevance=finding.confidence,
-                        ))
-                except ValueError:
-                    pass
-
-        # --- Content extraction tier (SPEC 1.3.4) ---
-        source_urls = list({s.url for s in result.sources})[:10]
-        if source_urls and self._provider_registry is not None:
-            jina_providers = self._provider_registry.providers_for_tool("read_url")
-            for url in source_urls:
-                try:
-                    if jina_providers:
-                        await self._execution_client.execute_tool(
-                            jina_providers[0], "read_url", {"url": url}
-                        )
-                except Exception:
-                    pass
-
         return AgentRunOutput(
             branch_result=result,
             iterations=iterations,

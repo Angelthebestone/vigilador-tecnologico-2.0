@@ -23,7 +23,6 @@ from vigilancia_multiagente.application.orchestration.orchestrator_service impor
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.models import BranchType
-from vigilancia_multiagente.domain.session_state import SessionStatus
 from vigilancia_multiagente.infra.db.connection import database
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
@@ -40,7 +39,7 @@ from vigilancia_multiagente.infra.persistence.postgres_repositories import (
 from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 from vigilancia_multiagente.application.governance.smart_router import SmartToolRouter
 from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
-from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex, VectorRecord
+from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex
 
 
 settings = get_settings()
@@ -54,7 +53,8 @@ embedding_gateway = GeminiEmbeddingGateway()
 minimax_client = MiniMaxClient()
 execution_client = MCPExecutionClient()
 provider_registry = MCPProviderRegistry()
-provider_registry.load_manifest(Path("specs/002-vigilancia-multiagente/contracts/mcp-providers.json"))
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+provider_registry.load_manifest(PROJECT_ROOT / "specs/002-vigilancia-multiagente/contracts/mcp-providers.json")
 provider_registry.ensure_standard_providers(settings)
 provider_registry.validate_ready(
     (
@@ -91,7 +91,7 @@ artifact_service = SessionArtifactService()
 source_scorer = SourceScorer()
 mcp_cache = MCPSmartCache()
 smart_router = SmartToolRouter()
-contracts_root = Path("specs/002-vigilancia-multiagente/contracts")
+contracts_root = PROJECT_ROOT / "specs/002-vigilancia-multiagente/contracts"
 governance_loader = GovernanceContractLoader(contracts_root)
 graph_snapshot_repository = PostgresGraphSnapshotRepository(database)
 
@@ -99,9 +99,14 @@ graph_snapshot_repository = PostgresGraphSnapshotRepository(database)
 # Wired at startup; gated by VT_SYSTEM_BASE_ENABLED feature flag.
 # When disabled, system_base=None → agents fall back to old PromptContract path.
 system_base_loader = SystemBaseLoader(contracts_root)
-try:
-    system_base = system_base_loader.load() if settings.system_base_enabled else None
-except Exception:
+if settings.system_base_enabled:
+    try:
+        system_base = system_base_loader.load()
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Failed to load system base: %s", exc)
+        system_base = None
+else:
     system_base = None
 
 prompt_composer = PromptComposer()

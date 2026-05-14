@@ -1,8 +1,11 @@
 from dataclasses import dataclass
+import logging
 from pathlib import Path
 
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import BranchOverlay
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -60,14 +63,7 @@ class GovernanceContractLoader:
     def __init__(self, contracts_root: Path) -> None:
         self._contracts_root = contracts_root
 
-    def ensure_contract_file(self) -> Path:
-        contract_path = self._contracts_root / "agent-governance.md"
-        if not contract_path.exists():
-            raise FileNotFoundError(f"Missing governance contract: {contract_path}")
-        return contract_path
-
     def load_skill_matrix(self) -> dict[BranchType, AgentSkillPolicy]:
-        self.ensure_contract_file()
         return {
             BranchType.AVANCES: AgentSkillPolicy(
                 branch_type=BranchType.AVANCES,
@@ -119,8 +115,7 @@ class GovernanceContractLoader:
         Tries ``src/prompts/branches/{branch_type}.txt`` first;
         falls back to the hardcoded ``_BRANCH_OVERLAYS`` dict.
         """
-        self.ensure_contract_file()
-        branch_data = _BRANCH_OVERLAYS.get(branch_type, {})
+        branch_data = dict(_BRANCH_OVERLAYS[branch_type])
 
         try:
             from vigilancia_multiagente.infra.prompts.loader import load_prompt
@@ -128,7 +123,7 @@ class GovernanceContractLoader:
             overrides = _parse_prompt_overlay(load_prompt(f"branches/{branch_type.value.lower()}"))
             branch_data = {**branch_data, **overrides}  # type: ignore[arg-type]
         except (FileNotFoundError, KeyError, TypeError):
-            pass
+            logger.debug("Using built-in branch overlay for %s", branch_type.value)
 
         return BranchOverlay(
             branch_type=branch_type,

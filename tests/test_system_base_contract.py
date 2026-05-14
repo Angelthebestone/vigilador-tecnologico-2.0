@@ -140,7 +140,6 @@ async def test_plan_builder_global_constraints_are_scope_only() -> None:
 
 def test_route_plan_payload_includes_system_base_version() -> None:
     """The API plan payload should include system_base_version."""
-    from datetime import UTC, datetime
     from uuid import uuid4
 
     from vigilancia_multiagente.domain.models import BranchConfig, BranchType, ResearchPlan

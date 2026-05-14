@@ -3,7 +3,6 @@
 import pytest
 
 from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
-from vigilancia_multiagente.application.governance.validators import PromptValidationError
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import BranchOverlay, SystemBase
 

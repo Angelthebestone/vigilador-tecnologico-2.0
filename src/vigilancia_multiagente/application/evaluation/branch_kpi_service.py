@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from uuid import UUID
 
 from vigilancia_multiagente.domain.models import BranchResult, BranchType
 

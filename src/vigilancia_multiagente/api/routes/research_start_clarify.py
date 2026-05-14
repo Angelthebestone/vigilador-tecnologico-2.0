@@ -30,7 +30,6 @@ async def start_research(payload: StartRequest) -> dict[str, object]:
     event_log[str(session.id)].append(format_sse(SessionEvent.now("ClarificationRequested", session.id, {
         "questions": [asdict(q) for q in questions],
     })))
-    event_log[str(session.id)] = [event]
     return {
         "session_id": str(session.id),
         "status": session.status.lower(),

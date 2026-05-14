@@ -1,14 +1,14 @@
 import asyncio
-from datetime import datetime
 import logging
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-logger = logging.getLogger(__name__)
-
 from vigilancia_multiagente.application.agents.base import BaseBranchAgent, SignalPayload
+from vigilancia_multiagente.application.planning.plan_builder import DEFAULT_PROVIDERS as _DEFAULT_PROVIDERS
 from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchType, ResearchPlan, ResearchSession
 from vigilancia_multiagente.domain.repositories import SessionTelemetryRepository
-from vigilancia_multiagente.application.planning.plan_builder import DEFAULT_PROVIDERS as _DEFAULT_PROVIDERS
+
+logger = logging.getLogger(__name__)
 
 
 class BranchCoordinator:
@@ -36,10 +36,14 @@ class BranchCoordinator:
                 branch_type = list(plan.branches)[idx].branch_type
                 logger.warning("Branch %s failed: %s", branch_type, output)
                 results.append(BranchResult(
+                    id=uuid4(),
+                    session_id=session.id,
                     branch_type=branch_type,
                     queries_executed=[],
                     findings=[],
                     sources=[],
+                    started_at=datetime.now(UTC),
+                    completed_at=datetime.now(UTC),
                     errors=[str(output)],
                 ))
                 continue
@@ -127,8 +131,8 @@ class BranchCoordinator:
             result = await agent.run(session, branch, depth_limit)
             event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchCompleted", session.id, {
                 "branch": branch.branch_type.value,
-                "findings_count": len(result.findings),
-                "sources_count": len(result.sources),
+                "findings_count": len(result.branch_result.findings),
+                "sources_count": len(result.branch_result.sources),
             })))
             return result
         except Exception as e:
@@ -146,9 +150,7 @@ class BranchCoordinator:
         """Process queued signals and spawn sub-executions."""
         while self._signal_queue:
             signal = self._signal_queue.pop(0)
-            agent = self._agents.get(signal.target_branch)
-            if agent is None:
-                continue
+            agent = self._agents[signal.target_branch]
             sub_branch = BranchConfig(
                 branch_type=signal.target_branch,
                 focus_queries=[signal.query],
@@ -159,7 +161,7 @@ class BranchCoordinator:
             try:
                 output = await agent.run(session, sub_branch, depth_limit=2)
                 self._sub_results.append(output.branch_result)
-                self._signals_by_session.setdefault(uuid4(), []).append({
+                self._signals_by_session.setdefault(session.id, []).append({
                     "source": signal.source_branch.value,
                     "target": signal.target_branch.value,
                     "query": signal.query,
@@ -167,8 +169,9 @@ class BranchCoordinator:
                     "relevance": signal.relevance,
                     "sub_executed": True,
                 })
-            except Exception:
-                self._signals_by_session.setdefault(uuid4(), []).append({
+            except Exception as exc:
+                logger.warning("Cross-signal sub-execution failed: %s", exc)
+                self._signals_by_session.setdefault(session.id, []).append({
                     "source": signal.source_branch.value,
                     "target": signal.target_branch.value,
                     "query": signal.query,
@@ -185,4 +188,7 @@ class BranchCoordinator:
 
     def get_provider_usage(self, session_id: UUID) -> list[dict[str, str | int]]:
         return self._provider_usage_by_session.get(session_id, [])
+
+    def get_signals(self, session_id: UUID) -> list[dict[str, str | float]]:
+        return self._signals_by_session.get(session_id, [])
 

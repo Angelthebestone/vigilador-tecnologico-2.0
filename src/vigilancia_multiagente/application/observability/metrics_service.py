@@ -36,7 +36,7 @@ class MetricsService:
         total = len(entries)
         if not total:
             return 0.0
-        failures = sum(1 for entry in entries if int(entry.get("attempt_count", 1)) <= 0)
+        failures = sum(1 for entry in entries if str(entry.get("result_status", "")).upper() == "FAILED")
         return failures / total
 
     def _retry_rate(self, entries: list[dict[str, str | int]]) -> float:

@@ -25,6 +25,7 @@ from vigilancia_multiagente.api.dependencies import (
 from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 from vigilancia_multiagente.domain.models import BranchConfig, BranchType, ResearchPlan
 from vigilancia_multiagente.domain.session_state import SessionStatus
+from vigilancia_multiagente.infra.embeddings.gemini_gateway import TaskType
 from vigilancia_multiagente.infra.persistence.vector_index import VectorRecord
 
 router = APIRouter(prefix="/research")
@@ -82,12 +83,16 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
             },
         )
         for finding in result.findings:
+            vector = await embedding_gateway.embed(
+                finding.statement,
+                task_type=TaskType.RETRIEVAL_DOCUMENT,
+            )
             await vector_index.upsert(
                 VectorRecord(
                     session_id=session_id,
                     content_type="finding",
                     content_ref_id=str(finding.id),
-                    vector=[0.1, 0.2, 0.3, 0.4],
+                    vector=vector,
                 )
             )
 
@@ -134,10 +139,11 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
             ]
         },
     )
+    failed_branches = sum(1 for result in branch_results if result.errors)
     event_log.setdefault(str(session_id), []).extend(
         [
             format_sse(SessionEvent.now("PlanApproved", session_id, {"approved_at": report.generated_at.isoformat()})),
-            format_sse(SessionEvent.now("AllBranchesCompleted", session_id, {"completed_branches": len(branch_results), "failed_branches": 0})),
+            format_sse(SessionEvent.now("AllBranchesCompleted", session_id, {"completed_branches": len(branch_results) - failed_branches, "failed_branches": failed_branches})),
             format_sse(SessionEvent.now("ReportGenerated", session_id, {"report_id": str(session.final_report_id), "confidence_score": 0.72})),
         ]
     )
@@ -157,6 +163,8 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
                 )
             )
         )
+
+    session = await orchestrator.transition(session_id, SessionStatus.COMPLETED)
 
     return {
         "session_id": str(session_id),

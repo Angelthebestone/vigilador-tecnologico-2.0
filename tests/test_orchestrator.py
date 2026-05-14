@@ -30,6 +30,61 @@ async def test_orchestrator_start_and_transition():
 
 
 @pytest.mark.asyncio
+async def test_branch_coordinator_preserves_successful_agent_output():
+    from vigilancia_multiagente.api.dependencies import event_log
+    from vigilancia_multiagente.application.agents.base import AgentRunOutput
+    from vigilancia_multiagente.application.execution.branch_coordinator import BranchCoordinator
+
+    class DummyAgent:
+        async def run(self, session, branch_config, depth_limit):
+            del depth_limit
+            return AgentRunOutput(
+                branch_result=BranchResult(
+                    id=uuid4(),
+                    session_id=session.id,
+                    branch_type=branch_config.branch_type,
+                    queries_executed=["seed"],
+                    findings=[],
+                    sources=[],
+                ),
+                iterations=[],
+                semantic_relations=[],
+                provider_usage=[],
+            )
+
+    session_id = uuid4()
+    now = datetime.now(UTC)
+    session = ResearchSession(
+        id=session_id,
+        created_at=now,
+        updated_at=now,
+        status=SessionStatus.EXECUTING,
+        user_query="monitor technology",
+    )
+    plan = ResearchPlan(
+        id=uuid4(),
+        session_id=session_id,
+        version=1,
+        branches=[
+            BranchConfig(
+                branch_type=BranchType.AVANCES,
+                focus_queries=["seed"],
+                mcp_providers=["tavily"],
+            )
+        ],
+    )
+    event_log[str(session_id)] = []
+    coordinator = BranchCoordinator({BranchType.AVANCES: DummyAgent()})
+
+    results = await coordinator.execute(session, plan)
+
+    assert len(results) == 1
+    assert results[0].branch_type == BranchType.AVANCES
+    assert results[0].errors == []
+    assert any("BranchCompleted" in event for event in event_log[str(session_id)])
+
+
+@pytest.mark.asyncio
 async def test_postgres_repositories_roundtrip_serialization():
     session_id = uuid4()
     now = datetime.now(UTC)

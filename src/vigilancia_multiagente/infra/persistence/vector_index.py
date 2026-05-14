@@ -56,7 +56,7 @@ class PostgresVectorIndex:
             vector=normalized,
         )
 
-    async def list_by_session(self, session_id: UUID | None = None) -> list[VectorRecord]:
+    async def list_by_session(self, session_id: UUID | None = None, limit: int | None = None) -> list[VectorRecord]:
         query = """
             SELECT session_id, content_type, content_ref_id, vector::text AS vector_text
             FROM embedding_vectors
@@ -66,6 +66,9 @@ class PostgresVectorIndex:
             query += " WHERE session_id = :session_id"
             params["session_id"] = str(session_id)
         query += " ORDER BY content_type, content_ref_id"
+        if limit is not None:
+            query += " LIMIT :limit"
+            params["limit"] = limit
         async with self._database.session() as db:
             result = await db.execute(text(query), params)
             rows: Sequence = result.mappings().all()

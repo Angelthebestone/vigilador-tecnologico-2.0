@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from vigilancia_multiagente.config.settings import get_settings
@@ -10,10 +9,10 @@ from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 DEFAULT_PROVIDERS: dict[BranchType, list[str]] = {
     BranchType.AVANCES: ["tavily", "exa", "jina"],
-    BranchType.COMERCIAL: ["exa", "serper", "tavily"],
+    BranchType.COMERCIAL: ["exa", "brave", "tavily"],
     BranchType.RIESGO: ["brave", "firecrawl", "jina"],
-    BranchType.PI_NORMATIVA: ["google_scholar", "arxiv", "serper"],
-    BranchType.COMPETITIVO: ["exa", "serper", "brave"],
+    BranchType.PI_NORMATIVA: ["google_scholar", "arxiv", "jina"],
+    BranchType.COMPETITIVO: ["exa", "brave", "jina"],
     BranchType.OPORTUNIDADES: ["tavily", "exa", "brave"],
 }
 
@@ -92,10 +91,15 @@ def _parse_branches_from_llm(data: list[dict]) -> list[BranchConfig]:
             bt = BranchType(item.get("type", "").upper())
         except ValueError:
             continue
+        providers = [
+            provider
+            for provider in list(item.get("mcp_providers", DEFAULT_PROVIDERS[bt]))
+            if provider != "serper"
+        ] or DEFAULT_PROVIDERS[bt]
         branches.append(BranchConfig(
             branch_type=bt,
             focus_queries=list(item.get("focus_queries", [])),
-            mcp_providers=list(item.get("mcp_providers", DEFAULT_PROVIDERS.get(bt, []))),
+            mcp_providers=providers,
             priority_weight=item.get("priority_weight"),
         ))
     return branches

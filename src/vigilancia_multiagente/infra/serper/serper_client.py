@@ -47,9 +47,7 @@ class SerperClient:
 
     async def _request(self, endpoint: str, queries: list[str]) -> httpx.Response:
         """Execute a POST request to the Serper API."""
-        url = self._BASE_URLS.get(endpoint)
-        if url is None:
-            raise SerperError(f"Unknown endpoint: {endpoint!r}")
+        url = self._BASE_URLS[endpoint]
 
         if self._client is None:
             self._client = httpx.AsyncClient(
@@ -69,20 +67,17 @@ class SerperClient:
 
     async def search_news(self, *queries: str) -> SerperResult:
         resp = await self._request("news", list(queries))
-        data = resp.json()
-        items = data if isinstance(data, list) else []
+        items = _extract_items(resp.json(), ("news", "organic", "results"))
         return SerperResult(items=items, total=len(items))
 
     async def search_patents(self, *queries: str) -> SerperResult:
         resp = await self._request("patents", list(queries))
-        data = resp.json()
-        items = data if isinstance(data, list) else []
+        items = _extract_items(resp.json(), ("patents", "organic", "results"))
         return SerperResult(items=items, total=len(items))
 
     async def search_scholar(self, *queries: str) -> SerperResult:
         resp = await self._request("scholar", list(queries))
-        data = resp.json()
-        items = data if isinstance(data, list) else []
+        items = _extract_items(resp.json(), ("organic", "scholar", "results"))
         return SerperResult(items=items, total=len(items))
 
     async def close(self) -> None:
@@ -95,3 +90,23 @@ class SerperClient:
 
     async def __aexit__(self, *args: object) -> None:
         await self.close()
+
+
+def _extract_items(data: Any, keys: tuple[str, ...]) -> list[dict[str, Any]]:
+    if isinstance(data, dict):
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+        return []
+    if not isinstance(data, list):
+        return []
+
+    items: list[dict[str, Any]] = []
+    for entry in data:
+        if isinstance(entry, dict):
+            nested = _extract_items(entry, keys)
+            items.extend(nested or [entry])
+        elif isinstance(entry, list):
+            items.extend(item for item in entry if isinstance(item, dict))
+    return items

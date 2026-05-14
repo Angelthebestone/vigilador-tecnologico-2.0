@@ -10,7 +10,7 @@ class EvidenceLinker:
         dedup: dict[str, SourceRef] = {}
         for result in branch_results:
             for source in result.sources:
-                normalized = source.url.strip().lower()
+                normalized = _normalize_url(source.url)
                 if normalized not in dedup:
                     dedup[normalized] = source
         sources = list(dedup.values())
@@ -23,12 +23,33 @@ class EvidenceLinker:
         return sources
 
     def link_findings(self, branch_results: list[BranchResult], dedup_sources: list[SourceRef]) -> list[Finding]:
+        canonical_by_url = {_normalize_url(source.url): source.id for source in dedup_sources}
+        source_by_id = {
+            source.id: source
+            for result in branch_results
+            for source in result.sources
+        }
         available_ids = {source.id for source in dedup_sources}
         linked: list[Finding] = []
         for result in branch_results:
             for finding in result.findings:
-                finding.source_ids = [source_id for source_id in finding.source_ids if source_id in available_ids]
+                remapped_ids = []
+                for source_id in finding.source_ids:
+                    if source_id in available_ids:
+                        remapped_ids.append(source_id)
+                        continue
+                    source = source_by_id.get(source_id)
+                    if source is None:
+                        continue
+                    canonical_id = canonical_by_url.get(_normalize_url(source.url))
+                    if canonical_id is not None:
+                        remapped_ids.append(canonical_id)
+                finding.source_ids = list(dict.fromkeys(remapped_ids))
                 if finding.source_ids:
                     linked.append(finding)
         return linked
+
+
+def _normalize_url(url: str) -> str:
+    return url.strip().lower().rstrip("/")
 

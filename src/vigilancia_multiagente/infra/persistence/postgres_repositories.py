@@ -180,35 +180,37 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
         if not records:
             return
         async with self._database.session() as db:
-            for record in records:
-                await db.execute(
-                    text(
-                        """
-                        INSERT INTO iteration_records (id, session_id, branch_type, payload)
-                        VALUES (:id, :session_id, :branch_type, CAST(:payload AS jsonb))
-                        """
-                    ),
+            await db.execute(
+                text(
+                    """
+                    INSERT INTO iteration_records (id, session_id, branch_type, payload)
+                    VALUES (:id, :session_id, :branch_type, CAST(:payload AS jsonb))
+                    """
+                ),
+                [
                     {
                         "id": str(record["id"]),
                         "session_id": str(session_id),
                         "branch_type": str(record["branch_type"]),
                         "payload": _json_dump(record),
-                    },
-                )
+                    }
+                    for record in records
+                ],
+            )
             await db.commit()
 
     async def append_semantic_relations(self, session_id: UUID, records: Sequence[dict[str, object]]) -> None:
         if not records:
             return
         async with self._database.session() as db:
-            for record in records:
-                await db.execute(
-                    text(
-                        """
-                        INSERT INTO semantic_relations (id, session_id, payload)
-                        VALUES (:id, :session_id, CAST(:payload AS jsonb))
-                        """
-                    ),
+            await db.execute(
+                text(
+                    """
+                    INSERT INTO semantic_relations (id, session_id, payload)
+                    VALUES (:id, :session_id, CAST(:payload AS jsonb))
+                    """
+                ),
+                [
                     {
                         "id": str(
                             uuid5(
@@ -218,28 +220,32 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
                         ),
                         "session_id": str(session_id),
                         "payload": _json_dump(record),
-                    },
-                )
+                    }
+                    for record in records
+                ],
+            )
             await db.commit()
 
     async def append_provider_telemetry(self, session_id: UUID, records: Sequence[dict[str, object]]) -> None:
         if not records:
             return
         async with self._database.session() as db:
-            for index, record in enumerate(records, start=1):
-                await db.execute(
-                    text(
-                        """
-                        INSERT INTO provider_telemetry (id, session_id, payload)
-                        VALUES (:id, :session_id, CAST(:payload AS jsonb))
-                        """
-                    ),
+            await db.execute(
+                text(
+                    """
+                    INSERT INTO provider_telemetry (id, session_id, payload)
+                    VALUES (:id, :session_id, CAST(:payload AS jsonb))
+                    """
+                ),
+                [
                     {
                         "id": str(uuid5(NAMESPACE_URL, f"{session_id}:{index}:{record.get('provider')}:{record.get('tool')}")),
                         "session_id": str(session_id),
                         "payload": _json_dump(record),
-                    },
-                )
+                    }
+                    for index, record in enumerate(records, start=1)
+                ],
+            )
             await db.commit()
 
 
@@ -429,11 +435,11 @@ def _branch_to_dict(branch: BranchConfig) -> dict[str, object]:
 def _branch_from_dict(payload: dict[str, object]) -> BranchConfig:
     return BranchConfig(
         branch_type=BranchType(str(payload["branch_type"])),
-        focus_queries=[str(item) for item in payload.get("focus_queries", [])],
-        mcp_providers=[str(item) for item in payload.get("mcp_providers", [])],
+        focus_queries=list(payload.get("focus_queries", [])),
+        mcp_providers=list(payload.get("mcp_providers", [])),
         mcp_tool_profile=payload.get("mcp_tool_profile"),
         priority_weight=int(payload["priority_weight"]) if payload.get("priority_weight") is not None else None,
-        status=BranchStatus(str(payload.get("status", BranchStatus.PENDING.value))),
+        status=BranchStatus(payload["status"]),
     )
 
 
@@ -582,12 +588,12 @@ def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
     return FinalReport(
         session_id=UUID(str(data["session_id"])),
         generated_at=_ensure_datetime(data["generated_at"]) if isinstance(data.get("generated_at"), str) else data.get("generated_at"),
-        markdown=str(data.get("markdown", "")),
-        executive_summary=str(data.get("executive_summary", "")),
-        technical_section=str(data.get("technical_section", "")),
-        commercial_section=str(data.get("commercial_section", "")),
-        risk_section=str(data.get("risk_section", "")),
-        cross_analysis=str(data.get("cross_analysis", "")),
+        markdown=data.get("markdown", ""),
+        executive_summary=data.get("executive_summary", ""),
+        technical_section=data.get("technical_section", ""),
+        commercial_section=data.get("commercial_section", ""),
+        risk_section=data.get("risk_section", ""),
+        cross_analysis=data.get("cross_analysis", ""),
         recommendations=[
             Recommendation(text=str(r["text"]), priority=str(r.get("priority", "medium")), based_on=[str(b) for b in r.get("based_on", [])])
             for r in (data.get("recommendations") or [])

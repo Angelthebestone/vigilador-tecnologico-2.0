@@ -17,7 +17,6 @@ from vigilancia_multiagente.api import dependencies as api_dependencies
 from vigilancia_multiagente.api.routes import research_approve, research_governance, research_outputs, research_start_clarify
 from vigilancia_multiagente.application.artifacts.manifest_service import SessionArtifactService
 from vigilancia_multiagente.application.clarification.clarification_service import ClarificationService
-from vigilancia_multiagente.application.evaluation.golden_cases_runner import GoldenCasesRunner
 from vigilancia_multiagente.application.evaluation.prompt_regression_service import PromptRegressionService
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
@@ -25,8 +24,7 @@ from vigilancia_multiagente.application.governance.contract_loader import Govern
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
 from vigilancia_multiagente.application.orchestration.orchestrator_service import OrchestratorService
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
-from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchStatus, BranchType, Finding, ResearchPlan, ResearchSession, SourceRef
-from vigilancia_multiagente.domain.session_state import SessionStatus
+from vigilancia_multiagente.domain.models import BranchResult, Finding, ResearchPlan, ResearchSession, SourceRef
 
 
 class FakeResult:
@@ -150,9 +148,10 @@ class MemoryVectorIndex:
     async def upsert(self, record: object) -> None:
         self.records.append(record)
 
-    async def list_by_session(self, session_id: UUID) -> list[object]:
+    async def list_by_session(self, session_id: UUID | None, limit: int | None = None) -> list[object]:
         del session_id
-        return list(self.records)
+        records = list(self.records)
+        return records[:limit] if limit is not None else records
 
 
 class FakeEmbeddingGateway:
@@ -283,6 +282,7 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_approve, "branch_result_repository", branch_repo)
     monkeypatch.setattr(research_approve, "report_repository", report_repo)
     monkeypatch.setattr(research_approve, "artifact_service", artifact_service)
+    monkeypatch.setattr(research_approve, "embedding_gateway", FakeEmbeddingGateway())
     monkeypatch.setattr(research_approve, "vector_index", vector_index)
     monkeypatch.setattr(research_approve, "graph_snapshot_repository", graph_snapshot_repo)
     monkeypatch.setattr(research_approve, "event_log", api_dependencies.event_log)
@@ -295,6 +295,7 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_outputs, "evidence_linker", EvidenceLinker())
     monkeypatch.setattr(research_outputs, "embedding_gateway", FakeEmbeddingGateway())
     monkeypatch.setattr(research_outputs, "vector_index", vector_index)
+    monkeypatch.setattr(research_outputs, "graph_snapshot_repository", graph_snapshot_repo)
     monkeypatch.setattr(research_outputs, "event_log", api_dependencies.event_log)
 
     monkeypatch.setattr(research_governance, "branch_coordinator", branch_coordinator)

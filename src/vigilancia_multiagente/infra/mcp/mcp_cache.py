@@ -10,7 +10,6 @@ Notable exclusions (never cached):
 from __future__ import annotations
 
 import hashlib
-import json
 import time
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -37,6 +36,7 @@ class MCPSmartCache:
     """
 
     _store: dict[str, _CacheEntry] = field(default_factory=dict, repr=False)
+    _tool_index: dict[str, set[str]] = field(default_factory=dict, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
 
     # Default TTLs per tool (in seconds)
@@ -99,6 +99,7 @@ class MCPSmartCache:
                 data=data,
                 expires_at=time.monotonic() + max(ttl, 1.0),
             )
+            self._tool_index.setdefault(tool, set()).add(key)
 
     def invalidate(self, tool: str, query: str | None = None) -> None:
         """Remove cache entries for the given *tool*.
@@ -108,17 +109,20 @@ class MCPSmartCache:
         """
         with self._lock:
             if query is not None:
-                self._store.pop(self._normalize(tool, query), None)
+                key = self._normalize(tool, query)
+                self._store.pop(key, None)
+                if tool in self._tool_index:
+                    self._tool_index[tool].discard(key)
                 return
-            prefix = tool + "::"
-            keys = [k for k in self._store if k.startswith(hashlib.sha256(prefix.encode()).hexdigest()[:16])]
+            keys = self._tool_index.pop(tool, set())
             for k in keys:
-                del self._store[k]
+                self._store.pop(k, None)
 
     def clear(self) -> None:
         """Remove all cached entries."""
         with self._lock:
             self._store.clear()
+            self._tool_index.clear()
 
     @property
     def size(self) -> int:
@@ -129,4 +133,8 @@ class MCPSmartCache:
             expired = [k for k, v in self._store.items() if now > v.expires_at]
             for k in expired:
                 del self._store[k]
+            if expired:
+                expired_keys = set(expired)
+                for keys in self._tool_index.values():
+                    keys.difference_update(expired_keys)
             return len(self._store)

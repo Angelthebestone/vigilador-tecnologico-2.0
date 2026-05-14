@@ -1,26 +1,13 @@
+import logging
 import re
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from vigilancia_multiagente.domain.models import BranchResult, Finding, FinalReport, Recommendation, SourceRef
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
-
-
-@dataclass(slots=True)
-class SynthesizedReport:
-    session_id: UUID
-    generated_at: str
-    executive_summary: str
-    branch_sections: dict[str, str]
-    contradictions: list[str] = field(default_factory=list)
-    opportunities: list[str] = field(default_factory=list)
-    recommendations: list[dict[str, str]] = field(default_factory=list)
-    all_source_ids: list[str] = field(default_factory=list)
-    markdown: str = ""
-
 
 class ReportSynthesizer:
     async def synthesize(
@@ -87,8 +74,8 @@ class ReportSynthesizer:
                         total_learnings=len(linked_findings),
                         confidence_score=float(data.get("confidence_score", 0.72)),
                     )
-            except (json.JSONDecodeError, KeyError, TypeError, RuntimeError):
-                pass
+            except (json.JSONDecodeError, KeyError, TypeError, RuntimeError) as exc:
+                logger.warning("MiniMax synthesis failed, using template fallback: %s", exc)
 
         markdown = _render_markdown(
             session_id=session_id,
@@ -132,7 +119,7 @@ def _render_markdown(
 def extract_section(markdown: str, section_name: str) -> str:
     for name in (section_name, section_name.lower()):
         match = re.search(
-            rf"^#{{2,3}}\s+{re.escape(name)}\s*$(.*?)(?=^#|\Z)",
+            rf"^#{{2,3}}\s+{re.escape(name)}\s*$(.*?)(?=^##\s|\Z)",
             markdown,
             re.MULTILINE | re.DOTALL,
         )

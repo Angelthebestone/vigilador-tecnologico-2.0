@@ -8,6 +8,7 @@ prompt assembly in the agent runtime.
 
 from __future__ import annotations
 
+import logging
 from uuid import uuid4
 
 from vigilancia_multiagente.application.governance.contract_loader import AgentSkillPolicy
@@ -15,6 +16,28 @@ from vigilancia_multiagente.application.governance.validators import PromptValid
 from vigilancia_multiagente.domain.models import BranchConfig
 from vigilancia_multiagente.domain.system_base import BranchOverlay, ComposedPrompt, SystemBase
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
+
+logger = logging.getLogger(__name__)
+
+_TOOL_PROMPT_NAMES = {
+    "tavily_search": "tavily",
+    "tavily_extract": "tavily",
+    "web_search_exa": "exa",
+    "web_fetch_exa": "exa",
+    "web_search_advanced_exa": "exa",
+    "read_url": "jina",
+    "search_web": "jina",
+    "guess_datetime_url": "jina",
+    "brave_web_search": "brave",
+    "brave_news_search": "brave",
+    "firecrawl_scrape": "firecrawl",
+    "search_google_scholar_key_words": "scholar",
+    "search_google_scholar_advanced": "scholar",
+    "search_papers": "arxiv",
+    "download_paper": "arxiv",
+    "read_paper": "arxiv",
+    "fetch": "fetch",
+}
 
 
 class PromptComposer:
@@ -83,11 +106,15 @@ class PromptComposer:
         if policy is not None:
             tool_sections = []
             for tool in policy.tool_order:
+                prompt_name = _TOOL_PROMPT_NAMES.get(tool)
+                if prompt_name is None:
+                    logger.debug("No tool prompt mapping for %s", tool)
+                    continue
                 try:
-                    content = load_prompt(f"tools/{tool.split('_')[0]}")
+                    content = load_prompt(f"tools/{prompt_name}")
                     tool_sections.append(f"### {tool}\n\n{content}")
                 except FileNotFoundError:
-                    pass
+                    logger.debug("No tool usage guide found for %s", tool)
             if tool_sections:
                 sections["tool_usage"] = "## Tool Usage Guides\n\n" + "\n\n".join(tool_sections)
 
@@ -140,7 +167,7 @@ class PromptComposer:
             branch_type=overlay.branch_type,
             user_query=user_query,
             sections=sections,
-            full_text="\n\n".join(sections.values()),
+            full_text=full_text,
             prompt_composition_id=composed_id,
         )
 
@@ -168,7 +195,7 @@ def _render_skill_matrix(policy: AgentSkillPolicy) -> str:
     """
     order = policy.tool_order
     if not order:
-        return f"## Tools Disponibles\n\n_None configured_"
+        return "## Tools Disponibles\n\n_None configured_"
 
     rows: list[str] = [
         "| Tool | Timeout | Retry | Fallback |",

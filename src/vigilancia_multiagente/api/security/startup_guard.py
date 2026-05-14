@@ -1,7 +1,5 @@
 from urllib.parse import urlparse
 
-from vigilancia_multiagente.config.settings import Settings
-
 
 def validate_external_url(url: str) -> None:
     parsed = urlparse(url)
