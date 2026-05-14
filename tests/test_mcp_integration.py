@@ -9,7 +9,7 @@ from vigilancia_multiagente.infra.mcp.provider_registry import MCPAuthMode, MCPP
 
 def test_provider_registry_loads_manifest_and_indexes_tools():
     registry = MCPProviderRegistry()
-    registry.load_manifest(Path("specs/002-vigilancia-multiagente/contracts/mcp-providers.json"))
+    registry.load_manifest(Path("src/vigilancia_multiagente/infra/mcp/mcp-providers.json"))
 
     assert registry.get("tavily").transport == MCPTransport.HTTP
     assert registry.provider_names_for_tools(("tavily_search", "web_search_exa")) == ("tavily", "exa")

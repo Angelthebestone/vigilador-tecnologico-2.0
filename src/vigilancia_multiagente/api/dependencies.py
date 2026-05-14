@@ -54,7 +54,7 @@ minimax_client = MiniMaxClient()
 execution_client = MCPExecutionClient()
 provider_registry = MCPProviderRegistry()
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-provider_registry.load_manifest(PROJECT_ROOT / "specs/002-vigilancia-multiagente/contracts/mcp-providers.json")
+provider_registry.load_manifest(PROJECT_ROOT / "src/vigilancia_multiagente/infra/mcp/mcp-providers.json")
 provider_registry.ensure_standard_providers(settings)
 provider_registry.validate_ready(
     (

@@ -5,6 +5,8 @@ from pathlib import Path
 
 from vigilancia_multiagente.config.settings import Settings
 
+_MCP_SERVERS = Path(__file__).resolve().parents[4] / ".mcp-servers"
+
 
 
 class MCPTransport(StrEnum):
@@ -122,7 +124,7 @@ class MCPProviderRegistry:
                 name="brave",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="npx",
-                arguments=["-y", "@modelcontextprotocol/server-brave-search", "--transport", "stdio"],
+                arguments=["-y", "@brave/brave-search-mcp-server", "--transport", "stdio"],
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
@@ -146,11 +148,11 @@ class MCPProviderRegistry:
                 name="google_scholar",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="python",
-                arguments=["-m", "google_scholar_mcp_server"],
+                arguments=["-u", str(_MCP_SERVERS / "google-scholar/Google-Scholar-MCP-Server-main/google_scholar_server.py")],
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
-                enabled_tools=("search_google_scholar_key_words", "search_google_scholar_advanced"),
+                enabled_tools=("search_google_scholar_key_words", "search_google_scholar_advanced", "get_author_info"),
                 capabilities=("scholar",),
             ),
             "arxiv": MCPProviderConfig(

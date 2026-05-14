@@ -1,0 +1,132 @@
+{
+  "providers": [
+    {
+      "name": "tavily",
+      "transport": "HTTP",
+      "base_url_or_command": "https://mcp.tavily.com/mcp",
+      "auth_mode": "API_KEY",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["tavily_search", "tavily_extract"],
+      "capabilities": ["search", "extract"],
+      "env_api_key": "TAVILY_API_KEY"
+    },
+    {
+      "name": "exa",
+      "transport": "HTTP",
+      "base_url_or_command": "https://mcp.exa.ai/mcp",
+      "auth_mode": "API_KEY",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["web_search_exa", "web_fetch_exa", "web_search_advanced_exa"],
+      "capabilities": ["search", "company"],
+      "env_api_key": "EXA_API_KEY"
+    },
+    {
+      "name": "jina",
+      "transport": "HTTP",
+      "base_url_or_command": "https://mcp.jina.ai/v1?include_tools=read_url,search_web,guess_datetime_url",
+      "auth_mode": "BEARER",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["read_url", "search_web", "guess_datetime_url"],
+      "capabilities": ["read", "search", "metadata"],
+      "env_api_key": "JINA_API_KEY"
+    },
+    {
+      "name": "brave",
+      "transport": "STDIO",
+      "base_url_or_command": "node",
+      "arguments": [".mcp-servers/brave-search/brave-search-mcp-server-2.0.80/dist/index.js", "--transport", "stdio"],
+      "auth_mode": "API_KEY",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["brave_web_search", "brave_news_search"],
+      "capabilities": ["search", "news"],
+      "env_api_key": "BRAVE_API_KEY"
+    },
+    {
+      "name": "firecrawl",
+      "transport": "STDIO",
+      "base_url_or_command": "npx",
+      "arguments": ["-y", "firecrawl-mcp"],
+      "auth_mode": "API_KEY",
+      "timeout_ms": 35000,
+      "retry_policy": {
+        "max_attempts": 1,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["firecrawl_scrape"],
+      "capabilities": ["scrape"],
+      "env_api_key": "FIRECRAWL_API_KEY"
+    },
+    {
+      "name": "google_scholar",
+      "transport": "STDIO",
+      "base_url_or_command": "python",
+      "arguments": [".mcp-servers/google-scholar/Google-Scholar-MCP-Server-main/google_scholar_server.py"],
+      "auth_mode": "NONE",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["search_google_scholar_key_words", "search_google_scholar_advanced", "get_author_info"],
+      "capabilities": ["scholar"],
+      "env_api_key": null
+    },
+    {
+      "name": "arxiv",
+      "transport": "STDIO",
+      "base_url_or_command": "arxiv-mcp-server",
+      "arguments": [],
+      "auth_mode": "NONE",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["search_papers", "download_paper", "read_paper"],
+      "capabilities": ["papers"],
+      "env_api_key": null
+    },
+    {
+      "name": "fetch",
+      "transport": "STDIO",
+      "base_url_or_command": "python",
+      "arguments": ["-m", "mcp_server_fetch"],
+      "auth_mode": "NONE",
+      "timeout_ms": 30000,
+      "retry_policy": {
+        "max_attempts": 2,
+        "backoff_ms": 500
+      },
+      "enabled_tools": ["fetch"],
+      "capabilities": ["fetch"],
+      "env_api_key": null
+    },
+    {
+      "name": "serper",
+      "transport": "STDIO",
+      "base_url_or_command": "npx",
+      "arguments": ["-y", "@serper-dev/mcp-serper"],
+      "auth_mode": "API_KEY",
+      "timeout_ms": 30000,
+      "retry_policy": {"max_attempts": 2, "backoff_ms": 500},
+      "enabled_tools": ["serper_web_search", "serper_news_search", "serper_patents"],
+      "capabilities": ["search", "news", "patents"]
+    }
+  ]
+}
