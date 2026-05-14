@@ -88,15 +88,14 @@ class BaseBranchAgent:
         # Compose prompt from system base + branch overlay + user query
         composed = None
         if self._system_base is not None:
-            overlay = self._governance_loader.load_branch_overlay(self.branch_type)
             composed = self._prompt_composer.compose(
                 system_base=self._system_base,
-                overlay=overlay,
+                overlay=branch_overlay,
                 user_query=session.user_query,
                 branch_config=branch_config,
                 policy=policy,
             )
-            self._validator.validate_composition(self._system_base, overlay, session.user_query)
+            self._validator.validate_composition(self._system_base, branch_overlay, session.user_query)
 
         executions: list[ToolExecutionResult] = []
         query_payloads: list[dict[str, object]] = []
@@ -177,8 +176,8 @@ class BaseBranchAgent:
             queries_executed=[item.query for item in iterations],
             findings=[finding],
             sources=[source],
-            started_at=iterations[0].started_at if iterations else datetime.now(UTC),
-            completed_at=iterations[-1].completed_at if iterations else datetime.now(UTC),
+            started_at=iterations[0].started_at,
+            completed_at=iterations[-1].completed_at,
             coverage_score=min(1.0, 0.55 + 0.12 * len(iterations)),
             confidence_score=finding.confidence,
             errors=[],
