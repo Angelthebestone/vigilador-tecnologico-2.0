@@ -57,6 +57,9 @@ class ReportSynthesizer:
                 response = await llm.complete(messages=[MiniMaxMessage(role="user", content=prompt + "\n\n" + sections_text)])
                 data = json.loads(response.content)
                 if "executive_summary" in data:
+                    raw_recommendations = data.get("recommendations")
+                    if not isinstance(raw_recommendations, list):
+                        raw_recommendations = []
                     return FinalReport(
                         session_id=session_id,
                         markdown=json.dumps(data, indent=2),
@@ -67,7 +70,7 @@ class ReportSynthesizer:
                         cross_analysis=data.get("cross_analysis", ""),
                         recommendations=[
                             Recommendation(text=r["text"], priority=r.get("priority", "medium"))
-                            for r in (data.get("recommendations", []) if isinstance(data.get("recommendations"), list) else [])
+                            for r in raw_recommendations
                         ],
                         all_sources=all_sources,
                         total_sources_consulted=len(all_sources),

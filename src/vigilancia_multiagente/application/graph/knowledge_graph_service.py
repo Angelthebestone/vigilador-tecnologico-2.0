@@ -135,8 +135,7 @@ class KnowledgeGraphService:
                 fid = str(finding.id)
                 B.add_node(fid, bipartite=0)
                 for tag in finding.tags:
-                    if not B.has_node(tag):
-                        B.add_node(tag, bipartite=1)
+                    B.add_node(tag, bipartite=1)
                     B.add_edge(fid, tag)
             proj = nx.bipartite.weighted_projected_graph(B, concept_names, ratio=True)
             for tag_a, tag_b, data in proj.edges(data=True):

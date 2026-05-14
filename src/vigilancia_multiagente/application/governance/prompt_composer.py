@@ -98,12 +98,9 @@ class PromptComposer:
         if overlay.uncertainty_handling:
             sections["uncertainty_handling"] = f"## Uncertainty Handling\n\n{overlay.uncertainty_handling}"
 
-        # --- Skill Matrix: tools disponibles para esta rama ---
+        # --- Skill Matrix + Tool Usage Guides: tools disponibles para esta rama ---
         if policy is not None:
             sections["skill_matrix"] = _render_skill_matrix(policy)
-
-        # --- Tool Usage Guides ---
-        if policy is not None:
             tool_sections = []
             for tool in policy.tool_order:
                 prompt_name = _TOOL_PROMPT_NAMES.get(tool)

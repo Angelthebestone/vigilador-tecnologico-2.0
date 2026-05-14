@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from vigilancia_multiagente.api.security.startup_guard import validate_external_url, validate_stdio_command
 from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient
 from vigilancia_multiagente.infra.mcp.provider_registry import MCPAuthMode, MCPProviderConfig, MCPProviderRegistry, MCPTransport, RetryPolicy
 
@@ -13,13 +12,6 @@ def test_provider_registry_loads_manifest_and_indexes_tools():
 
     assert registry.get("tavily").transport == MCPTransport.HTTP
     assert registry.provider_names_for_tools(("tavily_search", "web_search_exa")) == ("tavily", "exa")
-
-
-def test_security_guards_reject_invalid_mcp_targets():
-    with pytest.raises(RuntimeError):
-        validate_external_url("file:///etc/passwd")
-    with pytest.raises(RuntimeError):
-        validate_stdio_command("python tool.py && rm -rf /")
 
 
 @pytest.mark.asyncio

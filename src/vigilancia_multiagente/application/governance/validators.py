@@ -52,9 +52,6 @@ class PromptValidator:
         if not overlay.objective:
             errors.append(f"Branch overlay '{overlay.branch_type.value}' has an empty 'objective'.")
 
-        if not overlay.branch_type:
-            errors.append("Branch overlay has no 'branch_type' set.")
-
         if errors:
             raise PromptValidationError("\n".join(errors))
 

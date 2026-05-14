@@ -93,7 +93,7 @@ def _parse_branches_from_llm(data: list[dict]) -> list[BranchConfig]:
             continue
         providers = [
             provider
-            for provider in list(item.get("mcp_providers", DEFAULT_PROVIDERS[bt]))
+            for provider in item.get("mcp_providers", DEFAULT_PROVIDERS[bt])
             if provider != "serper"
         ] or DEFAULT_PROVIDERS[bt]
         branches.append(BranchConfig(

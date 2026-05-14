@@ -33,7 +33,7 @@ class BranchCoordinator:
         results: list[BranchResult] = []
         for idx, output in enumerate(outputs):
             if isinstance(output, Exception):
-                branch_type = list(plan.branches)[idx].branch_type
+                branch_type = plan.branches[idx].branch_type
                 logger.warning("Branch %s failed: %s", branch_type, output)
                 results.append(BranchResult(
                     id=uuid4(),
@@ -108,8 +108,7 @@ class BranchCoordinator:
                 )
                 await self._telemetry_repository.append_provider_telemetry(session.id, output.provider_usage)
         await self._process_cross_signals(session, plan)
-        for sub_result in self._sub_results:
-            results.append(sub_result)
+        results.extend(self._sub_results)
         self._sub_results.clear()
         return results
 
@@ -158,27 +157,21 @@ class BranchCoordinator:
                     _DEFAULT_PROVIDERS.get(signal.target_branch, [])
                 ),
             )
+            signal_record: dict[str, str | float | bool] = {
+                "source": signal.source_branch.value,
+                "target": signal.target_branch.value,
+                "query": signal.query,
+                "source_url": signal.source_url,
+                "relevance": signal.relevance,
+                "sub_executed": False,
+            }
             try:
                 output = await agent.run(session, sub_branch, depth_limit=2)
                 self._sub_results.append(output.branch_result)
-                self._signals_by_session.setdefault(session.id, []).append({
-                    "source": signal.source_branch.value,
-                    "target": signal.target_branch.value,
-                    "query": signal.query,
-                    "source_url": signal.source_url,
-                    "relevance": signal.relevance,
-                    "sub_executed": True,
-                })
+                signal_record["sub_executed"] = True
             except Exception as exc:
                 logger.warning("Cross-signal sub-execution failed: %s", exc)
-                self._signals_by_session.setdefault(session.id, []).append({
-                    "source": signal.source_branch.value,
-                    "target": signal.target_branch.value,
-                    "query": signal.query,
-                    "source_url": signal.source_url,
-                    "relevance": signal.relevance,
-                    "sub_executed": False,
-                })
+            self._signals_by_session.setdefault(session.id, []).append(signal_record)
 
     def get_iterations(self, session_id: UUID) -> list[dict[str, str | int | bool | None]]:
         return self._iterations_by_session.get(session_id, [])
