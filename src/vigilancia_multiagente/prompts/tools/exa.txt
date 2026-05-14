@@ -1,13 +1,44 @@
-## web_search_exa(query: str, numResults: 1-100, type: "auto"|"fast"|"deep")
-- Best for: general web search with semantic understanding
-- Timeout: 20s, retries: 2
+<tool name="web_search_exa">
+  <function_signature>## web_search_exa(query: str, numResults: 1-100, type: "auto"|"fast"|"deep")</function_signature>
+  <best_for>general web search with semantic understanding</best_for>
+  <limits>Timeout: 20s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Tavily when you need semantic understanding (conceptual topics)</prefer_over>
+    <prefer_over>Brave when searching for technical content/documentation</prefer_over>
+    <avoid_when>You need fresh results (last hours) — prefer Brave news</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">web_search_exa to identify relevant URLs</step>
+    <step order="2">Jina read_url or web_fetch_exa to extract full content</step>
+  </chaining>
+  <fallback>If it fails, use web_search_advanced_exa with same query and category="research paper"</fallback>
+</tool>
 
-## web_search_advanced_exa(query: str, category: "company"|"news"|"people"|"research paper"|"personal site", numResults: 1-100, includeDomains: str[], startPublishedDate: str)
-- Best for: company research (category="company"), people (category="people")
-- ⚠️ category="company" does NOT accept includeDomains
-- ⚠️ includeText only supports single-item arrays
-- Timeout: 25s, retries: 2
+<tool name="web_search_advanced_exa">
+  <function_signature>## web_search_advanced_exa(query: str, category: "company"|"news"|"people"|"research paper"|"personal site", numResults: 1-100, includeDomains: str[], startPublishedDate: str)</function_signature>
+  <best_for>company research (category="company"), people (category="people")</best_for>
+  <warnings>
+    <warning>category="company" does NOT accept includeDomains</warning>
+    <warning>includeText only supports single-item arrays</warning>
+  </warnings>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <selection_heuristics>
+    <use_category company="true">Company research: funding, team, product</use_category>
+    <use_category people="true">People search: researchers, founders, executives</use_category>
+    <use_category news="true">Recent news and updates</use_category>
+    <use_category research_paper="true">Academic papers and technical publications</use_category>
+    <avoid_when>category="company" with includeDomains — NOT COMPATIBLE</avoid_when>
+  </selection_heuristics>
+  <fallback>If company search fails, use web_search_exa with query including "company" or "startup"</fallback>
+</tool>
 
-## web_fetch_exa(url: str)
-- Best for: getting full content from a single URL
-- Timeout: 20s, retries: 2
+<tool name="web_fetch_exa">
+  <function_signature>## web_fetch_exa(url: str)</function_signature>
+  <best_for>getting full content from a single URL</best_for>
+  <limits>Timeout: 20s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Firecrawl when the site is static (faster, no extra cost)</prefer_over>
+    <avoid_when>The site requires heavy JavaScript (use Firecrawl)</avoid_when>
+  </selection_heuristics>
+  <fallback>If it fails, try Jina read_url or Firecrawl scrape</fallback>
+</tool>

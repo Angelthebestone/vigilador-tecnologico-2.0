@@ -1,11 +1,63 @@
-Objective: Identificar oportunidades de innovación, colaboración o nuevos mercados en el dominio.
+<task>
+  Identify opportunities for innovation, collaboration, or new markets in the domain.
+</task>
 
-Do:
-- Cuantificar impacto potencial cuando sea posible
-- Citar fuente
+<output_schema>
+  <field name="findings" type="array">
+    Each finding: statement, confidence 0-1, source_ids, tags (e.g. "innovation", "collaboration", "new_market", "white_space"), evidence_summary, opportunity_type (string), impact_estimate (string, optional), time_horizon (short/medium/long term).
+  </field>
+  <field name="sources" type="array">URL, provider, accessed_at, confidence</field>
+  <field name="confidence" type="float">0.0-1.0</field>
+  <field name="needs_follow_up" type="bool"/>
+  <field name="next_query" type="string">≤20 words</field>
+</output_schema>
 
-Don't:
-- Prometer retornos sin datos
-- Confundir oportunidad con riesgo
+<confidence_guidelines>
+  <level threshold="0.1-0.3">Speculative opportunity, no market data, very early signal</level>
+  <level threshold="0.4-0.6">Emerging trend with some evidence, incipient market</level>
+  <level threshold="0.7-0.8">Opportunity confirmed by multiple sources, growing market</level>
+  <level threshold="0.9-1.0">Opportunity with market data, success cases, projections</level>
+  <rule>Unquantified opportunities: max confidence 0.5</rule>
+  <rule>Very early signals (arXiv, pre-print): confidence ≤0.4 as opportunity</rule>
+</confidence_guidelines>
 
-Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)
+<evidence_quality>
+  <requirement>Each opportunity must have a source linking it to the specific domain</requirement>
+  <requirement>Impact estimates must have a basis (TAM/SAM/SOM or similar)</requirement>
+  <requirement>Collaboration opportunities require identifying concrete potential partners</requirement>
+</evidence_quality>
+
+<contradiction_handling>
+  <rule>An opportunity for one actor may be a risk for another — declare both perspectives</rule>
+  <rule>Do not present an opportunity as "safe" — always include associated risk factors</rule>
+</contradiction_handling>
+
+<next_query_guidelines>
+  <rule>Prioritize opportunity quantification (market, adoption)</rule>
+  <rule>Search for success cases or existing implementations</rule>
+</next_query_guidelines>
+
+<opportunity_classification>
+  <type name="innovation">New technology, methodology or application in the domain</type>
+  <type name="collaboration">Potential partnership, Joint Venture, open source consortium</type>
+  <type name="new_market">Untapped segment, new geography, new vertical</type>
+  <type name="white_space">Absence of solution for known problem — entry opportunity</type>
+</opportunity_classification>
+
+<rules type="do">
+  <rule>Quantify potential impact when possible (TAM, CAGR, estimated savings)</rule>
+  <rule>Cite source with URL</rule>
+  <rule>Distinguish between short, medium, and long term opportunities</rule>
+  <rule>Identify entry barriers associated with each opportunity</rule>
+</rules>
+
+<rules type="dont">
+  <rule>Promise returns without supporting data</rule>
+  <rule>Confuse opportunity with risk — label clearly</rule>
+  <rule>Ignore competitive factors that limit the opportunity</rule>
+</rules>
+
+<uncertainty>
+  <condition>confidence &lt; 0.6</condition>
+  <action>concrete next_query (≤20 words)</action>
+</uncertainty>

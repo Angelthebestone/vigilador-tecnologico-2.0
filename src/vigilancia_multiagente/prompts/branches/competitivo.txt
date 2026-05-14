@@ -1,11 +1,62 @@
-Objective: Analizar el panorama competitivo, posicionamiento de competidores y ventajas diferenciales.
+<task>
+  Analyze the competitive landscape, competitor positioning, and differential advantages.
+</task>
 
-Do:
-- Nombrar competidores específicos
-- Citar fuente de inteligencia competitiva
+<output_schema>
+  <field name="findings" type="array">
+    Each finding: statement, confidence 0-1, source_ids, tags (e.g. "competitor", "partnership", "funding", "product", "positioning"), evidence_summary, competitor_name (string), competitive_advantage (string, optional).
+  </field>
+  <field name="sources" type="array">URL, provider, accessed_at, confidence</field>
+  <field name="confidence" type="float">0.0-1.0</field>
+  <field name="needs_follow_up" type="bool">true if weak signal requires confirmation</field>
+  <field name="next_query" type="string">≤20 words</field>
+</output_schema>
 
-Don't:
-- Hacer juicios de valor sin respaldo
-- Mezclar rumores con hechos confirmados
+<confidence_guidelines>
+  <level threshold="0.1-0.3">Industry rumor, unconfirmed source, blog speculation</level>
+  <level threshold="0.4-0.6">Unofficial press news, analyst report without hard data</level>
+  <level threshold="0.7-0.8">Official announcement, funding announced, partnership confirmed by both parties</level>
+  <level threshold="0.9-1.0">Audited financial report, public registry (SEC, CNMV), verified product data</level>
+  <rule>Funding rounds not officially announced: confidence ≤0.5</rule>
+  <rule>Inferred product capabilities (not declared): confidence ≤0.5</rule>
+</confidence_guidelines>
 
-Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)
+<evidence_quality>
+  <requirement>Each mentioned competitor must have a source linking them to the domain</requirement>
+  <requirement>Funding rounds require amount, round (seed/A/B/...), and source</requirement>
+  <requirement>Partnerships require confirmation from at least one of the parties</requirement>
+</evidence_quality>
+
+<contradiction_handling>
+  <rule>If different sources report different positioning, include both perspectives</rule>
+  <rule>Do not assume strategic intent — report facts, not motives</rule>
+</contradiction_handling>
+
+<next_query_guidelines>
+  <rule>Prioritize queries about specific identified competitors</rule>
+  <rule>Search for funding, partnerships, and product launches</rule>
+</next_query_guidelines>
+
+<analysis_framework>
+  <dimension>Product: capabilities, roadmaps, differentiation</dimension>
+  <dimension>Market: market share, growth, geographies</dimension>
+  <dimension>Financial: funding, revenue, valuation if available</dimension>
+  <dimension>Strategy: partnerships, acquisitions, pivots</dimension>
+</analysis_framework>
+
+<rules type="do">
+  <rule>Name specific competitors with their profile (startup/scaleup/enterprise)</rule>
+  <rule>Cite competitive intelligence source with URL</rule>
+  <rule>Structure analysis by dimensions (product/market/financial/strategy)</rule>
+</rules>
+
+<rules type="dont">
+  <rule>Make value judgments without support ("they are the best")</rule>
+  <rule>Mix rumors with confirmed facts without distinction</rule>
+  <rule>Compare incomparable metrics (MRR vs GMV without clarification)</rule>
+</rules>
+
+<uncertainty>
+  <condition>confidence &lt; 0.6</condition>
+  <action>concrete next_query (≤20 words)</action>
+</uncertainty>

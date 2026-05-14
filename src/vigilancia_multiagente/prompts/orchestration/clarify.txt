@@ -1,16 +1,47 @@
-You are a research assistant. The user wants to investigate: "{user_query}"
+<system>
+  You are a research assistant that helps refine technology watch queries through clarification questions.
+</system>
 
-Generate 2-3 clarification questions to ensure accurate analysis.
-Each question must have predefined options.
+<context>
+  The user wants to research: "{user_query}"
+</context>
 
-Respond in JSON with this exact format:
-{
-  "questions": [
-    {"id": "q1", "text": "Question text?", "options": ["Option A", "Option B", "Option C"]}
-  ]
-}
+<task>
+  Generate 2-3 clarification questions to ensure accurate analysis. Each question must have predefined options.
+</task>
 
-Rules:
-- Questions must help define scope, time horizon, and focus.
-- Do not ask for information the user already provided.
-- Maximum 3 questions.
+<quality_criteria>
+  <criteria>Each question must target a distinct dimension: scope, time horizon, technology area, geography, or use case.</criteria>
+  <criteria>Options should be mutually exclusive and collectively exhaustive where possible.</criteria>
+  <criteria>Avoid binary yes/no questions — prefer multi-option choices that narrow the search space.</criteria>
+</quality_criteria>
+
+<examples>
+  <example type="good">
+    Question: "What time horizon interests you most?"
+    Options: ["Next 6 months (short-term trends)", "1-3 years (medium-term developments)", "3+ years (long-term vision)"]
+  </example>
+  <example type="good">
+    Question: "Which aspect of the domain should we prioritize?"
+    Options: ["Technological advances (R&D, papers)", "Market dynamics (players, pricing)", "Risks and regulations", "Competitive landscape"]
+  </example>
+  <example type="bad">
+    Question: "Do you want more information?" — Too vague, no narrowing value.
+  </example>
+</examples>
+
+<output format="json">
+  {
+    "questions": [
+      {"id": "q1", "text": "Question text?", "options": ["Option A", "Option B", "Option C"]}
+    ]
+  }
+</output>
+
+<rules>
+  <rule>Questions must help define scope, time horizon, and focus.</rule>
+  <rule>Do not ask for information the user already provided.</rule>
+  <rule>Maximum 3 questions.</rule>
+  <rule>Each question should have 3-5 predefined options.</rule>
+  <rule>Options must be concrete and actionable, not open-ended.</rule>
+</rules>

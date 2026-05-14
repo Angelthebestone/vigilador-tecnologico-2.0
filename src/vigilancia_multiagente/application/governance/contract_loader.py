@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
 from pathlib import Path
+import re
 
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import BranchOverlay
@@ -147,7 +148,24 @@ class GovernanceContractLoader:
 def _parse_prompt_overlay(text: str) -> dict[str, object]:
     """Parse a branch prompt file into overlay fields.
 
-    Expected format::
+    Supports two formats:
+
+    **HTML format** (current)::
+
+        <task>Objective text</task>
+        <rules type="do">
+          <rule>rule1</rule>
+          <rule>rule2</rule>
+        </rules>
+        <rules type="dont">
+          <rule>rule1</rule>
+        </rules>
+        <uncertainty>
+          <condition>confidence &lt; 0.6</condition>
+          <action>next_query concreto</action>
+        </uncertainty>
+
+    **Plain-text format** (legacy)::
 
         Objective: ...
         Do:
@@ -162,6 +180,20 @@ def _parse_prompt_overlay(text: str) -> dict[str, object]:
     current_key: str | None = None
     current_list: list[str] = []
 
+    # Try HTML format first
+    html_objective = _html_extract(text, "task")
+    if html_objective:
+        result["objective"] = html_objective
+        result["do_rules"] = tuple(_html_extract_all(text, "rules", attrs={"type": "do"}))
+        result["dont_rules"] = tuple(_html_extract_all(text, "rules", attrs={"type": "dont"}))
+        uncertainty = _html_extract(text, "uncertainty")
+        if uncertainty:
+            condition = _html_extract(uncertainty, "condition") or "confidence < 0.6"
+            action = _html_extract(uncertainty, "action") or ""
+            result["uncertainty_handling"] = f"{condition} → {action}"
+        return result
+
+    # Fallback to plain-text format
     for line in lines:
         stripped = line.strip()
         if not stripped:
@@ -184,6 +216,31 @@ def _parse_prompt_overlay(text: str) -> dict[str, object]:
             current_list.append(stripped[2:])
     _flush_list(result, current_key, current_list)
     return result
+
+
+def _html_extract(text: str, tag: str, attrs: dict[str, str] | None = None) -> str:
+    """Extract text content of the first occurrence of ``<tag attrs...>...</tag>``."""
+    attr_pattern = ""
+    if attrs:
+        attr_pattern = "".join(f'\\s+{k}="{re.escape(v)}"' for k, v in attrs.items())
+    m = re.search(f"<{tag}{attr_pattern}\\s*>(.*?)</{tag}>", text, re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+
+def _html_extract_all(text: str, tag: str, attrs: dict[str, str] | None = None) -> list[str]:
+    """Extract text content of all ``<child_tag>...</child_tag>`` inside a parent ``<tag attrs...>``.
+
+    The child tag is derived by removing trailing ``s`` from the parent tag
+    (e.g. ``rules`` → child ``rule``, ``items`` → child ``item``).
+    """
+    child_tag = tag[:-1] if tag.endswith("s") else tag
+    attr_pattern = ""
+    if attrs:
+        attr_pattern = "".join(f'\\s+{k}="{re.escape(v)}"' for k, v in attrs.items())
+    parent_m = re.search(f"<{tag}{attr_pattern}\\s*>(.*?)</{tag}>", text, re.DOTALL)
+    if parent_m:
+        return re.findall(f"<{child_tag}>(.*?)</{child_tag}>", parent_m.group(1), re.DOTALL)
+    return re.findall(f"<{child_tag}>(.*?)</{child_tag}>", text, re.DOTALL)
 
 
 def _flush_list(result: dict[str, object], key: str | None, items: list[str]) -> None:

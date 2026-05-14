@@ -1,9 +1,28 @@
-## fetch(url: str, max_length: 5000, start_index: 0, raw: bool)
-- Best for: simple HTML to markdown conversion
-- FREE, no API key required
-- For long content, use start_index to paginate
-- raw=true returns raw HTML without markdown conversion
-- Timeout: 20s, retries: 2
+<tool name="fetch">
+  <function_signature>## fetch(url: str, max_length: 5000, start_index: 0, raw: bool)</function_signature>
+  <best_for>simple HTML to markdown conversion</best_for>
+  <pricing>FREE, no API key required</pricing>
+  <usage>For long content, use start_index to paginate. raw=true returns raw HTML without markdown conversion.</usage>
+  <limits>Timeout: 20s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>The URL is simple (static HTML, no JavaScript)</use_when>
+    <use_when>You need a free alternative to Jina</use_when>
+    <use_when>You only need the first 5000 characters (quick preview)</use_when>
+    <avoid_when>You need LLM-optimized content (use Jina read_url)</avoid_when>
+    <avoid_when>The site requires JavaScript (Firecrawl is better)</avoid_when>
+    <avoid_when>Content is longer than ~5000 chars (use Jina read_url which doesn't truncate)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">fetch(url, max_length=5000) for quick preview</step>
+    <step order="2">If content is promising, Jina read_url for full LLM-friendly version</step>
+    <step order="3">For long content, paginate with incremental start_index</step>
+  </chaining>
+  <fallback>If it fails, try Jina read_url or Firecrawl scrape</fallback>
+</tool>
 
-Rules: Free alternative to Jina for simple URLs.
-For LLM-optimized content, prefer Jina read_url.
+<rules>
+  <rule>Free alternative to Jina for simple URLs.</rule>
+  <rule>For LLM-optimized content, prefer Jina read_url.</rule>
+  <rule>Use raw=true to get raw HTML (useful for debugging).</rule>
+  <rule>If you need more than 5000 chars, use Jina read_url instead (fetch requires manual pagination).</rule>
+</rules>

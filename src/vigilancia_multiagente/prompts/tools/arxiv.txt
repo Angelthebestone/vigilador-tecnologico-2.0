@@ -1,17 +1,42 @@
-## search_papers(query: str, max_results: int, categories: ["cs.AI","cs.LG",...], sort_by: "date"|"relevance")
-- Best for: technical paper search on ArXiv
-- categories filter by CS, physics, math, etc.
-- sort_by="date" for latest papers
-- Timeout: 25s, retries: 2
+<tool name="search_papers">
+  <function_signature>## search_papers(query: str, max_results: int, categories: ["cs.AI","cs.LG",...], sort_by: "date"|"relevance")</function_signature>
+  <best_for>technical paper search on ArXiv</best_for>
+  <details>categories filter by CS, physics, math, etc. sort_by="date" for latest papers.</details>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Scholar for CS/ML/AI/Robotics papers — ArXiv is faster and more complete</prefer_over>
+    <prefer_over>Exa research_paper when you need the full PDF</prefer_over>
+    <avoid_when>The topic is not covered by ArXiv (e.g. social sciences, business)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">search_papers(query, categories=[...], sort_by="date") for recent papers</step>
+    <step order="2">download_paper(paper_id) + read_paper(paper_id) to read full content</step>
+    <step order="3">Extract key findings, methodology, datasets, results</step>
+  </chaining>
+  <fallback>If no results, try search_google_scholar_key_words with same query</fallback>
+  <categories_note>Specify relevant categories (cs.AI, cs.LG, cs.CL, cs.CV, stat.ML) for better filtering. sort_by="date" for latest, "relevance" for best match.</categories_note>
+</tool>
 
-## download_paper(paper_id: str)
-- Downloads paper content for reading
-- Must call BEFORE read_paper
-- Timeout: 25s, retries: 2
+<tool name="download_paper">
+  <function_signature>## download_paper(paper_id: str)</function_signature>
+  <best_for>downloading paper content for reading</best_for>
+  <order>Must call BEFORE read_paper</order>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <usage>Use the paper_id from search_papers results</usage>
+  <fallback>If it fails, try Jina read_url with the ArXiv abstract URL</fallback>
+</tool>
 
-## read_paper(paper_id: str)
-- Reads downloaded paper content
-- Requires download_paper first
-- Timeout: 25s, retries: 2
+<tool name="read_paper">
+  <function_signature>## read_paper(paper_id: str)</function_signature>
+  <best_for>reading downloaded paper content</best_for>
+  <order>Requires download_paper first</order>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <fallback>If it fails because download_paper was not called, run it first</fallback>
+</tool>
 
-Rules: search_papers first, then download, then read.
+<rules>
+  <rule>search_papers first, then download_paper, then read_paper. Strict sequence.</rule>
+  <rule>Categorize the search well to avoid noise (use specific categories).</rule>
+  <rule>Prioritize recent papers (last 2 years) for trends.</rule>
+  <rule>Abstracts may suffice for initial findings — download+read for deep analysis.</rule>
+</rules>

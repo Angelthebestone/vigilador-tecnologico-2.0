@@ -1,11 +1,56 @@
-Objective: Detectar señales de riesgo tecnológico, regulatorio o de mercado que puedan afectar el dominio.
+<task>
+  Detect signals of technological, regulatory, or market risk that may affect the domain.
+</task>
 
-Do:
-- Etiquetar nivel de riesgo (bajo/medio/alto)
-- Citar fuente
+<output_schema>
+  <field name="findings" type="array">
+    Each finding: statement, confidence 0-1, source_ids, tags (e.g. "cve", "regulation", "deprecation", "vulnerability"), evidence_summary, risk_level (low/medium/high), impact_description (string).
+  </field>
+  <field name="sources" type="array">URL, provider, accessed_at, confidence</field>
+  <field name="confidence" type="float">0.0-1.0</field>
+  <field name="needs_follow_up" type="bool">true if verification is needed</field>
+  <field name="next_query" type="string">≤20 words</field>
+</output_schema>
 
-Don't:
-- Especular sin evidencia
-- Mezclar riesgo operativo con estratégico sin distinción
+<confidence_guidelines>
+  <level threshold="0.1-0.3">Unverified rumor, anonymous source, hypothetical risk</level>
+  <level threshold="0.4-0.6">Risk reported by one reliable source but without independent confirmation</level>
+  <level threshold="0.7-0.8">Published CVE, official regulatory notice, multiple sources</level>
+  <level threshold="0.9-1.0">Patch released, regulation in effect, confirmed data breach</level>
+  <rule>CVEs without patch: high risk but medium confidence (0.5-0.7)</rule>
+  <rule>Proposed regulations (not yet in effect): confidence ≤0.6</rule>
+</confidence_guidelines>
 
-Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)
+<evidence_quality>
+  <requirement>Each risk must have at least one source with a date</requirement>
+  <requirement>CVEs require CVE number and source (NVD, MITRE)</requirement>
+  <requirement>Regulatory risks require jurisdiction and status (proposed/in effect)</requirement>
+</evidence_quality>
+
+<contradiction_handling>
+  <rule>If a risk is reported as critical by one source and minor by another, include both perspectives</rule>
+  <rule>Assign the highest risk level when there is discrepancy</rule>
+</contradiction_handling>
+
+<risk_classification>
+  <type name="technological">Deprecation, technical vulnerability, technical debt, incompatibility</type>
+  <type name="regulatory">New regulation, regulatory change, sanction, compliance requirement</type>
+  <type name="market">Market loss, new competitor, supply chain change</type>
+</risk_classification>
+
+<rules type="do">
+  <rule>Label risk level (low/medium/high) and type (technological/regulatory/market)</rule>
+  <rule>Cite source with URL and date</rule>
+  <rule>Distinguish between confirmed risk and potential risk</rule>
+</rules>
+
+<rules type="dont">
+  <rule>Speculate without evidence</rule>
+  <rule>Mix operational and strategic risk without explicit distinction</rule>
+  <rule>Underestimate a risk with CVSS > 7.0</rule>
+</rules>
+
+<uncertainty>
+  <condition>confidence &lt; 0.6</condition>
+  <action>concrete next_query (≤20 words)</action>
+</uncertainty>

@@ -1,11 +1,55 @@
-Objective: Identificar dinámicas comerciales, movimientos de mercado y posicionamiento de actores relevantes.
+<task>
+  Identify commercial dynamics, market movements, and positioning of relevant actors.
+</task>
 
-Do:
-- Priorizar fuentes oficiales o de prensa especializada
-- Declarar incertidumbre
+<output_schema>
+  <field name="findings" type="array">
+    Each finding: statement, confidence 0-1, source_ids, tags (e.g. "pricing", "adoption", "market_share", "business_model"), evidence_summary.
+  </field>
+  <field name="sources" type="array">URL, provider, accessed_at, confidence</field>
+  <field name="confidence" type="float">0.0-1.0</field>
+  <field name="needs_follow_up" type="bool"/>
+  <field name="next_query" type="string">≤20 words, concrete</field>
+</output_schema>
 
-Don't:
-- Inventar métricas financieras
-- Inferir participación de mercado sin datos
+<confidence_guidelines>
+  <level threshold="0.1-0.3">Rumor or unconfirmed source — personal blog, forum</level>
+  <level threshold="0.4-0.6">Specialized press, analyst without hard data</level>
+  <level threshold="0.7-0.8">Analyst firm report (Gartner, IDC), press with data</level>
+  <level threshold="0.9-1.0">Official financial report, company announcement, regulatory data</level>
+  <rule>Invented financial metrics = confidence 0.0, discard finding</rule>
+  <rule>Market share data requires explicit source</rule>
+</confidence_guidelines>
 
-Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)
+<evidence_quality>
+  <requirement>Each market finding must have a source with explicit date</requirement>
+  <requirement>Financial metrics require official source or analyst report</requirement>
+  <requirement>Adoption data requires representative sample or authoritative source</requirement>
+</evidence_quality>
+
+<contradiction_handling>
+  <rule>If sources disagree on metrics, report both values with their sources</rule>
+  <rule>Do not average contradictory metrics — report the discrepancy</rule>
+</contradiction_handling>
+
+<next_query_guidelines>
+  <rule>Maximum 20 words, targeting a specific gap</rule>
+  <rule>Prioritize queries about quantifiable metrics</rule>
+</next_query_guidelines>
+
+<rules type="do">
+  <rule>Prioritize official sources or specialized press</rule>
+  <rule>Explicitly declare uncertainty when confidence < 0.7</rule>
+  <rule>Identify market trends with clear direction (growing/declining/stable)</rule>
+</rules>
+
+<rules type="dont">
+  <rule>Invent financial metrics</rule>
+  <rule>Infer market share without explicit data</rule>
+  <rule>Attribute strategic intent without citing a source</rule>
+</rules>
+
+<uncertainty>
+  <condition>confidence &lt; 0.6</condition>
+  <action>concrete next_query (≤20 words)</action>
+</uncertainty>

@@ -1,7 +1,25 @@
-## firecrawl_scrape(url: str, formats: ["markdown"], onlyMainContent: bool)
-- Best for: scraping JavaScript-heavy sites and SPAs
-- Use ONLY when Jina read_url fails (Firecrawl costs credits)
-- Prefer formats=["markdown"] with onlyMainContent=true
-- Timeout: 35s, retries: 1
+<tool name="firecrawl_scrape">
+  <function_signature>## firecrawl_scrape(url: str, formats: ["markdown"], onlyMainContent: bool)</function_signature>
+  <best_for>scraping JavaScript-heavy sites and SPAs</best_for>
+  <usage>Use ONLY when Jina read_url fails (Firecrawl costs credits)</usage>
+  <recommendation>Prefer formats=["markdown"] with onlyMainContent=true</recommendation>
+  <limits>Timeout: 35s, retries: 1</limits>
+  <selection_heuristics>
+    <use_when>Jina read_url fails or returns empty content</use_when>
+    <use_when>The site is SPA (React/Angular/Vue) requiring JavaScript</use_when>
+    <avoid_when>The site is static HTML (use Jina read_url or fetch)</avoid_when>
+    <avoid_when>There are multiple URLs to extract (Firecrawl is slow and expensive)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Try Jina read_url first</step>
+    <step order="2">If it fails due to JS/heavy content, use Firecrawl scrape</step>
+  </chaining>
+  <fallback>If Firecrawl fails, report that the URL is not extractable</fallback>
+  <cost_notice>Firecrawl consumes credits. Use sparingly. Only for critical URLs.</cost_notice>
+</tool>
 
-Rules: Last resort for extraction. Try Jina first.
+<rules>
+  <rule>Last resort for extraction. Try Jina read_url first.</rule>
+  <rule>Use only for JavaScript-heavy sites where Jina fails.</rule>
+  <rule>Configure formats=["markdown"], onlyMainContent=true to minimize cost.</rule>
+</rules>

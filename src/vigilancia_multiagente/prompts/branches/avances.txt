@@ -1,11 +1,66 @@
-Objective: Identificar señales de avances tecnológicos y tendencias emergentes en el dominio de la consulta.
+<task>
+  Identify signals of technological advances and emerging trends in the query domain.
+</task>
 
-Do:
-- Citar fuentes con URL
-- Declarar incertidumbre
+<output_schema>
+  <field name="findings" type="array">
+    Each finding must have: statement (string), confidence (float 0-1), source_ids (array of UUIDs), tags (array of strings), evidence_summary (string).
+  </field>
+  <field name="sources" type="array">URL, provider, accessed_at, confidence (float 0-1)</field>
+  <field name="confidence" type="float">0.0-1.0 branch-level global confidence</field>
+  <field name="needs_follow_up" type="bool">true if information gaps exist</field>
+  <field name="next_query" type="string">Concrete query ≤20 words for next iteration</field>
+</output_schema>
 
-Don't:
-- Inventar datos
-- Inferir causalidad sin soporte
+<confidence_guidelines>
+  <level threshold="0.1-0.3">Speculative: single non-official source, no corroboration</level>
+  <level threshold="0.4-0.6">Moderate: 2+ sources, partial corroboration</level>
+  <level threshold="0.7-0.8">Good: multiple reliable sources, consistent evidence</level>
+  <level threshold="0.9-1.0">Strong: authoritative sources, confirmed data, consensus</level>
+  <rule>If sources contradict each other, max confidence is 0.5</rule>
+  <rule>Patents and academic papers weigh more than blogs or news</rule>
+  <rule>Explicitly state which source supports each claim</rule>
+</confidence_guidelines>
 
-Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)
+<evidence_quality>
+  <requirement>Each finding must have at least 1 source with a valid URL</requirement>
+  <requirement>Prefer primary sources over secondary ones</requirement>
+  <requirement>If only 1 source exists, max confidence is 0.6</requirement>
+  <requirement>Corroboration by independent sources = +0.1 to confidence</requirement>
+  <requirement>Source date must be explicit or estimable</requirement>
+</evidence_quality>
+
+<contradiction_handling>
+  <rule>If two sources contradict a finding, generate both sides as separate findings</rule>
+  <rule>Assign confidence ≤0.4 to each side when contradiction exists</rule>
+  <rule>Include explicit contradiction note in evidence_summary</rule>
+  <rule>Use next_query to search for contradiction resolution</rule>
+</contradiction_handling>
+
+<next_query_guidelines>
+  <rule>Maximum 20 words</rule>
+  <rule>Must target a specific information gap</rule>
+  <rule>Do not repeat already executed queries</rule>
+  <rule>Formulate as a concrete question, not a generic topic</rule>
+  <example>Bad: "more info about AI" → Good: "tinyML adoption rate manufacturing 2024"</example>
+</next_query_guidelines>
+
+<rules type="do">
+  <rule>Cite sources with full URL</rule>
+  <rule>Explicitly declare uncertainty when confidence < 0.7</rule>
+  <rule>Prefer recent papers (last 2 years) over older ones</rule>
+</rules>
+
+<rules type="dont">
+  <rule>Invent data</rule>
+  <rule>Infer causality without statistical or experimental support</rule>
+  <rule>Generalize from a single case</rule>
+  <rule>Use "according to experts" without citing specific experts</rule>
+</rules>
+
+<uncertainty>
+  <condition>confidence &lt; 0.6</condition>
+  <action>concrete next_query (≤20 words) for the next iteration</action>
+  <condition>insufficient sources</condition>
+  <action>search with another MCP provider or alternate query</action>
+</uncertainty>

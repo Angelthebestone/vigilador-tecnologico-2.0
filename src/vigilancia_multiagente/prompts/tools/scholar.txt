@@ -1,12 +1,38 @@
-## search_google_scholar_key_words(query: str, num_results: 5)
-- Best for: academic paper search by keywords
-- No API key required
-- Slow (scrapes Google Scholar)
-- Keep num_results low (5-10)
-- Timeout: 25s, retries: 2
+<tool name="search_google_scholar_key_words">
+  <function_signature>## search_google_scholar_key_words(query: str, num_results: 5)</function_signature>
+  <best_for>academic paper search by keywords</best_for>
+  <pricing>No API key required</pricing>
+  <details>Slow (scrapes Google Scholar). May be blocked by intensive use.</details>
+  <recommendation>Keep num_results low (5-10). Use sparingly.</recommendation>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>You need academic papers and ArXiv doesn't cover the topic</use_when>
+    <use_when>You want citation and impact metrics (citations per paper)</use_when>
+    <prefer_over>ArXiv for social sciences, medicine, humanities papers</prefer_over>
+    <avoid_when>ArXiv has good coverage of the topic (CS, physics, math)</avoid_when>
+    <avoid_when>You need the full paper text (Scholar only gives metadata)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">search_google_scholar_key_words to find relevant papers</step>
+    <step order="2">Extract title/author/year and search in ArXiv or Jina read_url for full text</step>
+  </chaining>
+  <fallback>If it fails (blocked by scraping), use search_papers from ArXiv with same query</fallback>
+</tool>
 
-## search_google_scholar_advanced(query: str, author: str, year_range: [start, end])
-- Best for: advanced academic search with filters
-- Timeout: 25s, retries: 2
+<tool name="search_google_scholar_advanced">
+  <function_signature>## search_google_scholar_advanced(query: str, author: str, year_range: [start, end])</function_signature>
+  <best_for>advanced academic search with filters</best_for>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>You know the specific author researching the topic</use_when>
+    <use_when>You need precise year range filtering</use_when>
+    <avoid_when>You only need recent papers (use freshness in basic Scholar)</avoid_when>
+  </selection_heuristics>
+  <fallback>If it fails, use search_google_scholar_key_words with year in the query</fallback>
+</tool>
 
-Rules: Combine with ArXiv for better coverage.
+<rules>
+  <rule>Combine with ArXiv for better coverage.</rule>
+  <rule>ArXiv first (faster, direct download), then Scholar if coverage is lacking.</rule>
+  <rule>For full text: ArXiv download+read > Jina read_url > Firefox scrape.</rule>
+</rules>

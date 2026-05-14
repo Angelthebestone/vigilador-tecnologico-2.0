@@ -1,12 +1,41 @@
-## brave_web_search(query: str, count: 1-20, freshness: "pd"|"pw"|"pm"|"py")
-- Best for: general web search, privacy-focused
-- Max query length: 400 chars
-- freshness="pd" = past day, "pw" = past week, "pm" = past month
-- Timeout: 20s, retries: 2
+<tool name="brave_web_search">
+  <function_signature>## brave_web_search(query: str, count: 1-20, freshness: "pd"|"pw"|"pm"|"py")</function_signature>
+  <best_for>general web search, privacy-focused</best_for>
+  <constraints>Max query length: 400 chars</constraints>
+  <parameters>
+    <param name="freshness" values="pd|pw|pm|py" description="pd=past day, pw=past week, pm=past month"/>
+  </parameters>
+  <limits>Timeout: 20s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Tavily when query is ≤400 chars and you want fresh links</prefer_over>
+    <prefer_over>Exa when you need high-privacy results</prefer_over>
+    <avoid_when>Query exceeds 400 chars (use Tavily or Exa)</avoid_when>
+    <avoid_when>You need synthesized answers (Tavily include_answer is better)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">brave_web_search to find recent URLs</step>
+    <step order="2">Jina read_url or fetch to extract content from URLs</step>
+  </chaining>
+  <fallback>If it fails, retry with count=5 and freshness="pw" (week)</fallback>
+</tool>
 
-## brave_news_search(query: str, count: 1-50, freshness: "pd"|"pw"|"pm"|"py")
-- Best for: real-time news search
-- Default freshness="pd" (last 24 hours)
-- Timeout: 15s, retries: 2
+<tool name="brave_news_search">
+  <function_signature>## brave_news_search(query: str, count: 1-50, freshness: "pd"|"pw"|"pm"|"py")</function_signature>
+  <best_for>real-time news search</best_for>
+  <parameters>
+    <param name="freshness" default="pd" description="last 24 hours"/>
+  </parameters>
+  <limits>Timeout: 15s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>You need breaking news (last 24-48h)</use_when>
+    <use_when>The topic has high volatility (launches, breaches, regulations)</use_when>
+    <prefer_over>Google News via Exa for English-language news</prefer_over>
+  </selection_heuristics>
+  <fallback>If it fails, use web_search_exa with startPublishedDate=recent_date</fallback>
+</tool>
 
-Rules: Brave is best for real-time news. Use freshness="pd" by default.
+<rules>
+  <rule>Brave is best for real-time news. Use freshness="pd" by default.</rule>
+  <rule>For deep technical content, prefer Exa or Tavily with search_depth="advanced".</rule>
+  <rule>After finding URLs, extract content with Jina read_url or fetch.</rule>
+</rules>

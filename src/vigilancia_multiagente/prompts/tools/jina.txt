@@ -1,16 +1,49 @@
-## read_url(url: str)
-- Best for: extracting clean markdown from any URL
-- FREE tier available (rate-limited without API key)
-- Converts HTML to clean LLM-friendly markdown
-- Timeout: 20s, retries: 1
+<tool name="read_url">
+  <function_signature>## read_url(url: str)</function_signature>
+  <best_for>extracting clean markdown from any URL</best_for>
+  <pricing>FREE tier available (rate-limited without API key)</pricing>
+  <details>Converts HTML to clean LLM-friendly markdown</details>
+  <limits>Timeout: 20s, retries: 1</limits>
+  <selection_heuristics>
+    <prefer_over>Firecrawl ALWAYS — free and faster</prefer_over>
+    <prefer_over>Tavily extract when content is markdown-friendly</prefer_over>
+    <avoid_when>The site requires JavaScript (Firecrawl works better with SPAs)</avoid_when>
+    <avoid_when>The site blocks scrapers (try fetch first)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Use search tool (Tavily/Exa/Brave) to find URLs</step>
+    <step order="2">read_url to extract full content from promising URLs</step>
+    <step order="3">guess_datetime_url to verify source freshness</step>
+  </chaining>
+  <fallback>If it fails, try fetch (raw mode); if still failing, Firecrawl scrape</fallback>
+  <output>Clean markdown text, LLM-ready. No HTML, no ads, no navigation.</output>
+</tool>
 
-## search_web(query: str)
-- Best for: web search with content extraction
-- Requires JINA_API_KEY
-- Timeout: 20s, retries: 1
+<tool name="search_web">
+  <function_signature>## search_web(query: str)</function_signature>
+  <best_for>web search with content extraction</best_for>
+  <pricing>Requires JINA_API_KEY</pricing>
+  <limits>Timeout: 20s, retries: 1</limits>
+  <selection_heuristics>
+    <avoid_when>Tavily or Exa are available and the query is general</avoid_when>
+    <use_when>You need results with content already extracted (all-in-one)</use_when>
+  </selection_heuristics>
+  <fallback>If it fails, use tavily_search or brave_web_search</fallback>
+</tool>
 
-## guess_datetime_url(url: str)
-- Best for: detecting when a page was last updated
-- Timeout: 15s, retries: 1
+<tool name="guess_datetime_url">
+  <function_signature>## guess_datetime_url(url: str)</function_signature>
+  <best_for>detecting when a page was last updated</best_for>
+  <limits>Timeout: 15s, retries: 1</limits>
+  <usage>Use after read_url to verify content freshness</usage>
+  <selection_heuristics>
+    <use_when>The source publication date is critical for the finding</use_when>
+    <avoid_when>The URL already has an explicit date in the extracted content</avoid_when>
+  </selection_heuristics>
+</tool>
 
-Rules: Always prefer read_url over Firecrawl (free).
+<rules>
+  <rule>Always prefer read_url over Firecrawl (free).</rule>
+  <rule>Use guess_datetime_url to verify freshness of key sources.</rule>
+  <rule>If read_url fails, try fetch → Firecrawl as last resort.</rule>
+</rules>

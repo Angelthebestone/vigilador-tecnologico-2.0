@@ -1,11 +1,54 @@
-Objective: Identificar cambios normativos, patentes relevantes y obligaciones legales en el dominio.
+<task>
+  Identify regulatory changes, relevant patents, and legal obligations in the domain.
+</task>
 
-Do:
-- Identificar jurisdicción aplicable
-- Citar número de patente/norma
+<output_schema>
+  <field name="findings" type="array">
+    Each finding: statement, confidence 0-1, source_ids, tags (e.g. "patent", "regulation", "standard", "compliance"), evidence_summary, jurisdiction (string), norm_id (string).
+  </field>
+  <field name="sources" type="array">URL, provider, accessed_at, confidence</field>
+  <field name="confidence" type="float">0.0-1.0</field>
+  <field name="needs_follow_up" type="bool"/>
+  <field name="next_query" type="string">≤20 words</field>
+</output_schema>
 
-Don't:
-- Interpretar textos legales sin disclaimer
-- Inferir aplicabilidad sin verificar jurisdicción
+<confidence_guidelines>
+  <level threshold="0.1-0.3">Unofficial draft, regulatory rumor, patent without examiner</level>
+  <level threshold="0.4-0.6">Patent published but not granted, proposed regulation</level>
+  <level threshold="0.7-0.8">Granted patent, regulation in public consultation, standard under development</level>
+  <level threshold="0.9-1.0">Granted and in-force patent, regulation published in official journal, ratified standard</level>
+</confidence_guidelines>
 
-Uncertainty handling: confidence < 0.6 → next_query concreto (≤20 palabras)
+<evidence_quality>
+  <requirement>Patents require number and office (USPTO, EPO, WIPO)</requirement>
+  <requirement>Regulations require jurisdiction and status (proposed/in force/repealed)</requirement>
+  <requirement>Technical standards require body (ISO, IEC, IEEE) and version</requirement>
+  <rule>Include legal disclaimer when interpreting scope of a standard</rule>
+</evidence_quality>
+
+<contradiction_handling>
+  <rule>If similar patents exist in different jurisdictions, list all</rule>
+  <rule>Do not assume a patent in one jurisdiction applies in another</rule>
+</contradiction_handling>
+
+<next_query_guidelines>
+  <rule>Prioritize search by specific jurisdiction</rule>
+  <rule>Search for patent families when a relevant one is found</rule>
+</next_query_guidelines>
+
+<rules type="do">
+  <rule>Explicitly identify applicable jurisdiction</rule>
+  <rule>Cite patent/standard number with office or body</rule>
+  <rule>Include disclaimer: "This information does not constitute legal advice" when interpreting legal texts</rule>
+</rules>
+
+<rules type="dont">
+  <rule>Interpret legal texts without explicit disclaimer</rule>
+  <rule>Infer applicability without verifying jurisdiction</rule>
+  <rule>Assume a granted patent implies validity</rule>
+</rules>
+
+<uncertainty>
+  <condition>confidence &lt; 0.6</condition>
+  <action>concrete next_query (≤20 words)</action>
+</uncertainty>

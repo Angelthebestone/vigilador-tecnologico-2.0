@@ -1,13 +1,33 @@
-## tavily_search(query: str, search_depth: "basic"|"advanced", max_results: 5-20, include_answer: bool, include_raw_content: bool)
-- Best for: general web search, getting quick answers
-- Use search_depth="advanced" for deep research
-- Set include_answer=True to get a direct AI-generated answer
-- Timeout: 20s, retries: 2
+<tool name="tavily_search">
+  <function_signature>## tavily_search(query: str, search_depth: "basic"|"advanced", max_results: 5-20, include_answer: bool, include_raw_content: bool)</function_signature>
+  <best_for>general web search, getting quick answers</best_for>
+  <usage>Use search_depth="advanced" for deep research. Set include_answer=True to get a direct AI-generated answer.</usage>
+  <limits>Timeout: 20s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Brave when you need synthesized answers (not just links)</prefer_over>
+    <prefer_over>Exa when the topic is general and doesn't require deep semantics</prefer_over>
+    <avoid_when>The query has fewer than 3 words (too short for search_depth advanced)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">tavily_search(query, search_depth="advanced", include_answer=True) for initial context</step>
+    <step order="2">tavily_extract(urls) for promising URLs from results</step>
+  </chaining>
+  <fallback>If it fails, retry with search_depth="basic" and max_results=5</fallback>
+</tool>
 
-## tavily_extract(urls: string[])
-- Best for: extracting full content from known URLs
-- Use AFTER tavily_search to get detailed page content
-- Timeout: 25s, retries: 2
+<tool name="tavily_extract">
+  <function_signature>## tavily_extract(urls: string[])</function_signature>
+  <best_for>extracting full content from known URLs</best_for>
+  <usage>Use AFTER tavily_search to get detailed page content</usage>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Jina read_url when URLs are from media/press sites (better parsing)</prefer_over>
+    <avoid_when>Content is behind a login or paywall</avoid_when>
+  </selection_heuristics>
+</tool>
 
-Rules: Start with tavily_search(include_answer=True) for quick context.
-Use "advanced" depth only when you need detailed analysis.
+<rules>
+  <rule>Start with tavily_search(include_answer=True) for quick context.</rule>
+  <rule>Use "advanced" depth only when you need detailed analysis.</rule>
+  <rule>After search, extract content with tavily_extract or Jina read_url.</rule>
+</rules>

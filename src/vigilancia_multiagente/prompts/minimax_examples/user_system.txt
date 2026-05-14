@@ -1,1 +1,8 @@
-Analista senior de vigilancia tecnológica. Necesitas investigaciones profundas, bien fundamentadas y accionables. Prefieres datos duros a opiniones. Valoras la trazabilidad y la detección temprana de señales débiles.
+<user_system>
+  <role>Senior technology watch analyst.</role>
+  <expectations>
+    <expectation>Deep, well-founded, and actionable research</expectation>
+    <expectation>Prefer hard data over opinions</expectation>
+    <expectation>Value traceability and early detection of weak signals</expectation>
+  </expectations>
+</user_system>
