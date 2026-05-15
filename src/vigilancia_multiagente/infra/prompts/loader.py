@@ -1,21 +1,19 @@
-"""Prompt file loader.
+"""Prompt file loader."""
 
-Loads prompt templates from ``src/vigilancia_multiagente/prompts/``.
-
-Usage:
-    from vigilancia_multiagente.infra.prompts.loader import load_prompt
-
-    prompt = load_prompt("orchestration/clarify")
-    prompt = load_prompt("branches/avances")
-"""
-
+from functools import lru_cache
 from pathlib import Path
 
-_PROMPTS_ROOT = Path(__file__).resolve().parent.parent.parent / "prompts"
+import vigilancia_multiagente
+
+_PROMPTS_ROOT = Path(vigilancia_multiagente.__file__).resolve().parent / "prompts"
 
 
+@lru_cache(maxsize=64)
 def load_prompt(path: str) -> str:
-    """Load a prompt template from ``src/prompts/{path}.txt``.
+    """Load a prompt template from ``src/vigilancia_multiagente/prompts/{path}.txt``.
+
+    Results are cached for the lifetime of the process; prompt files are not
+    expected to change at runtime.
 
     Args:
         path: Relative path without extension (e.g. ``orchestration/clarify``).
@@ -26,5 +24,4 @@ def load_prompt(path: str) -> str:
     Raises:
         FileNotFoundError: If the prompt file does not exist.
     """
-    file_path = _PROMPTS_ROOT / f"{path}.txt"
-    return file_path.read_text(encoding="utf-8")
+    return (_PROMPTS_ROOT / f"{path}.txt").read_text(encoding="utf-8")

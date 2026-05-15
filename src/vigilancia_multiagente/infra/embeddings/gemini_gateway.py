@@ -49,7 +49,7 @@ class GeminiEmbeddingGateway:
         if not self._settings.embedding_api_key:
             raise RuntimeError("VT_EMBEDDING_API_KEY is required for embeddings")
 
-        prefix = _TASK_PREFIXES.get(task_type, "document: ")
+        prefix = _TASK_PREFIXES[task_type]
         payload = {
             "model": f"models/{self._settings.embedding_model}",
             "content": {"parts": [{"text": f"{prefix}{text}"}]},

@@ -48,31 +48,27 @@ class MCPExecutionClient:
 
         if provider.transport == MCPTransport.STDIO:
             payload = await self._execute_stdio_tool(provider, tool_name, arguments)
-            result = ToolExecutionResult(
+            if payload:
+                _mcp_cache.set(tool_name, cache_key, payload)
+            return ToolExecutionResult(
                 provider=provider.name,
                 tool_name=tool_name,
                 payload=payload,
                 attempt_count=1,
-                result_status="SUCCESS",
             )
-            if result.payload:
-                _mcp_cache.set(tool_name, cache_key, result.payload)
-            return result
 
         last_error: Exception | None = None
         for attempt in range(1, provider.retry_policy.max_attempts + 1):
             try:
                 payload = await self._execute_http_tool(provider, tool_name, arguments)
-                result = ToolExecutionResult(
+                if payload:
+                    _mcp_cache.set(tool_name, cache_key, payload)
+                return ToolExecutionResult(
                     provider=provider.name,
                     tool_name=tool_name,
                     payload=payload,
                     attempt_count=attempt,
-                    result_status="SUCCESS",
                 )
-                if result.payload:
-                    _mcp_cache.set(tool_name, cache_key, result.payload)
-                return result
             except (httpx.HTTPError, TimeoutError) as exc:
                 last_error = exc
                 if attempt == provider.retry_policy.max_attempts:

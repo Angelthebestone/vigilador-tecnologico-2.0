@@ -11,40 +11,22 @@ from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
-# Module-level cache for few-shot example content (loaded once)
-_SYSTEM_PROMPT: str = ""
-_USER_SYSTEM_PROMPT: str = ""
-_SAMPLE_USER: str = ""
-_SAMPLE_AI: str = ""
+_DEFAULT_SYSTEM = (
+    "Eres un asistente de investigación tecnológica especializado en "
+    "vigilancia tecnológica multiagente."
+)
+_DEFAULT_USER_SYSTEM = "Analista senior de vigilancia tecnológica."
 
 
-def _ensure_examples() -> None:
-    """Load MiniMax example prompts once into module globals.
+def _load_example(path: str, default: str = "") -> str:
+    """Return the example prompt at *path*, or *default* if the file is missing.
 
-    Files live in ``src/prompts/minimax_examples/``.
-    Missing files are silently ignored (no error raised).
+    Backed by ``load_prompt``'s LRU cache, so repeated calls do not hit disk.
     """
-    global _SYSTEM_PROMPT, _USER_SYSTEM_PROMPT, _SAMPLE_USER, _SAMPLE_AI
-    if not _SYSTEM_PROMPT:
-        try:
-            _SYSTEM_PROMPT = load_prompt("minimax_examples/system")
-        except FileNotFoundError:
-            _SYSTEM_PROMPT = "Eres un asistente de investigación tecnológica especializado en vigilancia tecnológica multiagente."
-    if not _USER_SYSTEM_PROMPT:
-        try:
-            _USER_SYSTEM_PROMPT = load_prompt("minimax_examples/user_system")
-        except FileNotFoundError:
-            _USER_SYSTEM_PROMPT = "Analista senior de vigilancia tecnológica."
-    if not _SAMPLE_USER:
-        try:
-            _SAMPLE_USER = load_prompt("minimax_examples/sample_message_user")
-        except FileNotFoundError:
-            _SAMPLE_USER = ""
-    if not _SAMPLE_AI:
-        try:
-            _SAMPLE_AI = load_prompt("minimax_examples/sample_message_ai")
-        except FileNotFoundError:
-            _SAMPLE_AI = ""
+    try:
+        return load_prompt(path)
+    except FileNotFoundError:
+        return default
 
 
 @dataclass(slots=True, frozen=True)
@@ -109,15 +91,17 @@ def _build_enriched_messages(messages: list[MiniMaxMessage]) -> list[MiniMaxMess
 
     Returns the enriched list. Original *messages* are not mutated.
     """
-    _ensure_examples()
-    enriched: list[MiniMaxMessage] = [
-        MiniMaxMessage(role="system", content=_SYSTEM_PROMPT),
-    ]
-    if _USER_SYSTEM_PROMPT:
-        enriched.append(MiniMaxMessage(role="user_system", content=_USER_SYSTEM_PROMPT))
-    if _SAMPLE_USER and _SAMPLE_AI:
-        enriched.append(MiniMaxMessage(role="sample_message_user", content=_SAMPLE_USER))
-        enriched.append(MiniMaxMessage(role="sample_message_ai", content=_SAMPLE_AI))
+    system_prompt = _load_example("minimax_examples/system", _DEFAULT_SYSTEM)
+    user_system = _load_example("minimax_examples/user_system", _DEFAULT_USER_SYSTEM)
+    sample_user = _load_example("minimax_examples/sample_message_user")
+    sample_ai = _load_example("minimax_examples/sample_message_ai")
+
+    enriched: list[MiniMaxMessage] = [MiniMaxMessage(role="system", content=system_prompt)]
+    if user_system:
+        enriched.append(MiniMaxMessage(role="user_system", content=user_system))
+    if sample_user and sample_ai:
+        enriched.append(MiniMaxMessage(role="sample_message_user", content=sample_user))
+        enriched.append(MiniMaxMessage(role="sample_message_ai", content=sample_ai))
     enriched.extend(messages)
     return enriched
 

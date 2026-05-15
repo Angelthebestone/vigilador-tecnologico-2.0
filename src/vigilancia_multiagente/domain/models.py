@@ -47,7 +47,7 @@ class BranchConfig:
     mcp_tool_profile: str | None = None
     priority_weight: int | None = None
     status: BranchStatus = BranchStatus.PENDING
-    overlay_ref: str | None = None  # Optional reference to a custom overlay version
+    overlay_ref: str | None = None
 
 
 @dataclass(slots=True)
@@ -56,7 +56,7 @@ class ResearchPlan:
     session_id: UUID
     version: int
     branches: list[BranchConfig]
-    system_base_version: str = "1.0.0"  # Reference to canonical system base
+    system_base_version: str = "1.0.0"
     global_constraints: dict[str, str | int | float] = field(default_factory=dict)
     requires_approval: bool = True
     approved_at: datetime | None = None

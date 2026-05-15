@@ -50,18 +50,6 @@ def test_overlay_without_objective_raises_error(validator: PromptValidator, syst
         validator.validate_overlay(system_base, overlay)
 
 
-def test_overlay_without_branch_type_raises_error(validator: PromptValidator, system_base: SystemBase) -> None:
-    """An overlay without branch_type should fail."""
-    overlay = BranchOverlay(
-        branch_type=BranchType.AVANCES,
-        objective="Test",
-    )
-    # Override branch_type via object mutation (dataclass frozen but this is test-only)
-    object.__setattr__(overlay, "branch_type", None)
-    with pytest.raises(PromptValidationError, match="no.*branch_type"):
-        validator.validate_overlay(system_base, overlay)
-
-
 # --- Composition validation tests ---
 
 

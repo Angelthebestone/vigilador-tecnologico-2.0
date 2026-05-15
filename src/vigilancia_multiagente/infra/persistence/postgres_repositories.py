@@ -417,7 +417,7 @@ def _branch_result_from_row(row: dict[str, object]) -> BranchResult:
         completed_at=_optional_datetime(row.get("completed_at")),
         coverage_score=_optional_float(row.get("coverage_score")),
         confidence_score=_optional_float(row.get("confidence_score")),
-        errors=[str(item) for item in _json_load_list(row.get("errors") or [])],
+        errors=[str(item) for item in _json_load_list(row.get("errors"))],
     )
 
 
@@ -433,12 +433,13 @@ def _branch_to_dict(branch: BranchConfig) -> dict[str, object]:
 
 
 def _branch_from_dict(payload: dict[str, object]) -> BranchConfig:
+    priority = payload.get("priority_weight")
     return BranchConfig(
         branch_type=BranchType(str(payload["branch_type"])),
         focus_queries=list(payload.get("focus_queries", [])),
         mcp_providers=list(payload.get("mcp_providers", [])),
         mcp_tool_profile=payload.get("mcp_tool_profile"),
-        priority_weight=int(payload["priority_weight"]) if payload.get("priority_weight") is not None else None,
+        priority_weight=int(priority) if priority is not None else None,
         status=BranchStatus(payload["status"]),
     )
 

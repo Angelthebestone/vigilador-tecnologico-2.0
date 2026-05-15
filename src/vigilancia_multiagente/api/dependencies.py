@@ -74,7 +74,9 @@ provider_registry.validate_ready(
 )
 
 # Serper REST client (no MCP — direct REST API)
-serper_client = SerperClient(settings.serper_api_key) if settings.serper_api_key else None
+serper_client = (
+    SerperClient(settings.serper_api_key.get_secret_value()) if settings.serper_api_key else None
+)
 
 clarification_service = ClarificationService()
 plan_builder = PlanBuilder()

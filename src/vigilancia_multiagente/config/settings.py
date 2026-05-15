@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field, SecretStr
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,9 +19,7 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 768
     embedding_batch_size: int = 16
 
-    database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia"
-    )
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia"
 
     mcp_default_timeout_ms: int = 30000
     mcp_default_retry_limit: int = 2
@@ -32,7 +30,7 @@ class Settings(BaseSettings):
     system_base_enabled: bool = True  # feature flag for rollback safety
 
     # Serper REST API (no MCP)
-    serper_api_key: str | None = None
+    serper_api_key: SecretStr | None = None
 
     # MCP Provider API Keys (all optional — system falls back gracefully)
     tavily_api_key: SecretStr | None = None
