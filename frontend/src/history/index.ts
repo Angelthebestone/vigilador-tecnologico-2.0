@@ -1,0 +1,1 @@
+export { HistoryBar } from './HistoryBar';

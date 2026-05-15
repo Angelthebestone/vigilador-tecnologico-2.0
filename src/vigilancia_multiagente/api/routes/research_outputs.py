@@ -1,10 +1,13 @@
+import asyncio
 import logging
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import StreamingResponse
 
 from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
+from vigilancia_multiagente.domain.session_state import SessionStatus
 
 from vigilancia_multiagente.api.dependencies import (
     branch_coordinator,
@@ -87,10 +90,59 @@ async def get_providers(session_id: UUID) -> dict[str, object]:
     }
 
 
+# States where the backend is actively producing events; the stream stays
+# open and long-polls. In any other state (awaiting user input or terminal)
+# the stream drains what exists and closes — no more events will arrive
+# without a new client action.
+_ACTIVE_STATUSES = {SessionStatus.APPROVED, SessionStatus.EXECUTING}
+_POLL_SECONDS = 0.5
+_HEARTBEAT_SECONDS = 15.0
+_MAX_STREAM_SECONDS = 600.0
+_DRAIN_SECONDS = 1.0
+
+
+async def _session_event_stream(session_id: UUID) -> AsyncIterator[str]:
+    key = str(session_id)
+    cursor = 0
+    seconds_idle = 0.0
+    elapsed = 0.0
+
+    while True:
+        buffer = event_log.get(key, [])
+        if cursor < len(buffer):
+            pending = buffer[cursor:]
+            cursor += len(pending)
+            seconds_idle = 0.0
+            for frame in pending:
+                yield frame
+            continue
+
+        session = await session_repository.get_by_id(session_id)
+        if session is None or session.status not in _ACTIVE_STATUSES:
+            # Not actively working: a concurrent request may still be flushing
+            # trailing frames. Brief grace window, drain, then close.
+            await asyncio.sleep(_DRAIN_SECONDS)
+            for frame in event_log.get(key, [])[cursor:]:
+                yield frame
+            return
+
+        await asyncio.sleep(_POLL_SECONDS)
+        seconds_idle += _POLL_SECONDS
+        elapsed += _POLL_SECONDS
+        if seconds_idle >= _HEARTBEAT_SECONDS:
+            seconds_idle = 0.0
+            yield ": keep-alive\n\n"
+        if elapsed >= _MAX_STREAM_SECONDS:
+            return
+
+
 @router.get("/{session_id}/stream")
-async def stream_session(session_id: UUID) -> PlainTextResponse:
-    events = event_log.get(str(session_id), [])
-    return PlainTextResponse("\n".join(events), media_type="text/event-stream")
+async def stream_session(session_id: UUID) -> StreamingResponse:
+    return StreamingResponse(
+        _session_event_stream(session_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/{session_id}/graph")

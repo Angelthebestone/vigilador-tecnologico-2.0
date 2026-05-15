@@ -1,0 +1,225 @@
+/* =================================================================
+   VIGILADOR TECNOLÓGICO — Sistema de diseño "Atlas Científico"
+   Identidad Unidades Tecnológicas de Santander (UTS).
+   Paleta del manual de identidad corporativa:
+   - Pantone 382 C   #C3D730  verde lima (tinta viva, marca)
+   - Pantone 877 C   #878787  gris sobre fondos claros
+   - Cool Gray 5 C   #B3B3B3  gris sobre fondos oscuros
+   - Pantone 2266 C  #34531F  verde institucional
+   - Pantone 5535 C  #132F20  verde profundo (tinta base)
+   - Pantone 451 C   #F8E9D4  crema cálido (papel acento)
+   Tipografía oficial Myriad Pro → Source Sans 3 (sustituto libre,
+   mismo linaje Adobe), IBM Plex Mono para datos/etiquetas.
+   ================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* --- Marca (Pantone 382 C) --- */
+  --lime: #c3d730;
+  --lime-deep: #9aab1f;
+  --lime-wash: #eef3d4;
+
+  /* --- Grises del manual --- */
+  --gray-mid: #b3b3b3; /* Cool Gray 5 C — sobre fondos oscuros */
+  --gray-dark: #878787; /* Pantone 877 C — sobre fondos claros */
+
+  /* --- Verdes institucionales UTS --- */
+  --uts-green: #34531f; /* Pantone 2266 C */
+  --uts-green-deep: #132f20; /* Pantone 5535 C */
+
+  /* --- Tinta y papel (atlas / cuaderno, base verde UTS) --- */
+  --ink: #16261a; /* derivado de Pantone 5535 C */
+  --ink-soft: #44513f;
+  --ink-faint: #7f8478;
+  --paper: #f6f3e6;
+  --paper-deep: #ede9d6;
+  --paper-card: #fffdf6;
+  --paper-warm: #f8e9d4; /* Pantone 451 C — acento cálido */
+  --rule: #d9d3bd;
+  --rule-strong: #b6ae93;
+
+  /* --- Estados (mapeados a paleta UTS, sin chillones) --- */
+  --st-wait: #b3b3b3;
+  --st-run: #9aab1f;
+  --st-done: #34531f; /* verde institucional = completado */
+  --st-fail: #6d100a; /* Pantone 4975 C UTS = fallo */
+  --st-fail-wash: #f3ddd8;
+
+  /* --- Tipografía oficial UTS --- */
+  --serif-display: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+  --serif-body: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+
+  /* --- Geometría: cuaderno = casi sin radios, líneas finas --- */
+  --r-sm: 2px;
+  --r-md: 3px;
+  --hair: 1px solid var(--rule);
+  --hair-strong: 1px solid var(--rule-strong);
+  --ink-line: 1.5px solid var(--ink);
+
+  --grid-unit: 8px;
+  --shadow-page: 0 1px 0 var(--rule), 0 18px 40px -28px rgba(19, 47, 32, 0.45);
+
+  color-scheme: light;
+  font-family: var(--serif-body);
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background-color: var(--paper);
+  /* Textura de papel cuadriculado tenue + grano sutil (tinta verde UTS) */
+  background-image:
+    linear-gradient(rgba(52, 83, 31, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(52, 83, 31, 0.045) 1px, transparent 1px),
+    radial-gradient(rgba(19, 47, 32, 0.02) 1px, transparent 1px);
+  background-size:
+    28px 28px,
+    28px 28px,
+    7px 7px;
+  background-position:
+    -1px -1px,
+    -1px -1px,
+    0 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--serif-display);
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.12;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--lime-deep);
+  transition: background 0.12s ease;
+}
+
+a:hover {
+  background: var(--lime-wash);
+}
+
+button {
+  font-family: var(--mono);
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+/* Etiqueta de sección al estilo lámina de atlas: número + texto rotado */
+.atlas-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.atlas-rule {
+  height: 0;
+  border: 0;
+  border-top: var(--hair);
+  margin: 0;
+}
+
+/* Marca de folio tipo lámina (esquina) */
+.atlas-folio {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Scrollbars discretos, color tinta */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border: 3px solid var(--paper);
+  border-radius: 0;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-dark);
+}
+
+@keyframes atlas-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes atlas-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes atlas-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

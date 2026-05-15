@@ -287,6 +287,7 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_approve, "graph_snapshot_repository", graph_snapshot_repo)
     monkeypatch.setattr(research_approve, "event_log", api_dependencies.event_log)
 
+    monkeypatch.setattr(research_outputs, "session_repository", session_repo)
     monkeypatch.setattr(research_outputs, "branch_coordinator", branch_coordinator)
     monkeypatch.setattr(research_outputs, "branch_result_repository", branch_repo)
     monkeypatch.setattr(research_outputs, "report_repository", report_repo)
