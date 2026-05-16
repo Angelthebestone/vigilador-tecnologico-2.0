@@ -154,6 +154,20 @@ class MemoryVectorIndex:
         return records[:limit] if limit is not None else records
 
 
+class MemoryGlobalKnowledgeRepository:
+    def __init__(self) -> None:
+        self.snapshots: dict[str, object] = {}
+
+    async def save_snapshot(self, snapshot: object) -> None:
+        self.snapshots[str(snapshot.session_id)] = snapshot
+
+    async def get_session_timeline(self) -> list[dict]:
+        return []
+
+    async def find_related(self, query_embedding: list[float], limit: int = 5) -> list[dict]:
+        return []
+
+
 class FakeEmbeddingGateway:
     async def embed_document(self, text: str) -> list[float]:
         return await self.embed(text)
@@ -285,6 +299,8 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_approve, "embedding_gateway", FakeEmbeddingGateway())
     monkeypatch.setattr(research_approve, "vector_index", vector_index)
     monkeypatch.setattr(research_approve, "graph_snapshot_repository", graph_snapshot_repo)
+    monkeypatch.setattr(research_approve, "global_knowledge_repository", MemoryGlobalKnowledgeRepository())
+    monkeypatch.setattr(research_approve, "agents", {})
     monkeypatch.setattr(research_approve, "event_log", api_dependencies.event_log)
 
     monkeypatch.setattr(research_outputs, "session_repository", session_repo)

@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
@@ -9,6 +11,27 @@ from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, Bra
 from vigilancia_multiagente.domain.repositories import SessionTelemetryRepository
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Signal:
+    type: str
+    source_branch: str
+    payload: dict = field(default_factory=dict)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    iteration: int = 0
+
+
+@dataclass
+class ReplanAction:
+    trigger_signal: Signal
+    target_branch: str
+    directive: dict
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    iteration: int = 0
+
+
+MAX_REPLANS_PER_SESSION = 5
 
 
 class BranchCoordinator:
@@ -25,13 +48,24 @@ class BranchCoordinator:
         self._signal_queue: list[SignalPayload] = []
         self._signals_by_session: dict[UUID, list[dict[str, str | float]]] = {}
         self._sub_results: list[BranchResult] = []
+        self._signal_async_queue: asyncio.Queue | None = None
 
     async def execute(self, session: ResearchSession, plan: ResearchPlan) -> list[BranchResult]:
         depth_limit = int(plan.global_constraints.get("depth_limit", 3))
-        coroutines = [self._run_branch(session, branch, depth_limit) for branch in plan.branches]
-        outputs = await asyncio.gather(*coroutines, return_exceptions=True)
+        signal_queue: asyncio.Queue = asyncio.Queue()
+        self._signal_async_queue = signal_queue
+        branch_tasks = [
+            asyncio.create_task(self._run_branch(session, branch, depth_limit))
+            for branch in plan.branches
+        ]
+        consumer_task = asyncio.create_task(
+            self._signal_consumer_loop(signal_queue, branch_tasks)
+        )
+        outputs = await asyncio.gather(*branch_tasks, consumer_task, return_exceptions=True)
         results: list[BranchResult] = []
         for idx, output in enumerate(outputs):
+            if output is None:
+                continue  # consumer_task result, skip
             if isinstance(output, Exception):
                 branch_type = plan.branches[idx].branch_type
                 logger.warning("Branch %s failed: %s", branch_type, output)
@@ -145,6 +179,11 @@ class BranchCoordinator:
         """Add a cross-branch signal to the processing queue."""
         self._signal_queue.append(signal)
 
+    async def emit_signal(self, signal: Signal) -> None:
+        """Push a reactive signal for mid-execution processing."""
+        if self._signal_async_queue is not None:
+            await self._signal_async_queue.put(signal)
+
     async def _process_cross_signals(self, session: ResearchSession, plan: ResearchPlan) -> None:
         """Process queued signals and spawn sub-executions."""
         while self._signal_queue:
@@ -172,6 +211,105 @@ class BranchCoordinator:
             except Exception as exc:
                 logger.warning("Cross-signal sub-execution failed: %s", exc)
             self._signals_by_session.setdefault(session.id, []).append(signal_record)
+
+    # ── Reactive Planner ───────────────────────────────────────────────────
+
+    async def _signal_consumer_loop(self, signal_queue: asyncio.Queue, branch_futures: list[asyncio.Task]) -> None:
+        pending = set(branch_futures)
+        replan_count = 0
+
+        while pending and replan_count < MAX_REPLANS_PER_SESSION:
+            signal_get = asyncio.create_task(signal_queue.get())
+            done, _ = await asyncio.wait(
+                pending | {signal_get},
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            if signal_get in done:
+                signal: Signal = signal_get.result()
+                await self._dispatch_signal(signal, pending)
+                replan_count += 1
+
+            done_branches = {t for t in done if t is not signal_get}
+            pending -= done_branches
+
+            if not signal_get.done():
+                signal_get.cancel()
+
+    async def _dispatch_signal(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
+        handlers = {
+            "gap_detected": self._handle_gap_detected,
+            "high_value_finding": self._handle_high_value_finding,
+            "data_ready": self._handle_data_ready,
+            "error": self._handle_branch_error,
+        }
+        handler = handlers.get(signal.type)
+        if handler:
+            await handler(signal, active_futures)
+
+    async def _handle_gap_detected(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
+        gap_description = signal.payload.get("description", "")
+        suggested_query = signal.payload.get("suggested_query", "")
+        target_branch = self._find_best_branch_for_gap(signal)
+
+        if target_branch:
+            directive = {
+                "action": "search",
+                "query": suggested_query or gap_description,
+                "focus": signal.payload.get("focus", "exploratory"),
+                "source_branch": signal.source_branch,
+            }
+            action = ReplanAction(
+                trigger_signal=signal,
+                target_branch=target_branch,
+                directive=directive,
+            )
+            logger.info(json.dumps(action.__dict__, default=str))
+            await self._route_new_directive(target_branch, directive)
+
+    async def _handle_high_value_finding(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
+        notification = {
+            "type": "cross_branch_notification",
+            "finding": signal.payload.get("finding", ""),
+            "source_branch": signal.source_branch,
+            "relevance": signal.payload.get("relevance", "high"),
+        }
+        logger.info("High-value finding from %s: %s", signal.source_branch, notification["finding"][:100])
+
+    async def _handle_data_ready(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
+        logger.info("Data ready signal from %s: %s", signal.source_branch, signal.payload)
+
+    async def _handle_branch_error(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
+        logger.warning("Branch error from %s: %s", signal.source_branch, signal.payload.get("error", ""))
+
+    async def _route_new_directive(self, branch_name: str, directive: dict) -> None:
+        logger.info("Replan: routing directive to %s: %s", branch_name, directive)
+        branch_type = BranchType(branch_name)
+        if branch_type in self._agents:
+            branch = self._agents[branch_type]
+            await branch.receive_directive(directive)
+
+    def _find_best_branch_for_gap(self, signal: Signal) -> str | None:
+        source = signal.source_branch
+        all_branches = [bt.value for bt in BranchType]
+        available = [b for b in all_branches if b != source]
+        if not available:
+            return None
+        gap_focus = signal.payload.get("focus", "")
+        gap_lower = gap_focus.lower()
+        if "legal" in gap_lower or "patent" in gap_lower:
+            preferred = BranchType.PI_NORMATIVA.value
+        elif "competitor" in gap_lower or "market" in gap_lower:
+            preferred = BranchType.COMPETITIVO.value
+        elif "risk" in gap_lower or "threat" in gap_lower:
+            preferred = BranchType.RIESGO.value
+        elif "commercial" in gap_lower or "business" in gap_lower:
+            preferred = BranchType.COMERCIAL.value
+        elif "advance" in gap_lower or "research" in gap_lower:
+            preferred = BranchType.AVANCES.value
+        else:
+            preferred = BranchType.OPORTUNIDADES.value
+        return preferred if preferred in available else available[0]
 
     def get_iterations(self, session_id: UUID) -> list[dict[str, str | int | bool | None]]:
         return self._iterations_by_session.get(session_id, [])

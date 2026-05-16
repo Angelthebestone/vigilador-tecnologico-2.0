@@ -127,6 +127,42 @@
       "retry_policy": {"max_attempts": 2, "backoff_ms": 500},
       "enabled_tools": ["serper_web_search", "serper_news_search", "serper_patents"],
       "capabilities": ["search", "news", "patents"]
+    },
+    {
+      "name": "sandbox",
+      "transport": "STDIO",
+      "base_url_or_command": "python",
+      "arguments": ["-m", "vigilancia_multiagente.infra.mcp.sandbox.server"],
+      "auth_mode": "NONE",
+      "timeout_ms": 120000,
+      "retry_policy": {"max_attempts": 1, "backoff_ms": 500},
+      "enabled_tools": ["execute_code", "list_libraries", "visualize"],
+      "capabilities": ["code_execution", "analytics", "visualization"],
+      "env_api_key": null
+    },
+    {
+      "name": "markitdown",
+      "transport": "STDIO",
+      "base_url_or_command": "markitdown-mcp",
+      "arguments": [],
+      "auth_mode": "NONE",
+      "timeout_ms": 60000,
+      "retry_policy": {"max_attempts": 1, "backoff_ms": 500},
+      "enabled_tools": ["convert_to_markdown"],
+      "capabilities": ["document_conversion"],
+      "env_api_key": null
+    },
+    {
+      "name": "playwright",
+      "transport": "STDIO",
+      "base_url_or_command": "npx",
+      "arguments": ["@playwright/mcp@latest", "--headless"],
+      "auth_mode": "NONE",
+      "timeout_ms": 60000,
+      "retry_policy": {"max_attempts": 2, "backoff_ms": 500},
+      "enabled_tools": ["browser_navigate", "browser_snapshot", "browser_screenshot", "browser_click", "browser_type", "browser_select_option", "browser_hover", "browser_tabs", "browser_network_requests", "browser_network_request"],
+      "capabilities": ["browser", "navigation", "screenshot"],
+      "env_api_key": null
     }
   ]
 }

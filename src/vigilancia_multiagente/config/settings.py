@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     # Serper REST API (no MCP)
     serper_api_key: SecretStr | None = None
 
+    # Playwright MCP
+    playwright_headless: bool = True
+
+    # Markitdown MCP
+    markitdown_timeout: int = 60000
+
+    # Sandbox
+    sandbox_timeout: int = 120
+    sandbox_max_output_size: int = 1_048_576  # 1MB
+
     # MCP Provider API Keys (all optional — system falls back gracefully)
     tavily_api_key: SecretStr | None = None
     exa_api_key: SecretStr | None = None

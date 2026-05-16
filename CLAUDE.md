@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Workflow
+
+**IMPORTANTE:** Siempre trabajar directamente en la rama `main`. No crear ramas nuevas automáticamente. Todos los commits van directo a `main` salvo que el usuario pida explícitamente una rama distinta.
+
 ## Commands
 
 **Install dependencies:**
@@ -61,6 +65,11 @@ Managed by `OrchestratorService` (session lifecycle) + `BranchCoordinator` (para
 ### MCP Integration
 `infra/mcp/mcp-providers.json` defines 10 providers (tavily, exa, jina, brave, firecrawl, google_scholar, arxiv, fetch, serper). `MCPProviderRegistry` loads them at startup; `MCPExecutionClient` executes tools via STDIO or HTTP with caching (`mcp_cache.py`).
 
+**New MCP Services:**
+- **Sandbox** (`infra/mcp/sandbox/server.py`): Isolated Python code execution via `execute_code`, `list_libraries`, `visualize` tools. Runs as STDIO MCP server (`sandbox-mcp`). Uses temporary directories, timeout enforcement, and audit logging.
+- **Markitdown** (`infra/mcp/markitdown_mcp.py`): Document converter (PDF, DOCX, PPTX, XLSX, HTML, CSV, JSON, XML, PNG, JPG → Markdown). Wraps `MarkitdownProvider` with `convert_to_markdown` and `get_supported_formats`.
+- **Playwright** (`infra/mcp/playwright_mcp.py`): Browser automation provider. Methods: `navigate`, `snapshot`, `screenshot`, `click`, `type_text`, `get_network_requests`, `get_network_request_detail`. Built-in blocked-access detection (403/429/503, CAPTCHA patterns).
+
 ### Configuration
 Pydantic Settings with prefix `VT_`. Copy `.env.example` to `.env`. Key variables:
 - `VT_MINIMAX_API_KEY` — primary LLM
@@ -73,13 +82,23 @@ Pydantic Settings with prefix `VT_`. Copy `.env.example` to `.env`. Key variable
 |------|------|
 | `api/dependencies.py` | Full dependency injection graph |
 | `application/orchestration/orchestrator_service.py` | Session lifecycle |
-| `application/execution/branch_coordinator.py` | Parallel branch execution |
+| `application/execution/branch_coordinator.py` | Parallel branch execution + reactive planner signals |
 | `application/agents/base.py` | BaseBranchAgent |
 | `application/governance/contract_loader.py` | AgentSkillPolicy per branch |
 | `application/governance/prompt_composer.py` | SystemBase + Overlay composition |
 | `application/graph/knowledge_graph_service.py` | NetworkX graph analytics |
+| `application/memory/cross_session_service.py` | Cross-session memory preload + merge |
+| `application/forecasting/trend_forecaster.py` | Trend projection (linear/polynomial) + inflection detection |
+| `application/routing/source_scorer.py` | Source trust scoring (confirm/contradict) |
 | `infra/mcp/mcp-providers.json` | MCP provider manifest |
 | `infra/mcp/execution_client.py` | Tool execution engine |
+| `infra/mcp/sandbox/server.py` | Isolated Python sandbox execution (STDIO MCP) |
+| `infra/mcp/markitdown_mcp.py` | Document-to-markdown conversion |
+| `infra/mcp/playwright_mcp.py` | Browser automation with blocked-access detection |
+| `infra/persistence/source_trust_repository.py` | PostgreSQL source_trust table CRUD |
+| `infra/persistence/global_knowledge_repository.py` | pgvector-backed cross-session knowledge |
+| `domain/global_knowledge.py` | GlobalKnowledgeSnapshot entity |
+| `domain/trend_projection.py` | TrendProjection dataclass |
 | `domain/session_state.py` | SessionStatus transitions |
 | `config/settings.py` | All env-backed settings |
 

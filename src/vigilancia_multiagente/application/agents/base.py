@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -55,6 +56,7 @@ class BaseBranchAgent:
         minimax_client: MiniMaxClient | None = None,
         system_base: SystemBase | None = None,
         prompt_composer: PromptComposer | None = None,
+        signal_callback=None,
     ) -> None:
         self.branch_type = branch_type
         self._governance_loader = governance_loader
@@ -65,11 +67,17 @@ class BaseBranchAgent:
         self._system_base = system_base
         self._prompt_composer = prompt_composer or PromptComposer()
         self._validator = PromptValidator()
+        self._directive_queue: asyncio.Queue | None = None
+        self._preload_context: dict | None = None
+        self._signal_callback = signal_callback or self._noop_signal
+
+    def set_preload_context(self, context: dict | None) -> None:
+        self._preload_context = context
 
     async def signal_branch(self, target: BranchType, payload: SignalPayload) -> None:
         """Queue a cross-branch signal for processing by BranchCoordinator."""
-        from vigilancia_multiagente.api.dependencies import branch_coordinator
-        branch_coordinator.queue_signal(payload)
+        if self._signal_callback:
+            await self._signal_callback(payload)
 
     async def run(self, session: ResearchSession, branch_config: BranchConfig, depth_limit: int) -> AgentRunOutput:
         policy = self._governance_loader.load_skill_matrix()[self.branch_type]
@@ -138,11 +146,14 @@ class BaseBranchAgent:
             execute=execute,
         )
 
-        embedding_texts = [
-            f"{iteration.query}\n{payload.get('title', '')}\n{payload.get('summary') or payload.get('statement') or ''}"
-            for iteration, payload in zip(iterations, query_payloads, strict=True)
-        ]
-        embedding_vectors = await self._embedding_gateway.embed_documents(embedding_texts)
+        if len(iterations) >= 2:
+            embedding_texts = [
+                f"{iteration.query}\n{payload.get('title', '')}\n{payload.get('summary') or payload.get('statement') or ''}"
+                for iteration, payload in zip(iterations, query_payloads, strict=True)
+            ]
+            embedding_vectors = await self._embedding_gateway.embed_documents(embedding_texts)
+        else:
+            embedding_vectors = []
         embeddings = [
             IterationEmbedding(iteration_id=iteration.id, vector=vector)
             for iteration, vector in zip(iterations, embedding_vectors, strict=True)
@@ -199,6 +210,52 @@ class BaseBranchAgent:
             provider_usage=provider_usage,
         )
 
+    # ── Sandbox MCP tools ─────────────────────────────────────────────────
+
+    async def execute_code(self, code: str, timeout: int = 120) -> dict:
+        provider = self._provider_registry.get("sandbox")
+        execution = await self._execution_client.execute_tool(
+            provider,
+            "execute_code",
+            {"code": code, "timeout": timeout},
+        )
+        return execution.payload
+
+    async def list_sandbox_libraries(self) -> dict:
+        provider = self._provider_registry.get("sandbox")
+        execution = await self._execution_client.execute_tool(
+            provider,
+            "list_libraries",
+            {},
+        )
+        return execution.payload
+
+    async def visualize_data(self, data: dict, plot_type: str, format: str = "png") -> dict:
+        provider = self._provider_registry.get("sandbox")
+        execution = await self._execution_client.execute_tool(
+            provider,
+            "visualize",
+            {"data": data, "plot_type": plot_type, "format": format},
+        )
+        return execution.payload
+
+    # ── Signals ───────────────────────────────────────────────────────────
+
+    async def signal_gap_detected(self, description: str, data: dict | None = None) -> None:
+        payload = SignalPayload(
+            source_branch=self.branch_type,
+            target_branch=self.branch_type,
+            query=description,
+            source_url="",
+            relevance=0.8,
+        )
+        await self._signal_callback(payload)
+
+    async def receive_directive(self, directive: dict) -> None:
+        if self._directive_queue is None:
+            self._directive_queue = asyncio.Queue()
+        await self._directive_queue.put(directive)
+
     def _resolve_providers(
         self,
         provider_names: list[str],
@@ -234,3 +291,7 @@ class BaseBranchAgent:
         if value is None:
             raise RuntimeError(f"Tool response missing required {key}")
         return str(value)
+
+    @staticmethod
+    async def _noop_signal(payload):
+        pass  # No coordinator available (testing mode)

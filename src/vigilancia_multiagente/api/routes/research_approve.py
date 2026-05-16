@@ -1,32 +1,42 @@
+import logging
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from vigilancia_multiagente.api.dependencies import (
+    agents,
     artifact_service,
     branch_coordinator,
     branch_kpi_service,
     branch_result_repository,
+    conversation_service,
     embedding_gateway,
     event_log,
     evidence_linker,
+    global_knowledge_repository,
     graph_service,
     graph_snapshot_repository,
     metrics_service,
     minimax_client,
     orchestrator,
     plan_repository,
+    report_generator,
     report_repository,
     report_synthesizer,
     session_repository,
     vector_index,
 )
+from vigilancia_multiagente.api.routes.reports import store_report
 from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
+from vigilancia_multiagente.domain.conversation_state import SessionContinuationState
+from vigilancia_multiagente.domain.global_knowledge import GlobalKnowledgeSnapshot
 from vigilancia_multiagente.domain.models import BranchConfig, BranchType, ResearchPlan
 from vigilancia_multiagente.domain.session_state import SessionStatus
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import TaskType
 from vigilancia_multiagente.infra.persistence.vector_index import VectorRecord
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/research")
 
@@ -50,7 +60,11 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     if session is None:
         raise KeyError(f"Session not found: {session_id}")
     if not payload.approved:
-        return {"session_id": str(session_id), "status": "rejected", "message": "Plan was not approved"}
+        return {
+            "session_id": str(session_id),
+            "status": "rejected",
+            "message": "Plan was not approved",
+        }
 
     plan = await plan_repository.get_latest_for_session(session_id)
     if plan is None:
@@ -60,13 +74,71 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     session.approved_plan_id = plan.id
     session = await session_repository.update(session)
     session = await orchestrator.transition(session_id, SessionStatus.EXECUTING)
+
+    preload_context = await orchestrator.preload_for_session(session.user_query)
+    if preload_context.get("related_sessions"):
+        logger.info(
+            "Found %d related prior sessions for preload", len(preload_context["related_sessions"])
+        )
+        for agent in agents.values():
+            agent.set_preload_context(preload_context)
+
     branch_results = await branch_coordinator.execute(session, plan)
+    session_root = artifact_service.ensure_session_tree(str(session_id))
+
+    # Build session_data for trend forecasting and other post-processing
+    session_data = {
+        "session_id": str(session_id),
+        "user_query": session.user_query,
+        "findings": [
+            {"title": f.topic, "content": f.statement, "source": str(f.id)}
+            for result in branch_results
+            for f in (getattr(result, "findings", []) or [])
+        ],
+    }
+    trend_projections = await orchestrator.analyze_trends(session_data)
 
     all_sources = evidence_linker.deduplicate_sources(branch_results)
     linked_findings = evidence_linker.link_findings(branch_results, all_sources)
-    report = await report_synthesizer.synthesize(session_id, branch_results, linked_findings, all_sources, llm=minimax_client)
+
+    if trend_projections:
+        artifact_service.write_json(
+            session_root / "forecasting" / "trend-projections.json",
+            trend_projections,
+        )
+
+    report = await report_synthesizer.synthesize(
+        session_id, branch_results, linked_findings, all_sources, llm=minimax_client
+    )
+
+    try:
+        snapshot_embedding = await embedding_gateway.embed_document(session.user_query)
+    except Exception:
+        snapshot_embedding = None
+    extracted_entities = []
+    for result in branch_results:
+        for finding in result.findings:
+            extracted_entities.append(
+                {
+                    "name": finding.topic,
+                    "type": "concept",
+                    "mentions": len(finding.source_ids),
+                }
+            )
+    source_scores = {}
+    for result in branch_results:
+        for source in result.sources:
+            source_scores[str(source.id)] = source.confidence
+    snapshot = GlobalKnowledgeSnapshot(
+        session_id=session_id,
+        query_summary=session.user_query,
+        embeddings=snapshot_embedding,
+        entities=extracted_entities,
+        source_scores=source_scores,
+    )
+    await global_knowledge_repository.save_snapshot(snapshot)
+    logger.info("Cross-session snapshot saved for session %s", session_id)
     await report_repository.save_final_report(session_id, report)
-    session_root = artifact_service.ensure_session_tree(str(session_id))
     (session_root / "report" / "final-report.md").write_text(report.markdown, encoding="utf-8")
 
     for result in branch_results:
@@ -98,18 +170,40 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
 
     session.final_report_id = session_id
     session = await session_repository.update(session)
-    event_log[str(session_id)].append(format_sse(SessionEvent.now("GraphBuildingStarted", session_id, {
-        "message": "Building knowledge graph...",
-    })))
-    graph_payload = graph_service.build(session_id, linked_findings, all_sources, topic=session.user_query)
+    event_log[str(session_id)].append(
+        format_sse(
+            SessionEvent.now(
+                "GraphBuildingStarted",
+                session_id,
+                {
+                    "message": "Building knowledge graph...",
+                },
+            )
+        )
+    )
+    graph_payload = graph_service.build(
+        session_id, linked_findings, all_sources, topic=session.user_query
+    )
     graph_analytics = graph_service.analytics(graph_payload)
-    event_log[str(session_id)].append(format_sse(SessionEvent.now("GraphAnalyticsComputed", session_id, {
-        "nodes": len(graph_payload.nodes),
-        "edges": len(graph_payload.edges),
-    })))
+    event_log[str(session_id)].append(
+        format_sse(
+            SessionEvent.now(
+                "GraphAnalyticsComputed",
+                session_id,
+                {
+                    "nodes": len(graph_payload.nodes),
+                    "edges": len(graph_payload.edges),
+                },
+            )
+        )
+    )
     artifact_service.write_json(
         session_root / "graph" / "graph.json",
-        {"session_id": str(graph_payload.session_id), "nodes": graph_payload.nodes, "edges": graph_payload.edges},
+        {
+            "session_id": str(graph_payload.session_id),
+            "nodes": graph_payload.nodes,
+            "edges": graph_payload.edges,
+        },
     )
     artifact_service.write_json(
         session_root / "graph" / "analytics.json",
@@ -124,6 +218,72 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
             "analytics": _graph_analytics_payload(graph_analytics),
         },
     )
+
+    all_findings = []
+    for result in branch_results:
+        for finding in result.findings:
+            all_findings.append(
+                {
+                    "id": str(finding.id),
+                    "title": finding.topic,
+                    "content": finding.statement,
+                    "summary": "",
+                    "source": str(finding.source_ids[0]) if finding.source_ids else "",
+                    "branch_type": result.branch_type.value,
+                }
+            )
+
+    continuation_state = SessionContinuationState(
+        session_id=session_id,
+        research_graph={
+            "nodes": graph_payload.nodes,
+            "edges": graph_payload.edges,
+        },
+        findings_list=all_findings,
+        source_registry=source_scores,
+    )
+    await conversation_service.start_session(continuation_state)
+
+    # Generate multi-stakeholder report variants (non-blocking)
+    try:
+        branch_names = [r.branch_type.value for r in branch_results]
+        session_data = {
+            "query": session.user_query,
+            "branches": branch_names,
+            "sources": [
+                {"name": s.title or str(s.id), "score": s.confidence}
+                for r in branch_results
+                for s in r.sources
+            ],
+            "findings": [
+                {"id": str(f.id), "statement": f.statement, "topic": f.topic}
+                for r in branch_results
+                for f in r.findings
+            ],
+        }
+        variants = await report_generator.generate_all(session_data)
+        for rtype, variant in variants.items():
+            rid = f"{session_id}_{rtype}"
+            store_report(rid, variant)
+            artifact_service.write_json(
+                session_root / "report" / f"variant-{rtype}.json",
+                variant,
+            )
+        event_log[str(session_id)].append(
+            format_sse(
+                SessionEvent.now(
+                    "ReportVariantsGenerated",
+                    session_id,
+                    {
+                        "types": list(variants.keys()),
+                    },
+                )
+            )
+        )
+        logger.info("Generated %d report variants for session %s", len(variants), session_id)
+    except Exception as exc:
+        logger.warning("Report variant generation failed (non-blocking): %s", exc)
+
     artifact_service.write_json(
         session_root / "metrics" / "provider-metrics.json",
         {
@@ -135,16 +295,37 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
                     "retry_rate": metric.retry_rate,
                     "latency_buckets": metric.latency_buckets,
                 }
-                for metric in metrics_service.aggregate_provider_metrics(session_id, branch_coordinator.get_provider_usage(session_id))
+                for metric in metrics_service.aggregate_provider_metrics(
+                    session_id, branch_coordinator.get_provider_usage(session_id)
+                )
             ]
         },
     )
     failed_branches = sum(1 for result in branch_results if result.errors)
     event_log.setdefault(str(session_id), []).extend(
         [
-            format_sse(SessionEvent.now("PlanApproved", session_id, {"approved_at": report.generated_at.isoformat()})),
-            format_sse(SessionEvent.now("AllBranchesCompleted", session_id, {"completed_branches": len(branch_results) - failed_branches, "failed_branches": failed_branches})),
-            format_sse(SessionEvent.now("ReportGenerated", session_id, {"report_id": str(session.final_report_id), "confidence_score": 0.72})),
+            format_sse(
+                SessionEvent.now(
+                    "PlanApproved", session_id, {"approved_at": report.generated_at.isoformat()}
+                )
+            ),
+            format_sse(
+                SessionEvent.now(
+                    "AllBranchesCompleted",
+                    session_id,
+                    {
+                        "completed_branches": len(branch_results) - failed_branches,
+                        "failed_branches": failed_branches,
+                    },
+                )
+            ),
+            format_sse(
+                SessionEvent.now(
+                    "ReportGenerated",
+                    session_id,
+                    {"report_id": str(session.final_report_id), "confidence_score": 0.72},
+                )
+            ),
         ]
     )
     for result in branch_results:
@@ -194,8 +375,12 @@ async def modify_plan(session_id: UUID, payload: ModifyPlanRequest) -> dict[str,
                 branch_type=branch.branch_type,
                 focus_queries=payload.focus_queries or branch.focus_queries,
                 mcp_providers=payload.mcp_providers or branch.mcp_providers,
-                mcp_tool_profile=payload.mcp_tool_profile if payload.mcp_tool_profile is not None else branch.mcp_tool_profile,
-                priority_weight=payload.priority_weight if payload.priority_weight is not None else branch.priority_weight,
+                mcp_tool_profile=payload.mcp_tool_profile
+                if payload.mcp_tool_profile is not None
+                else branch.mcp_tool_profile,
+                priority_weight=payload.priority_weight
+                if payload.priority_weight is not None
+                else branch.priority_weight,
                 status=branch.status,
             )
         )

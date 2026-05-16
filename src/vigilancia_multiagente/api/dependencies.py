@@ -9,17 +9,25 @@ from vigilancia_multiagente.application.agents.riesgo_agent import RiesgoAgent
 from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
 from vigilancia_multiagente.application.governance.system_base_loader import SystemBaseLoader
 from vigilancia_multiagente.application.artifacts.manifest_service import SessionArtifactService
-from vigilancia_multiagente.application.clarification.clarification_service import ClarificationService
+from vigilancia_multiagente.application.clarification.clarification_service import (
+    ClarificationService,
+)
+from vigilancia_multiagente.application.conversation.conversation_service import ConversationService
 from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService
 from vigilancia_multiagente.application.evaluation.golden_cases_runner import GoldenCasesRunner
-from vigilancia_multiagente.application.evaluation.prompt_regression_service import PromptRegressionService
+from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
+    PromptRegressionService,
+)
 from vigilancia_multiagente.application.execution.branch_coordinator import BranchCoordinator
+from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
 from vigilancia_multiagente.application.fusion.report_synthesizer import ReportSynthesizer
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
-from vigilancia_multiagente.application.orchestration.orchestrator_service import OrchestratorService
+from vigilancia_multiagente.application.orchestration.orchestrator_service import (
+    OrchestratorService,
+)
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.models import BranchType
@@ -38,8 +46,17 @@ from vigilancia_multiagente.infra.persistence.postgres_repositories import (
 )
 from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 from vigilancia_multiagente.application.governance.smart_router import SmartToolRouter
+from vigilancia_multiagente.application.memory.cross_session_service import CrossSessionService
+from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
 from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
 from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex
+from vigilancia_multiagente.infra.persistence.global_knowledge_repository import (
+    GlobalKnowledgeRepository,
+)
+from vigilancia_multiagente.infra.persistence.source_trust_repository import (
+    SourceTrustRepository,
+)
+from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
 
 
 settings = get_settings()
@@ -52,9 +69,14 @@ vector_index = PostgresVectorIndex(database)
 embedding_gateway = GeminiEmbeddingGateway()
 minimax_client = MiniMaxClient()
 execution_client = MCPExecutionClient()
+sandbox_execution_client = MCPExecutionClient()
+markitdown_execution_client = MCPExecutionClient()
+playwright_execution_client = MCPExecutionClient()
 provider_registry = MCPProviderRegistry()
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-provider_registry.load_manifest(PROJECT_ROOT / "src/vigilancia_multiagente/infra/mcp/mcp-providers.json")
+provider_registry.load_manifest(
+    PROJECT_ROOT / "src/vigilancia_multiagente/infra/mcp/mcp-providers.json"
+)
 provider_registry.ensure_standard_providers(settings)
 provider_registry.validate_ready(
     (
@@ -70,6 +92,20 @@ provider_registry.validate_ready(
         "search_google_scholar_key_words",
         "search_papers",
         "fetch",
+        "execute_code",
+        "list_libraries",
+        "visualize",
+        "convert_to_markdown",
+        "browser_navigate",
+        "browser_snapshot",
+        "browser_screenshot",
+        "browser_click",
+        "browser_type",
+        "browser_select_option",
+        "browser_hover",
+        "browser_tabs",
+        "browser_network_requests",
+        "browser_network_request",
     )
 )
 
@@ -89,10 +125,14 @@ prompt_regression_service = PromptRegressionService()
 golden_cases_runner = GoldenCasesRunner()
 artifact_service = SessionArtifactService()
 
+conversation_service = ConversationService()
+
 # Backend Intelligence v3 services
 source_scorer = SourceScorer()
+source_trust_repository = SourceTrustRepository(database)
+source_scorer_service = SourceScorerService(repository=source_trust_repository)
 mcp_cache = MCPSmartCache()
-smart_router = SmartToolRouter()
+smart_router = SmartToolRouter(source_scorer=source_scorer_service)
 contracts_root = PROJECT_ROOT / "specs/002-vigilancia-multiagente/contracts"
 governance_loader = GovernanceContractLoader(contracts_root)
 graph_snapshot_repository = PostgresGraphSnapshotRepository(database)
@@ -106,6 +146,7 @@ if settings.system_base_enabled:
         system_base = system_base_loader.load()
     except Exception as exc:
         import logging
+
         logging.getLogger(__name__).warning("Failed to load system base: %s", exc)
         system_base = None
 else:
@@ -115,43 +156,74 @@ prompt_composer = PromptComposer()
 
 agents = {
     BranchType.AVANCES: AvancesAgent(
-        governance_loader, provider_registry, execution_client,
-        embedding_gateway, minimax_client,
+        governance_loader,
+        provider_registry,
+        execution_client,
+        embedding_gateway,
+        minimax_client,
         system_base=system_base,
         prompt_composer=prompt_composer,
     ),
     BranchType.COMERCIAL: ComercialAgent(
-        governance_loader, provider_registry, execution_client,
-        embedding_gateway, minimax_client,
+        governance_loader,
+        provider_registry,
+        execution_client,
+        embedding_gateway,
+        minimax_client,
         system_base=system_base,
         prompt_composer=prompt_composer,
     ),
     BranchType.RIESGO: RiesgoAgent(
-        governance_loader, provider_registry, execution_client,
-        embedding_gateway, minimax_client,
+        governance_loader,
+        provider_registry,
+        execution_client,
+        embedding_gateway,
+        minimax_client,
         system_base=system_base,
         prompt_composer=prompt_composer,
     ),
     BranchType.PI_NORMATIVA: PiNormativaAgent(
-        governance_loader, provider_registry, execution_client,
-        embedding_gateway, minimax_client,
+        governance_loader,
+        provider_registry,
+        execution_client,
+        embedding_gateway,
+        minimax_client,
         system_base=system_base,
         prompt_composer=prompt_composer,
     ),
     BranchType.COMPETITIVO: CompetitivoAgent(
-        governance_loader, provider_registry, execution_client,
-        embedding_gateway, minimax_client,
+        governance_loader,
+        provider_registry,
+        execution_client,
+        embedding_gateway,
+        minimax_client,
         system_base=system_base,
         prompt_composer=prompt_composer,
     ),
     BranchType.OPORTUNIDADES: OportunidadesAgent(
-        governance_loader, provider_registry, execution_client,
-        embedding_gateway, minimax_client,
+        governance_loader,
+        provider_registry,
+        execution_client,
+        embedding_gateway,
+        minimax_client,
         system_base=system_base,
         prompt_composer=prompt_composer,
     ),
 }
 
+global_knowledge_repository = GlobalKnowledgeRepository(database)
+cross_session_service = CrossSessionService(global_knowledge_repository, embedding_gateway)
+
+report_generator = ReportGenerator()
 branch_coordinator = BranchCoordinator(agents, branch_result_repository)
-orchestrator = OrchestratorService(session_repository)
-event_log: dict[str, list[str]] = {}
+
+
+trend_forecaster = TrendForecasterService()
+orchestrator = OrchestratorService(
+    session_repository,
+    cross_session_service,
+    report_generator=report_generator,
+    trend_forecaster=trend_forecaster,
+    source_scorer=source_scorer_service,
+)
+event_log: dict[str, list[str]] = {}  # fmt: skip
