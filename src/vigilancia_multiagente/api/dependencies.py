@@ -106,6 +106,7 @@ provider_registry.validate_ready(
         "browser_tabs",
         "browser_network_requests",
         "browser_network_request",
+        "understand_image",
     )
 )
 

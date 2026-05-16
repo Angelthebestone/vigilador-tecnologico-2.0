@@ -1,0 +1,46 @@
+<tool name="execute_code">
+  <function_signature>## execute_code(code: str, timeout: int)</function_signature>
+  <best_for>running Python analysis on collected data, statistical computations, generating charts</best_for>
+  <details>Pre-loaded: matplotlib, seaborn, numpy, pandas, scipy, metaknowledge, pyscisci, scienceplots. No network access. Timeout default: 120s.</details>
+  <limits>Timeout: 120s, no network, output limit: 1MB</limits>
+  <selection_heuristics>
+    <prefer_over>Doing analysis manually — sandbox is faster and auditable</prefer_over>
+    <prefer_over>Writing results to a file — sandbox can process DataFrames directly</prefer_over>
+    <avoid_when>You need internet access or API calls from within the code</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Collect data from other tools (search, fetch, etc.)</step>
+    <step order="2">Call execute_code with pandas/numpy to analyze, transform, or summarize</step>
+    <step order="3">Use the results to inform next_query or generate insights for the report</step>
+  </chaining>
+  <fallback>If timeout, split the analysis into smaller chunks and retry</fallback>
+  <usage_notes>Import libraries inside the code string. The environment is clean — you must import everything you need.</usage_notes>
+</tool>
+
+<tool name="list_libraries">
+  <function_signature>## list_libraries()</function_signature>
+  <best_for>checking which scientific libraries are available before writing analysis code</best_for>
+  <details>Returns a dict of library → version for all pre-loaded packages</details>
+  <usage>Call before execute_code to verify the libraries you need are installed</usage>
+</tool>
+
+<tool name="visualize">
+  <function_signature>## visualize(data: dict, plot_type: str, format: str)</function_signature>
+  <best_for>generating charts and graphs from collected data for reports</best_for>
+  <details>Supports: line, bar, scatter, histogram, heatmap, pie. Output: base64 PNG/SVG/PDF.</details>
+  <limits>Timeout: 30s</limits>
+  <usage_notes>Provide clean structured data. For line: {x: [...], y: [...], title, xlabel, ylabel}. For bar: {labels: [...], values: [...], title}.</usage_notes>
+  <chaining>
+    <step order="1">Collect or compute data via execute_code</step>
+    <step order="2">Call visualize to produce publication-quality charts</step>
+    <step order="3">Reference the chart in your findings or report</step>
+  </chaining>
+</tool>
+
+<rules>
+  <rule>The sandbox has NO network access — do not attempt to download data or call APIs from within executed code.</rule>
+  <rule>Always import libraries inside the code string (the environment does not auto-import).</rule>
+  <rule>Use scienceplots style for publication-quality charts: plt.style.use('science')</rule>
+  <rule>If you need to analyze bibliometric data, pass the data as JSON and parse it with pandas in the code.</rule>
+  <rule>Audit logging is automatic — every execution is recorded with timestamp and result summary.</rule>
+</rules>

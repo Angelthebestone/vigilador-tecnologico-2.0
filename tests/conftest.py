@@ -91,6 +91,9 @@ class MemorySessionRepository:
         self.sessions[session.id] = session
         return session
 
+    async def delete(self, session_id: UUID) -> None:
+        self.sessions.pop(session_id, None)
+
 
 class MemoryPlanRepository:
     def __init__(self) -> None:

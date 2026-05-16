@@ -9,3 +9,5 @@ export { ConnectionStatus } from './ConnectionStatus';
 export { StateBlock } from './StateBlock';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
+export { ConfirmDialog } from './ConfirmDialog';
+export { FileUpload } from './FileUpload';

@@ -145,3 +145,31 @@ export type AnalysisMetrics = {
   totalSources: number;
   totalFindings: number;
 };
+
+/**
+ * Respuesta del endpoint de conversación continua. El backend devuelve
+ * `requiresPermission` cuando la pregunta no puede resolverse desde el
+ * grafo existente y necesita autorización para una búsqueda suplementaria.
+ */
+export type FollowUpAnswer = {
+  requiresPermission?: boolean;
+  prompt?: string;
+  answer?: string;
+  sources?: string[];
+  [key: string]: unknown;
+};
+
+export type SessionTimelineEntry = {
+  sessionId: string;
+  querySummary: string;
+  timestamp: string;
+  entities?: string[];
+  findingCount?: number;
+};
+
+export type SourceScoreResult = {
+  sourceId: string;
+  newScore: number;
+  adjustment: number;
+  reason: string;
+};

@@ -17,10 +17,13 @@ export interface SessionSlice {
   sessionStatus: SessionStatus | null;
   plan: ResearchPlan | null;
   report: FinalReport | null;
+  /** Tipos de variantes de reporte disponibles para exportar (technical, executive, risk, investor). */
+  reportVariants: string[];
   setSession: (id: string, query: string) => void;
   setSessionStatus: (status: SessionStatus) => void;
   setPlan: (plan: ResearchPlan) => void;
   setReport: (report: FinalReport) => void;
+  setReportVariants: (types: string[]) => void;
   clearSession: () => void;
 }
 
@@ -54,10 +57,12 @@ export const useStore = create<AppStore>()(
       sessionStatus: null,
       plan: null,
       report: null,
+      reportVariants: [],
       setSession: (id, query) => set({ sessionId: id, userQuery: query, sessionStatus: 'DRAFT' }),
       setSessionStatus: (status) => set({ sessionStatus: status }),
       setPlan: (plan) => set({ plan }),
       setReport: (report) => set({ report }),
+      setReportVariants: (types) => set({ reportVariants: types }),
       clearSession: () =>
         set({
           sessionId: null,
@@ -65,6 +70,7 @@ export const useStore = create<AppStore>()(
           sessionStatus: null,
           plan: null,
           report: null,
+          reportVariants: [],
           graphData: null,
           selectedNodeId: null,
         }),

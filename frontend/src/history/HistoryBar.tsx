@@ -1,5 +1,7 @@
+import { useState, type MouseEvent } from 'react';
 import type { SessionSummary, SessionStatus } from '@/types';
 import { Button, Icon } from '@/components';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface HistoryBarProps {
   sessions: SessionSummary[];
@@ -10,6 +12,7 @@ interface HistoryBarProps {
   onToggle: () => void;
   onSelect: (id: string) => void;
   onNew: () => void;
+  onDelete?: (id: string) => void;
 }
 
 function statusDot(status: SessionStatus): string {
@@ -35,7 +38,22 @@ export function HistoryBar({
   onToggle,
   onSelect,
   onNew,
+  onDelete,
 }: HistoryBarProps) {
+  const [deleteTarget, setDeleteTarget] = useState<SessionSummary | null>(null);
+
+  function handleDeleteClick(e: MouseEvent, session: SessionSummary) {
+    e.stopPropagation();
+    setDeleteTarget(session);
+  }
+
+  function confirmDelete() {
+    if (deleteTarget && onDelete) {
+      onDelete(deleteTarget.id);
+    }
+    setDeleteTarget(null);
+  }
+
   return (
     <nav
       className={`history ${collapsed ? 'history--collapsed' : ''}`}
@@ -104,27 +122,56 @@ export function HistoryBar({
           </p>
         )}
         {sessions.map((s) => (
-          <button
+          <div
             key={s.id}
-            type="button"
-            className="history__item"
-            aria-current={s.id === activeSessionId}
-            onClick={() => onSelect(s.id)}
+            className="history__item-row"
           >
-            <div className="history__item-q">{s.query || 'Sin título'}</div>
-            <div className="history__item-meta">
-              <span
-                className="history__status-dot"
-                data-status={statusDot(s.status)}
-                aria-hidden="true"
-              />
-              <span>{s.status}</span>
-              <span>·</span>
-              <span>{shortDate(s.date)}</span>
-            </div>
-          </button>
+            <button
+              type="button"
+              className="history__item"
+              aria-current={s.id === activeSessionId}
+              onClick={() => onSelect(s.id)}
+            >
+              <div className="history__item-q">{s.query || 'Sin título'}</div>
+              <div className="history__item-meta">
+                <span
+                  className="history__status-dot"
+                  data-status={statusDot(s.status)}
+                  aria-hidden="true"
+                />
+                <span>{s.status}</span>
+                <span>·</span>
+                <span>{shortDate(s.date)}</span>
+              </div>
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                className="history__delete-btn"
+                onClick={(e) => handleDeleteClick(e, s)}
+                aria-label={`Eliminar investigación: ${s.query || 'Sin título'}`}
+              >
+                <Icon name="trash" size={13} />
+              </button>
+            )}
+          </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Eliminar investigación"
+        message={
+          deleteTarget
+            ? `¿Eliminar «${deleteTarget.query || 'Sin título'}» y todos sus datos asociados? Esta acción es irreversible.`
+            : ''
+        }
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </nav>
   );
 }

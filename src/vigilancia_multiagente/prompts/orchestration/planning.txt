@@ -44,6 +44,9 @@
   <rule>Prefer Brave for real-time news and recency-focused queries.</rule>
   <rule>Use ArXiv + Scholar for academic papers.</rule>
   <rule>Use Jina read_url as primary content extractor; Firecrawl only as last resort.</rule>
+  <rule>Use Sandbox execute_code for data analysis, statistical computations, and chart generation.</rule>
+  <rule>Use Markitdown convert_to_markdown for document content (PDF, DOCX, PPTX, XLSX).</rule>
+  <rule>Use Playwright browser_navigate for JavaScript-heavy websites that don't render in fetch/Jina.</rule>
 </provider_selection_heuristics>
 
 <requirements>

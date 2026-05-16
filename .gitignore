@@ -95,6 +95,9 @@ desktop.ini
 *.log
 *.tmp
 
+# ---------- Uploads (temp files for Markitdown conversion) ----------
+uploads/
+
 # ---------- Documentation (third-party READMEs) ----------
 documentation/
 

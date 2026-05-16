@@ -1,4 +1,12 @@
-export { apiGet, apiPost, ApiError, API_BASE } from './client';
+export {
+  apiGet,
+  apiPost,
+  apiPatch,
+  apiDel,
+  apiUpload,
+  ApiError,
+  API_BASE,
+} from './client';
 export {
   startResearch,
   clarifySession,
@@ -11,5 +19,12 @@ export {
   searchGraph,
   getGraphPath,
   getMetrics,
+  deleteSession,
+  uploadDocument,
+  askFollowUp,
+  endConversation,
+  getSessionTimeline,
+  reportExportUrl,
+  adjustSourceScore,
 } from './endpoints';
 export { SseClient } from './sse';

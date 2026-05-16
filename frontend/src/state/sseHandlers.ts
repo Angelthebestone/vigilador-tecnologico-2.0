@@ -109,12 +109,26 @@ export function createSSEHandlers(): Record<string, (data: unknown) => void> {
     ReportGenerated: (data) => {
       const d = data as ReportGeneratedData;
       useStore.getState().setReport(d.report);
+      useStore.getState().setSessionStatus('COMPLETED');
       useChatStore.getState().addMessage({
         type: 'report',
         role: 'assistant',
         content: 'Informe final generado.',
-        metadata: { reportId: d.report.sessionId },
+        metadata: { report: d.report, reportId: d.report.sessionId },
       });
+      useChatStore.getState().addMessage({
+        type: 'event',
+        role: 'assistant',
+        content:
+          'Investigación completada. Puede continuar preguntando sobre los hallazgos sin lanzar una nueva investigación.',
+      });
+    },
+
+    ReportVariantsGenerated: (data) => {
+      const d = data as { types?: string[] };
+      if (Array.isArray(d.types) && d.types.length > 0) {
+        useStore.getState().setReportVariants(d.types);
+      }
     },
 
     GraphBuildingStarted: (data) => {

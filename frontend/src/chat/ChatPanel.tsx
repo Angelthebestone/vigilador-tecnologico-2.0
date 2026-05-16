@@ -9,6 +9,8 @@ interface ChatPanelProps {
   inputDisabled?: boolean;
   planApproved?: boolean;
   actionsDisabled?: boolean;
+  /** Sesión completada con reporte: el input pasa a modo seguimiento. */
+  conversationMode?: boolean;
   /** Render prop: cadena de pensamiento del planner para un mensaje tipo plan. */
   renderThinkingChain?: (message: ChatMessage) => ReactNode;
   onSend: (text: string) => void;
@@ -22,6 +24,7 @@ export function ChatPanel({
   inputDisabled = false,
   planApproved = false,
   actionsDisabled = false,
+  conversationMode = false,
   renderThinkingChain,
   onSend,
   onClarify,
@@ -63,7 +66,11 @@ export function ChatPanel({
           <div ref={endRef} />
         </div>
       )}
-      <InputBar disabled={inputDisabled} onSend={onSend} />
+      <InputBar
+        disabled={inputDisabled}
+        conversationMode={conversationMode}
+        onSend={onSend}
+      />
     </div>
   );
 }

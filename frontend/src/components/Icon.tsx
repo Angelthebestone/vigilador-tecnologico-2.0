@@ -18,7 +18,15 @@ export type IconName =
   | 'flask'
   | 'panel'
   | 'route'
-  | 'search';
+  | 'search'
+  | 'trash'
+  | 'paperclip'
+  | 'file'
+  | 'upload'
+  | 'image'
+  | 'check'
+  | 'clock'
+  | 'gauge';
 
 interface IconProps {
   name: IconName;
@@ -72,6 +80,47 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <circle cx="8.5" cy="8.5" r="5" />
       <path d="M12.5 12.5 17 17" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M6 6v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" />
+      <path d="M4 6h12M8 6V4h4v2" />
+      <path d="M8.5 9v5M11.5 9v5" />
+    </>
+  ),
+  paperclip: <path d="M15 7l-6.5 6.5a2.1 2.1 0 1 1-3-3L12 4a3 3 0 0 1 4.2 4.2L9.7 14.7a1.5 1.5 0 0 1-2.1-2.1L13 7" />,
+  file: (
+    <>
+      <path d="M6 3h6l4 4v10a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M12 3v4h4" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M10 14V5M6 9l4-4 4 4" />
+      <path d="M4 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="4" width="14" height="12" rx="1" />
+      <circle cx="7" cy="8" r="1.5" />
+      <path d="M17 13l-3.5-4-2.5 3-2-2L3 16" />
+    </>
+  ),
+  check: <path d="M4 10l4 4 8-9" />,
+  clock: (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 5.5V10l3 2" />
+    </>
+  ),
+  gauge: (
+    <>
+      <path d="M3 14a7 7 0 0 1 14 0" />
+      <path d="M10 14l4-4" />
+      <circle cx="10" cy="14" r="1" />
     </>
   ),
 };

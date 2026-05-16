@@ -5,15 +5,22 @@ import { useChatStore } from '@/state/chatStore';
 import { useAgentsStore } from '@/state/agentsStore';
 import { ChatView } from '@/chat';
 import { AnalysisView } from '@/analysis';
-import { HistoryBar } from '@/history';
+import { HistoryBar, SessionTimeline } from '@/history';
 import { TabNav, ConnectionStatus } from '@/components';
 
-type MainTab = 'chat' | 'analisis';
+type MainTab = 'chat' | 'analisis' | 'memoria';
 
 const TABS = [
   { id: 'chat' as const, label: 'Chat' },
   { id: 'analisis' as const, label: 'Análisis' },
+  { id: 'memoria' as const, label: 'Memoria' },
 ];
+
+const FOLIO: Record<MainTab, string> = {
+  chat: 'I',
+  analisis: 'II',
+  memoria: 'III',
+};
 
 export function MainLayout() {
   const [tab, setTab] = useState<MainTab>('chat');
@@ -27,6 +34,7 @@ export function MainLayout() {
   const selectSession = useHistoryStore((s) => s.selectSession);
   const newSession = useHistoryStore((s) => s.newSession);
 
+  const removeSession = useHistoryStore((s) => s.removeSession);
   const clearMessages = useChatStore((s) => s.clearMessages);
   const resetAgents = useAgentsStore((s) => s.resetAgents);
 
@@ -41,6 +49,19 @@ export function MainLayout() {
     selectSession(id);
   }
 
+  async function handleDelete(id: string) {
+    try {
+      await removeSession(id);
+      if (activeSessionId === id) {
+        clearSession();
+        clearMessages();
+        resetAgents();
+      }
+    } catch {
+      // error handled by store
+    }
+  }
+
   const historyBar = (
     <HistoryBar
       sessions={sessions}
@@ -49,6 +70,7 @@ export function MainLayout() {
       onToggle={() => setHistoryCollapsed((v) => !v)}
       onSelect={handleSelect}
       onNew={handleNew}
+      onDelete={handleDelete}
     />
   );
 
@@ -68,16 +90,21 @@ export function MainLayout() {
             onChange={(id) => setTab(id as MainTab)}
           />
           <div className="atlas-masthead__meta">
-            <span className="atlas-folio">Lám. {tab === 'chat' ? 'I' : 'II'}</span>
+            <span className="atlas-folio">Lám. {FOLIO[tab]}</span>
             <ConnectionStatus status={sseStatus} />
           </div>
         </div>
       </header>
 
-      {tab === 'chat' ? (
-        <ChatView historyBar={historyBar} />
-      ) : (
-        <AnalysisView historyBar={historyBar} />
+      {tab === 'chat' && <ChatView historyBar={historyBar} />}
+      {tab === 'analisis' && <AnalysisView historyBar={historyBar} />}
+      {tab === 'memoria' && (
+        <div className="atlas-body">
+          {historyBar}
+          <div className="atlas-plate">
+            <SessionTimeline />
+          </div>
+        </div>
       )}
     </div>
   );

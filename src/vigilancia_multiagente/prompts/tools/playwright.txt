@@ -1,0 +1,63 @@
+<tool name="browser_navigate">
+  <function_signature>## browser_navigate(url: str)</function_signature>
+  <best_for>loading dynamic web pages that require JavaScript execution</best_for>
+  <details>Opens a headless browser and navigates to the URL. Returns accessibility snapshot of the page content.</details>
+  <limits>Timeout: 30s navigation, 60s total</limits>
+  <selection_heuristics>
+    <prefer_over>Jina read_url when the page is JavaScript-rendered or requires interaction</prefer_over>
+    <prefer_over>fetch for server-rendered HTML pages (faster, lighter)</prefer_over>
+    <avoid_when>The page is plain HTML (use fetch or Jina instead — cheaper and faster)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">browser_navigate to the target URL</step>
+    <step order="2">browser_snapshot to capture the full page content</step>
+    <step order="3">If needed, browser_click / browser_type to interact with forms or pagination</step>
+  </chaining>
+</tool>
+
+<tool name="browser_snapshot">
+  <function_signature>## browser_snapshot(target: str)</function_signature>
+  <best_for>capturing the full accessibility tree of the current page</best_for>
+  <details>Returns structured accessibility snapshot — use this for understanding page content, NOT screenshots.</details>
+  <usage>Always call after browser_navigate to read the page content</usage>
+</tool>
+
+<tool name="browser_screenshot">
+  <function_signature>## browser_screenshot(full_page: bool)</function_signature>
+  <best_for>visual confirmation of page layout, UI verification</best_for>
+  <details>Returns a base64-encoded PNG. Use full_page=true for scrollable pages.</details>
+  <usage>Use snapshot for reading content, screenshot for visual reference only</usage>
+</tool>
+
+<tool name="browser_click">
+  <function_signature>## browser_click(target: str, element: str)</function_signature>
+  <best_for>clicking buttons, links, and interactive elements on dynamic pages</best_for>
+  <details>Target from the snapshot reference. Optional element description for context.</details>
+  <usage>Call browser_snapshot after click to see the resulting page state</usage>
+</tool>
+
+<tool name="browser_type">
+  <function_signature>## browser_type(target: str, text: str, submit: bool)</function_signature>
+  <best_for>typing text into input fields, search boxes, forms</best_for>
+  <details>submit=true presses Enter after typing (for search forms).</details>
+</tool>
+
+<tool name="browser_network_requests">
+  <function_signature>## browser_network_requests(static: bool)</function_signature>
+  <best_for>inspecting API calls and XHR requests made by the page</best_for>
+  <details>Lists all network requests with URLs and status codes. static=true includes images/fonts.</details>
+</tool>
+
+<tool name="browser_network_request">
+  <function_signature>## browser_network_request(index: int)</function_signature>
+  <best_for>getting full details (headers, body) of a specific network request</best_for>
+  <details>Use the index from browser_network_results output.</details>
+</tool>
+
+<rules>
+  <rule>Always call browser_snapshot after navigation to read the page — screenshots are for visual ref only.</rule>
+  <rule>If the page blocks automated access (403/429/CAPTCHA), log it and try alternative sources.</rule>
+  <rule>Prefer snapshot over screenshot for extracting text and data.</rule>
+  <rule>Use browser_network_requests to discover hidden APIs and data endpoints.</rule>
+  <rule>Close browser tabs when done: browser_tabs(action="close").</rule>
+</rules>

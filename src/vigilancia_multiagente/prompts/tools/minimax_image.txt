@@ -1,0 +1,18 @@
+<tool name="understand_image">
+  <function_signature>## understand_image(prompt: str, image_url: str)</function_signature>
+  <best_for>analyzing images, charts, diagrams, screenshots, patent figures, technical illustrations</best_for>
+  <usage>Provide a descriptive prompt and the image URL. Supports JPEG, PNG, GIF, WebP up to 20 MB. Use http/https URLs or data: URIs.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Manual image description when automated analysis is needed</prefer_over>
+    <avoid_when>The image URL is behind authentication or a paywall</avoid_when>
+  </selection_heuristics>
+  <fallback>If the image URL is inaccessible, try downloading it first with fetch tool and re-uploading</fallback>
+</tool>
+
+<rules>
+  <rule>Always provide a clear, specific prompt describing what to analyze in the image.</rule>
+  <rule>For patent figures, ask about specific elements (circuits, flowcharts, mechanical parts).</rule>
+  <rule>For charts/graphs, ask the model to extract data points and trends.</rule>
+  <rule>Combine with text search results for richer cross-modal analysis.</rule>
+</rules>

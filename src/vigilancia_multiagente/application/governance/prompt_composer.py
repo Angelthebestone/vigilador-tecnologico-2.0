@@ -37,6 +37,19 @@ _TOOL_PROMPT_NAMES = {
     "download_paper": "arxiv",
     "read_paper": "arxiv",
     "fetch": "fetch",
+    "execute_code": "sandbox",
+    "list_libraries": "sandbox",
+    "visualize": "sandbox",
+    "convert_to_markdown": "markitdown",
+    "browser_navigate": "playwright",
+    "browser_snapshot": "playwright",
+    "browser_screenshot": "playwright",
+    "browser_click": "playwright",
+    "browser_type": "playwright",
+    "browser_network_requests": "playwright",
+    "browser_network_request": "playwright",
+    "browser_tabs": "playwright",
+    "understand_image": "minimax_image",
 }
 
 

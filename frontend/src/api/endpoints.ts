@@ -1,5 +1,13 @@
-import { apiGet, apiPost } from './client';
-import type { ResearchPlan, FinalReport, GraphData, Source } from '@/types';
+import { apiGet, apiPost, apiDel, apiUpload, apiPatch, API_BASE } from './client';
+import type {
+  ResearchPlan,
+  FinalReport,
+  GraphData,
+  Source,
+  FollowUpAnswer,
+  SessionTimelineEntry,
+  SourceScoreResult,
+} from '@/types';
 
 export async function startResearch(
   query: string,
@@ -87,4 +95,61 @@ export async function getMetrics(
   }>;
 }> {
   return apiGet(`/research/${sessionId}/providers`);
+}
+
+export async function deleteSession(
+  sessionId: string,
+): Promise<{ status: string; sessionId: string }> {
+  return apiDel(`/research/${sessionId}`);
+}
+
+export async function uploadDocument(
+  file: File,
+): Promise<{ markdown: string; format: string; filename: string }> {
+  return apiUpload('/upload/document', file);
+}
+
+/**
+ * Conversación continua: pregunta de seguimiento sobre una sesión ya completada.
+ * El backend responde directamente desde el grafo existente, o pide permiso
+ * para lanzar una búsqueda suplementaria (`requiresPermission`).
+ */
+export async function askFollowUp(
+  sessionId: string,
+  query: string,
+): Promise<FollowUpAnswer> {
+  return apiPost(`/sessions/${sessionId}/ask`, { query });
+}
+
+export async function endConversation(
+  sessionId: string,
+): Promise<{ status: string }> {
+  return apiDel(`/sessions/${sessionId}/conversation`);
+}
+
+/** Memoria cross-sesión: línea de tiempo de sesiones previas. */
+export async function getSessionTimeline(): Promise<{
+  sessions: SessionTimelineEntry[];
+}> {
+  return apiGet('/sessions/timeline');
+}
+
+/** URL directa de descarga de un reporte exportado (MD o HTML). */
+export function reportExportUrl(
+  reportId: string,
+  format: 'md' | 'html',
+): string {
+  return `${API_BASE}/reports/${encodeURIComponent(reportId)}/export?format=${format}`;
+}
+
+/** Trust scoring: ajuste manual de la confianza de una fuente. */
+export async function adjustSourceScore(
+  sourceId: string,
+  delta: number,
+  reason: string,
+): Promise<SourceScoreResult> {
+  return apiPatch(`/sources/${encodeURIComponent(sourceId)}/score`, {
+    delta,
+    reason,
+  });
 }

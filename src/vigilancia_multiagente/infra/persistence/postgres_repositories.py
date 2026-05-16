@@ -96,6 +96,14 @@ class PostgresSessionRepository(SessionRepository):
                 raise KeyError(f"Session not found: {session.id}")
             return _session_from_row(row)
 
+    async def delete(self, session_id: UUID) -> None:
+        async with self._database.session() as db:
+            await db.execute(
+                text("DELETE FROM research_sessions WHERE id = :session_id"),
+                {"session_id": str(session_id)},
+            )
+            await db.commit()
+
 
 class PostgresPlanRepository(PlanRepository):
     def __init__(self, database: Database) -> None:

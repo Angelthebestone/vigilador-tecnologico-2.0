@@ -37,6 +37,12 @@
   <rule>Use next_query to search for contradiction resolution</rule>
 </contradiction_handling>
 
+<signal_handling>
+  <rule>If you discover a high-value technology or finding that other branches should investigate, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you identify an information gap that needs a different branch's expertise, emit signal_gap_detected so the planner can reroute.</rule>
+  <rule>Use the sandbox to analyze bibliometric data when you have papers, citations, or patent data.</rule>
+</signal_handling>
+
 <next_query_guidelines>
   <rule>Maximum 20 words</rule>
   <rule>Must target a specific information gap</rule>

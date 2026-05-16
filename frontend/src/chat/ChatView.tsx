@@ -3,7 +3,7 @@ import type { BranchAgent, BranchType, ChatMessage } from '@/types';
 import { useChatStore } from '@/state/chatStore';
 import { useAgentsStore } from '@/state/agentsStore';
 import { useStore } from '@/state/useStore';
-import { startResearch, clarifySession, approvePlan } from '@/api';
+import { startResearch, clarifySession, approvePlan, askFollowUp } from '@/api';
 import { AgentSidebar, PlanningChain } from '@/agents';
 import { ChatPanel } from './ChatPanel';
 import { useSSE } from './useSSE';
@@ -38,10 +38,14 @@ export function ChatView({ historyBar }: ChatViewProps) {
   const setSessionStatus = useStore((s) => s.setSessionStatus);
   const setPlan = useStore((s) => s.setPlan);
 
+  const report = useStore((s) => s.report);
+
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [planApproved, setPlanApproved] = useState(false);
+  const [followUpBusy, setFollowUpBusy] = useState(false);
 
   const executing = sessionStatus === 'EXECUTING';
+  const conversationMode = sessionStatus === 'COMPLETED' && Boolean(report);
   useSSE({ sessionId, enabled: executing });
 
   const orderedAgents = useMemo<BranchAgent[]>(
@@ -55,7 +59,48 @@ export function ChatView({ historyBar }: ChatViewProps) {
   const handleSend = useCallback(
     async (text: string) => {
       addMessage({ type: 'user', role: 'user', content: text });
-      if (sessionId) return; // seguimiento post-investigación: solo se registra
+
+      // Modo conversación continua: la sesión ya tiene reporte, así que
+      // las preguntas se responden desde el grafo existente sin lanzar
+      // una nueva investigación.
+      if (conversationMode && sessionId) {
+        setFollowUpBusy(true);
+        try {
+          const res = await askFollowUp(sessionId, text);
+          if (res.requiresPermission) {
+            addMessage({
+              type: 'event',
+              role: 'assistant',
+              content:
+                res.prompt ??
+                'Esta pregunta requiere una búsqueda nueva. ¿Desea lanzarla?',
+              metadata: { requiresPermission: true },
+            });
+          } else {
+            addMessage({
+              type: 'system',
+              role: 'assistant',
+              content:
+                res.answer ??
+                (typeof res === 'string' ? res : JSON.stringify(res)),
+              metadata: res.sources ? { sources: res.sources } : undefined,
+            });
+          }
+        } catch (err) {
+          addMessage({
+            type: 'event',
+            role: 'assistant',
+            content: `No se pudo responder la consulta: ${
+              err instanceof Error ? err.message : 'error'
+            }`,
+          });
+        } finally {
+          setFollowUpBusy(false);
+        }
+        return;
+      }
+
+      if (sessionId) return; // sesión en curso: solo se registra
       try {
         const res = await startResearch(text);
         setSession(res.sessionId, text);
@@ -73,7 +118,14 @@ export function ChatView({ historyBar }: ChatViewProps) {
         });
       }
     },
-    [addMessage, addClarification, sessionId, setSession, setSessionStatus],
+    [
+      addMessage,
+      addClarification,
+      sessionId,
+      conversationMode,
+      setSession,
+      setSessionStatus,
+    ],
   );
 
   const handleClarify = useCallback(
@@ -163,9 +215,10 @@ export function ChatView({ historyBar }: ChatViewProps) {
       <div className="atlas-plate">
         <ChatPanel
           messages={messages}
-          inputDisabled={false}
+          inputDisabled={followUpBusy}
           planApproved={planApproved}
           actionsDisabled={executing}
+          conversationMode={conversationMode}
           renderThinkingChain={renderThinkingChain}
           onSend={handleSend}
           onClarify={handleClarify}

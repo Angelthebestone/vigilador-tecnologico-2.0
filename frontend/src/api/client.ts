@@ -62,3 +62,45 @@ export async function apiPost<T>(
 ): Promise<T> {
   return request<T>('POST', path, body, signal);
 }
+
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return request<T>('PATCH', path, body, signal);
+}
+
+export async function apiDel<T = unknown>(
+  path: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  return request<T>('DELETE', path, undefined, signal);
+}
+
+export async function apiUpload<T = unknown>(
+  path: string,
+  file: File,
+  signal?: AbortSignal,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000);
+  signal?.addEventListener('abort', () => controller.abort(), { once: true });
+
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch(buildUrl(path), {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => undefined);
+      throw new ApiError(response.status, response.statusText, errorBody);
+    }
+    return response.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

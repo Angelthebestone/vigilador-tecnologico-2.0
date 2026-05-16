@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Serper REST API (no MCP)
     serper_api_key: SecretStr | None = None
 
+    # MiniMax Image MCP (Token Plan — separate key from text chat)
+    minimax_image_api_key: SecretStr | None = None
+    minimax_api_host: str = "https://api.minimax.io"
+
     # Playwright MCP
     playwright_headless: bool = True
 

@@ -19,22 +19,50 @@
   <level threshold="0.9-1.0">Granted and in-force patent, regulation published in official journal, ratified standard</level>
 </confidence_guidelines>
 
-<evidence_quality>
+<
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+evidence_quality>
   <requirement>Patents require number and office (USPTO, EPO, WIPO)</requirement>
   <requirement>Regulations require jurisdiction and status (proposed/in force/repealed)</requirement>
   <requirement>Technical standards require body (ISO, IEC, IEEE) and version</requirement>
   <rule>Include legal disclaimer when interpreting scope of a standard</rule>
-</evidence_quality>
+</
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+evidence_quality>
 
 <contradiction_handling>
   <rule>If similar patents exist in different jurisdictions, list all</rule>
   <rule>Do not assume a patent in one jurisdiction applies in another</rule>
 </contradiction_handling>
 
-<next_query_guidelines>
+<
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+next_query_guidelines>
   <rule>Prioritize search by specific jurisdiction</rule>
   <rule>Search for patent families when a relevant one is found</rule>
-</next_query_guidelines>
+</
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+next_query_guidelines>
 
 <rules type="do">
   <rule>Explicitly identify applicable jurisdiction</rule>
@@ -52,3 +80,4 @@
   <condition>confidence &lt; 0.6</condition>
   <action>concrete next_query (≤20 words)</action>
 </uncertainty>
+

@@ -1,0 +1,24 @@
+<tool name="convert_to_markdown">
+  <function_signature>## convert_to_markdown(uri: str)</function_signature>
+  <best_for>converting PDF, DOCX, PPTX, XLSX, HTML, CSV, JSON, XML, and image files to Markdown text</best_for>
+  <details>Accepts http:, https:, file:, and data: URIs. Returns clean Markdown with structure preserved (headings, lists, tables).</details>
+  <limits>Timeout: 60s, file size: 50MB max</limits>
+  <selection_heuristics>
+    <prefer_over>Reading raw PDF text via fetch — Markitdown handles formatting and structure</prefer_over>
+    <prefer_over>Jina read_url when the source is a document file, not a web page</prefer_over>
+    <avoid_when>The source is already plain HTML or Markdown (use fetch or Jina instead)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Use search tools to find relevant documents (PDFs, patents, reports)</step>
+    <step order="2">Call convert_to_markdown with the document URI</step>
+    <step order="3">Analyze the resulting Markdown content for key findings</step>
+  </chaining>
+  <fallback>If conversion fails, try Jina read_url for web-based documents, or fetch for plain text</fallback>
+</tool>
+
+<rules>
+  <rule>Prefer file: URIs for local documents when possible (faster than downloading).</rule>
+  <rule>For http: URIs, ensure the document is publicly accessible (no auth required).</rule>
+  <rule>The tool preserves tables and lists — use the structured content for analysis.</rule>
+  <rule>If the document is corrupted or unsupported, the tool returns a clear error message.</rule>
+</rules>

@@ -199,6 +199,23 @@ class MCPProviderRegistry:
                 enabled_tools=("convert_to_markdown",),
                 capabilities=("document_conversion",),
             ),
+            "minimax-image": MCPProviderConfig(
+                name="minimax-image",
+                transport=MCPTransport.STDIO,
+                base_url_or_command="uvx",
+                arguments=["minimax-mcp-server", "-y"],
+                auth_mode=MCPAuthMode.API_KEY,
+                timeout_ms=settings.mcp_default_timeout_ms,
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500,
+                ),
+                enabled_tools=("understand_image",),
+                capabilities=("vision", "image_analysis"),
+                environment=_env(
+                    "MINIMAX_API_KEY",
+                    _secret(settings.minimax_image_api_key),
+                ),
+            ),
             "playwright": MCPProviderConfig(
                 name="playwright",
                 transport=MCPTransport.STDIO,

@@ -21,21 +21,49 @@
   <rule>Very early signals (arXiv, pre-print): confidence ≤0.4 as opportunity</rule>
 </confidence_guidelines>
 
-<evidence_quality>
+<
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+evidence_quality>
   <requirement>Each opportunity must have a source linking it to the specific domain</requirement>
   <requirement>Impact estimates must have a basis (TAM/SAM/SOM or similar)</requirement>
   <requirement>Collaboration opportunities require identifying concrete potential partners</requirement>
-</evidence_quality>
+</
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+evidence_quality>
 
 <contradiction_handling>
   <rule>An opportunity for one actor may be a risk for another — declare both perspectives</rule>
   <rule>Do not present an opportunity as "safe" — always include associated risk factors</rule>
 </contradiction_handling>
 
-<next_query_guidelines>
+<
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+next_query_guidelines>
   <rule>Prioritize opportunity quantification (market, adoption)</rule>
   <rule>Search for success cases or existing implementations</rule>
-</next_query_guidelines>
+</
+<signal_handling>
+  <rule>If you discover a high-value finding that other branches need to know, emit signal_gap_detected with {description, suggested_query, focus}.</rule>
+  <rule>If you hit a knowledge gap that requires a different approach, signal it so the planner can redirect resources.</rule>
+  <rule>Use the sandbox (execute_code) when you need statistical analysis or visualizations of collected data.</rule>
+  <rule>Use Markitdown for document content and Playwright for dynamic websites that don't render in standard fetchers.</rule>
+</signal_handling>
+next_query_guidelines>
 
 <opportunity_classification>
   <type name="innovation">New technology, methodology or application in the domain</type>
@@ -61,3 +89,4 @@
   <condition>confidence &lt; 0.6</condition>
   <action>concrete next_query (≤20 words)</action>
 </uncertainty>
+
