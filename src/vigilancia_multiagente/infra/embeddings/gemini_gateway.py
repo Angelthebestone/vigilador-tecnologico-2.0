@@ -32,7 +32,9 @@ class GeminiEmbeddingGateway:
         """Embed a document. Equivalent to ``embed(text, RETRIEVAL_DOCUMENT)``."""
         return await self.embed(text, TaskType.RETRIEVAL_DOCUMENT)
 
-    async def embed(self, text: str, task_type: TaskType = TaskType.RETRIEVAL_DOCUMENT) -> list[float]:
+    async def embed(
+        self, text: str, task_type: TaskType = TaskType.RETRIEVAL_DOCUMENT
+    ) -> list[float]:
         """Embed text with a task-specific prefix for retrieval quality.
 
         Args:
@@ -94,4 +96,3 @@ def _normalize_and_validate(values: list[float], dimensions: int) -> list[float]
     if magnitude == 0:
         return [0.0 for _ in values]
     return [value / magnitude for value in values]
-

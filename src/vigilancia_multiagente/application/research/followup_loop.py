@@ -58,4 +58,3 @@ async def run_followup_loop(
             break
         current_query = next_query or current_query
     return results
-

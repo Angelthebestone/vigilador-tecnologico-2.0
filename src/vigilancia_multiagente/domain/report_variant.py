@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 from enum import Enum
+
+
 class ReportType(str, Enum):
     TECHNICAL = "technical"
     EXECUTIVE = "executive"

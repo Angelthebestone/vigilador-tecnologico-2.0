@@ -14,4 +14,3 @@ class GoldenCasesRunner:
             GoldenCaseResult(case_id=case_id, branch_type=branch_type, passed=True)
             for case_id, branch_type in cases
         ]
-

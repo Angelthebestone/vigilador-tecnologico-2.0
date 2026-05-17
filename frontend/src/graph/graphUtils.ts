@@ -1,4 +1,4 @@
-import type { BranchType, GraphEdge } from '@/types';
+import type { BranchType, GraphEdge, NodeType } from '@/types';
 
 /**
  * Construye un mapa de adyacencia no dirigido a partir de las aristas.
@@ -81,6 +81,31 @@ export function getBranchLabel(branchType: BranchType): string {
  */
 export function getFontSize(radius: number): number {
   return clamp(radius * 0.6, 10, 16);
+}
+
+export const NODE_TYPE_COLORS: Record<NodeType, string> = {
+  TECHNOLOGY: '#F97316',  // naranja
+  FINDING:    '#3B82F6',  // azul
+  SOURCE:     '#6B7280',  // gris
+  CONCEPT:    '#8B5CF6',  // violeta
+  PATENT:     '#F59E0B',  // ámbar
+  PERSON:     '#10B981',  // verde
+  COMPANY:    '#EC4899',  // rosa
+};
+
+export const NODE_TYPE_LABELS: Record<NodeType, string> = {
+  TECHNOLOGY: 'Tecnología',
+  FINDING:    'Hallazgo',
+  SOURCE:     'Fuente',
+  CONCEPT:    'Concepto',
+  PATENT:     'Patente',
+  PERSON:     'Persona',
+  COMPANY:    'Empresa',
+};
+
+export function getNodeColor(nodeType: NodeType | undefined, branchType: BranchType): string {
+  if (nodeType && nodeType in NODE_TYPE_COLORS) return NODE_TYPE_COLORS[nodeType];
+  return getBranchColor(branchType);
 }
 
 /**

@@ -14,9 +14,20 @@ class MarkitdownProvider:
     Uses the execution client to call convert_to_markdown tool.
     """
 
-    SUPPORTED_FORMATS = frozenset({
-        "pdf", "docx", "pptx", "xlsx", "html", "csv", "json", "xml", "png", "jpg",
-    })
+    SUPPORTED_FORMATS = frozenset(
+        {
+            "pdf",
+            "docx",
+            "pptx",
+            "xlsx",
+            "html",
+            "csv",
+            "json",
+            "xml",
+            "png",
+            "jpg",
+        }
+    )
 
     def __init__(self, execution_client: Any = None, provider_registry: Any = None) -> None:
         self.execution_client = execution_client
@@ -40,7 +51,11 @@ class MarkitdownProvider:
         """
         provider = self._get_provider()
         if provider is None or self.execution_client is None:
-            return {"success": False, "error": "Markitdown provider not configured", "content": None}
+            return {
+                "success": False,
+                "error": "Markitdown provider not configured",
+                "content": None,
+            }
 
         try:
             result = await self.execution_client.execute_tool(

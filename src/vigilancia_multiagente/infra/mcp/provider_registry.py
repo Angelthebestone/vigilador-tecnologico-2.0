@@ -8,7 +8,6 @@ from vigilancia_multiagente.config.settings import Settings
 _MCP_SERVERS = Path(__file__).resolve().parents[4] / ".mcp-servers"
 
 
-
 class MCPTransport(StrEnum):
     STDIO = "STDIO"
     HTTP = "HTTP"
@@ -60,7 +59,9 @@ class MCPProviderRegistry:
         return tuple(self._providers.values())
 
     def providers_for_tool(self, tool_name: str) -> tuple[MCPProviderConfig, ...]:
-        return tuple(provider for provider in self._providers.values() if tool_name in provider.enabled_tools)
+        return tuple(
+            provider for provider in self._providers.values() if tool_name in provider.enabled_tools
+        )
 
     def provider_names_for_tools(self, tools: tuple[str, ...]) -> tuple[str, ...]:
         names: list[str] = []
@@ -93,7 +94,9 @@ class MCPProviderRegistry:
                 base_url_or_command="https://mcp.tavily.com/mcp",
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
                 enabled_tools=("tavily_search", "tavily_extract"),
                 capabilities=("search", "extract"),
                 headers=_auth_headers(tavily_key, extra_name="X-API-Key"),
@@ -104,7 +107,9 @@ class MCPProviderRegistry:
                 base_url_or_command="https://mcp.exa.ai/mcp",
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
                 enabled_tools=("web_search_exa", "web_fetch_exa", "web_search_advanced_exa"),
                 capabilities=("search", "company"),
                 headers=_auth_headers(exa_key, extra_name="x-api-key"),
@@ -115,7 +120,9 @@ class MCPProviderRegistry:
                 base_url_or_command="https://mcp.jina.ai/v1?include_tools=read_url,search_web,guess_datetime_url",
                 auth_mode=MCPAuthMode.BEARER,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
                 enabled_tools=("read_url", "search_web", "guess_datetime_url"),
                 capabilities=("read", "search", "metadata"),
                 headers=_auth_headers(jina_key),
@@ -127,7 +134,9 @@ class MCPProviderRegistry:
                 arguments=["-y", "@brave/brave-search-mcp-server", "--transport", "stdio"],
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
                 enabled_tools=("brave_web_search", "brave_news_search"),
                 capabilities=("search", "news"),
                 environment=_env("BRAVE_API_KEY", brave_key),
@@ -148,11 +157,23 @@ class MCPProviderRegistry:
                 name="google_scholar",
                 transport=MCPTransport.STDIO,
                 base_url_or_command="python",
-                arguments=["-u", str(_MCP_SERVERS / "google-scholar/Google-Scholar-MCP-Server-main/google_scholar_server.py")],
+                arguments=[
+                    "-u",
+                    str(
+                        _MCP_SERVERS
+                        / "google-scholar/Google-Scholar-MCP-Server-main/google_scholar_server.py"
+                    ),
+                ],
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
-                enabled_tools=("search_google_scholar_key_words", "search_google_scholar_advanced", "get_author_info"),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
+                enabled_tools=(
+                    "search_google_scholar_key_words",
+                    "search_google_scholar_advanced",
+                    "get_author_info",
+                ),
                 capabilities=("scholar",),
             ),
             "arxiv": MCPProviderConfig(
@@ -162,7 +183,9 @@ class MCPProviderRegistry:
                 arguments=["-m", "arxiv_mcp_server"],
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
                 enabled_tools=("search_papers", "download_paper", "read_paper"),
                 capabilities=("papers",),
             ),
@@ -173,7 +196,9 @@ class MCPProviderRegistry:
                 arguments=["-m", "mcp_server_fetch"],
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=settings.mcp_default_timeout_ms,
-                retry_policy=RetryPolicy(max_attempts=settings.mcp_default_retry_limit, backoff_ms=500),
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
+                ),
                 enabled_tools=("fetch",),
                 capabilities=("fetch",),
             ),
@@ -207,7 +232,8 @@ class MCPProviderRegistry:
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(
-                    max_attempts=settings.mcp_default_retry_limit, backoff_ms=500,
+                    max_attempts=settings.mcp_default_retry_limit,
+                    backoff_ms=500,
                 ),
                 enabled_tools=("understand_image",),
                 capabilities=("vision", "image_analysis"),
@@ -224,7 +250,18 @@ class MCPProviderRegistry:
                 auth_mode=MCPAuthMode.NONE,
                 timeout_ms=60000,
                 retry_policy=RetryPolicy(max_attempts=2, backoff_ms=500),
-                enabled_tools=("browser_navigate", "browser_snapshot", "browser_screenshot", "browser_click", "browser_type", "browser_select_option", "browser_hover", "browser_tabs", "browser_network_requests", "browser_network_request"),
+                enabled_tools=(
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "browser_screenshot",
+                    "browser_click",
+                    "browser_type",
+                    "browser_select_option",
+                    "browser_hover",
+                    "browser_tabs",
+                    "browser_network_requests",
+                    "browser_network_request",
+                ),
                 capabilities=("browser", "navigation", "screenshot"),
             ),
         }
@@ -233,9 +270,13 @@ class MCPProviderRegistry:
             self._providers[name] = _merge_provider(current, provider) if current else provider
 
     def validate_ready(self, required_tools: tuple[str, ...]) -> None:
-        missing_tools = [tool_name for tool_name in required_tools if not self.providers_for_tool(tool_name)]
+        missing_tools = [
+            tool_name for tool_name in required_tools if not self.providers_for_tool(tool_name)
+        ]
         if missing_tools:
-            raise RuntimeError(f"Missing MCP providers for tools: {', '.join(sorted(missing_tools))}")
+            raise RuntimeError(
+                f"Missing MCP providers for tools: {', '.join(sorted(missing_tools))}"
+            )
 
 
 def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
@@ -296,4 +337,3 @@ def _merge_provider(current: MCPProviderConfig, default: MCPProviderConfig) -> M
         headers=headers,
         environment=environment,
     )
-

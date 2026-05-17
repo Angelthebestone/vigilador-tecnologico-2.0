@@ -36,7 +36,9 @@ class HypeDetector:
         if not signals:
             report.hype_ratio = 0.0
             report.verdict = "insufficient_data"
-            report.analysis = f"Connect MCP providers (arxiv, exa, firecrawl, serper) to analyze {tech_name}"
+            report.analysis = (
+                f"Connect MCP providers (arxiv, exa, firecrawl, serper) to analyze {tech_name}"
+            )
             return report
 
         substance = sum(signals.values())
@@ -46,7 +48,9 @@ class HypeDetector:
 
         if report.hype_ratio > 0.7:
             report.verdict = "exagerada"
-            report.analysis = f"{tech_name} appears overhyped: {substance} substance signals vs estimated buzz"
+            report.analysis = (
+                f"{tech_name} appears overhyped: {substance} substance signals vs estimated buzz"
+            )
         elif report.hype_ratio > 0.3:
             report.verdict = "real"
             report.analysis = f"{tech_name} shows substantive signals ({substance} evidence points)"

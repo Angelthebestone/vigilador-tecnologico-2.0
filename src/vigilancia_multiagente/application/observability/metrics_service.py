@@ -13,7 +13,9 @@ class ProviderMetrics:
 
 
 class MetricsService:
-    def aggregate_provider_metrics(self, session_id: UUID, provider_usage: list[dict[str, str | int]]) -> list[ProviderMetrics]:
+    def aggregate_provider_metrics(
+        self, session_id: UUID, provider_usage: list[dict[str, str | int]]
+    ) -> list[ProviderMetrics]:
         del session_id
         if not provider_usage:
             return []
@@ -36,7 +38,9 @@ class MetricsService:
         total = len(entries)
         if not total:
             return 0.0
-        failures = sum(1 for entry in entries if str(entry.get("result_status", "")).upper() == "FAILED")
+        failures = sum(
+            1 for entry in entries if str(entry.get("result_status", "")).upper() == "FAILED"
+        )
         return failures / total
 
     def _retry_rate(self, entries: list[dict[str, str | int]]) -> float:
@@ -59,4 +63,3 @@ class MetricsService:
             else:
                 buckets["gte_1000ms"] += 1
         return buckets
-

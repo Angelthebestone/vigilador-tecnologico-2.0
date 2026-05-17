@@ -23,4 +23,3 @@ class BranchKPIService:
             latency_ms_kpi=latency_ms,
             cost_kpi=round(cost_kpi, 2),
         )
-

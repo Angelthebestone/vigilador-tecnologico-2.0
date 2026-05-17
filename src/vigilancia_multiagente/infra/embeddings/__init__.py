@@ -1,2 +1,1 @@
 """Embedding providers package."""
-

@@ -25,7 +25,9 @@ def test_api_v2_plan_and_graph_routes(memory_repositories):
     assert modify_response.status_code == 200
     assert modify_response.json()["plan"]["version"] == 2
 
-    approve_response = client.post(f"/api/v2/research/{session_id}/approve", json={"approved": True})
+    approve_response = client.post(
+        f"/api/v2/research/{session_id}/approve", json={"approved": True}
+    )
     assert approve_response.status_code == 200
     assert approve_response.json()["status"] == "completed"
 

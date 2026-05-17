@@ -48,10 +48,7 @@ async def test_sandbox_execution_time():
     """Verify sandbox execution completes within expected time."""
     start = time.time()
 
-    result = await _call_sandbox("execute_code", {
-        "code": "print(2 + 2)",
-        "timeout": 10
-    })
+    result = await _call_sandbox("execute_code", {"code": "print(2 + 2)", "timeout": 10})
     assert result is not None
     elapsed = time.time() - start
     assert elapsed < 30, f"Sandbox execution too slow: {elapsed:.1f}s"

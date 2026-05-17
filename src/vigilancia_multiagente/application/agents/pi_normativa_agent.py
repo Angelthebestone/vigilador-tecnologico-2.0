@@ -20,5 +20,13 @@ class PiNormativaAgent(BaseBranchAgent):
         system_base: SystemBase | None = None,
         prompt_composer: PromptComposer | None = None,
     ) -> None:
-        super().__init__(BranchType.PI_NORMATIVA, governance_loader, provider_registry, execution_client, embedding_gateway, minimax_client, system_base, prompt_composer)
-
+        super().__init__(
+            BranchType.PI_NORMATIVA,
+            governance_loader,
+            provider_registry,
+            execution_client,
+            embedding_gateway,
+            minimax_client,
+            system_base,
+            prompt_composer,
+        )

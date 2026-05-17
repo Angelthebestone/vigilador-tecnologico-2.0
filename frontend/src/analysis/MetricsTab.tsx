@@ -68,7 +68,7 @@ export function MetricsTab({ metrics, loading, error }: MetricsTabProps) {
 
       <div>
         <h3 className="atlas-section-title">
-          KPIs por rama <small>// cobertura · precisión · latencia · costo</small>
+          KPIs por rama <small>// cobertura · precisión · latencia</small>
         </h3>
         <table className="dtable">
           <thead>
@@ -77,7 +77,6 @@ export function MetricsTab({ metrics, loading, error }: MetricsTabProps) {
               <th>Cobertura</th>
               <th>Precisión</th>
               <th>Latencia</th>
-              <th>Costo</th>
             </tr>
           </thead>
           <tbody>
@@ -93,7 +92,6 @@ export function MetricsTab({ metrics, loading, error }: MetricsTabProps) {
                 <td>{pct(kpi.coverageKpi)}</td>
                 <td>{pct(kpi.precisionKpi)}</td>
                 <td>{kpi.latencyMsKpi} ms</td>
-                <td>{kpi.costKpi.toFixed(3)}</td>
               </tr>
             ))}
           </tbody>

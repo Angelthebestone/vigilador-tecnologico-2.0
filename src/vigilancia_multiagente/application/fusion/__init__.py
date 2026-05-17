@@ -1,2 +1,1 @@
 """Fusion package."""
-

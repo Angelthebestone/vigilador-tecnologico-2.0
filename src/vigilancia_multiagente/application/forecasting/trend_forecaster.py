@@ -146,5 +146,3 @@ class TrendForecasterService:
             model_type="linear",
             data_quality=data_quality,
         )
-
-

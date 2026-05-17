@@ -37,11 +37,21 @@ export type BranchAgent = {
   error?: string;
 };
 
+export type NodeType =
+  | 'TECHNOLOGY'
+  | 'FINDING'
+  | 'SOURCE'
+  | 'CONCEPT'
+  | 'PATENT'
+  | 'PERSON'
+  | 'COMPANY';
+
 export type GraphNode = {
   id: string;
   label: string;
   centrality: number;
   branchType: BranchType;
+  nodeType: NodeType;
   sourceIds: string[];
   confidence: number;
 };
@@ -135,7 +145,6 @@ export type BranchKPI = {
   coverageKpi: number;
   precisionKpi: number;
   latencyMsKpi: number;
-  costKpi: number;
 };
 
 export type AnalysisMetrics = {

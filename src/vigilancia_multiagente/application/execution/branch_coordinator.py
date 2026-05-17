@@ -6,8 +6,16 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from vigilancia_multiagente.application.agents.base import BaseBranchAgent, SignalPayload
-from vigilancia_multiagente.application.planning.plan_builder import DEFAULT_PROVIDERS as _DEFAULT_PROVIDERS
-from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchType, ResearchPlan, ResearchSession
+from vigilancia_multiagente.application.planning.plan_builder import (
+    DEFAULT_PROVIDERS as _DEFAULT_PROVIDERS,
+)
+from vigilancia_multiagente.domain.models import (
+    BranchConfig,
+    BranchResult,
+    BranchType,
+    ResearchPlan,
+    ResearchSession,
+)
 from vigilancia_multiagente.domain.repositories import SessionTelemetryRepository
 
 logger = logging.getLogger(__name__)
@@ -58,9 +66,7 @@ class BranchCoordinator:
             asyncio.create_task(self._run_branch(session, branch, depth_limit))
             for branch in plan.branches
         ]
-        consumer_task = asyncio.create_task(
-            self._signal_consumer_loop(signal_queue, branch_tasks)
-        )
+        consumer_task = asyncio.create_task(self._signal_consumer_loop(signal_queue, branch_tasks))
         outputs = await asyncio.gather(*branch_tasks, consumer_task, return_exceptions=True)
         results: list[BranchResult] = []
         for idx, output in enumerate(outputs):
@@ -69,17 +75,19 @@ class BranchCoordinator:
             if isinstance(output, Exception):
                 branch_type = plan.branches[idx].branch_type
                 logger.warning("Branch %s failed: %s", branch_type, output)
-                results.append(BranchResult(
-                    id=uuid4(),
-                    session_id=session.id,
-                    branch_type=branch_type,
-                    queries_executed=[],
-                    findings=[],
-                    sources=[],
-                    started_at=datetime.now(UTC),
-                    completed_at=datetime.now(UTC),
-                    errors=[str(output)],
-                ))
+                results.append(
+                    BranchResult(
+                        id=uuid4(),
+                        session_id=session.id,
+                        branch_type=branch_type,
+                        queries_executed=[],
+                        findings=[],
+                        sources=[],
+                        started_at=datetime.now(UTC),
+                        completed_at=datetime.now(UTC),
+                        errors=[str(output)],
+                    )
+                )
                 continue
             result = output.branch_result
             results.append(result)
@@ -140,7 +148,9 @@ class BranchCoordinator:
                         for item in output.semantic_relations
                     ],
                 )
-                await self._telemetry_repository.append_provider_telemetry(session.id, output.provider_usage)
+                await self._telemetry_repository.append_provider_telemetry(
+                    session.id, output.provider_usage
+                )
         await self._process_cross_signals(session, plan)
         results.extend(self._sub_results)
         self._sub_results.clear()
@@ -156,23 +166,47 @@ class BranchCoordinator:
         from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 
         agent = self._agents[branch.branch_type]
-        event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchStarted", session.id, {
-            "branch": branch.branch_type.value,
-            "started_at": datetime.now().isoformat(),
-        })))
+        event_log[str(session.id)].append(
+            format_sse(
+                SessionEvent.now(
+                    "BranchStarted",
+                    session.id,
+                    {
+                        "branch": branch.branch_type.value,
+                        "started_at": datetime.now().isoformat(),
+                    },
+                )
+            )
+        )
         try:
             result = await agent.run(session, branch, depth_limit)
-            event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchCompleted", session.id, {
-                "branch": branch.branch_type.value,
-                "findings_count": len(result.branch_result.findings),
-                "sources_count": len(result.branch_result.sources),
-            })))
+            event_log[str(session.id)].append(
+                format_sse(
+                    SessionEvent.now(
+                        "BranchCompleted",
+                        session.id,
+                        {
+                            "branch": branch.branch_type.value,
+                            "findings_count": len(result.branch_result.findings),
+                            "sources_count": len(result.branch_result.sources),
+                        },
+                    )
+                )
+            )
             return result
         except Exception as e:
-            event_log[str(session.id)].append(format_sse(SessionEvent.now("BranchFailed", session.id, {
-                "branch": branch.branch_type.value,
-                "error": str(e),
-            })))
+            event_log[str(session.id)].append(
+                format_sse(
+                    SessionEvent.now(
+                        "BranchFailed",
+                        session.id,
+                        {
+                            "branch": branch.branch_type.value,
+                            "error": str(e),
+                        },
+                    )
+                )
+            )
             raise
 
     def queue_signal(self, signal: SignalPayload) -> None:
@@ -192,9 +226,7 @@ class BranchCoordinator:
             sub_branch = BranchConfig(
                 branch_type=signal.target_branch,
                 focus_queries=[signal.query],
-                mcp_providers=list(
-                    _DEFAULT_PROVIDERS.get(signal.target_branch, [])
-                ),
+                mcp_providers=list(_DEFAULT_PROVIDERS.get(signal.target_branch, [])),
             )
             signal_record: dict[str, str | float | bool] = {
                 "source": signal.source_branch.value,
@@ -214,7 +246,9 @@ class BranchCoordinator:
 
     # ── Reactive Planner ───────────────────────────────────────────────────
 
-    async def _signal_consumer_loop(self, signal_queue: asyncio.Queue, branch_futures: list[asyncio.Task]) -> None:
+    async def _signal_consumer_loop(
+        self, signal_queue: asyncio.Queue, branch_futures: list[asyncio.Task]
+    ) -> None:
         pending = set(branch_futures)
         replan_count = 0
 
@@ -267,20 +301,26 @@ class BranchCoordinator:
             logger.info(json.dumps(action.__dict__, default=str))
             await self._route_new_directive(target_branch, directive)
 
-    async def _handle_high_value_finding(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
+    async def _handle_high_value_finding(
+        self, signal: Signal, active_futures: set[asyncio.Task]
+    ) -> None:
         notification = {
             "type": "cross_branch_notification",
             "finding": signal.payload.get("finding", ""),
             "source_branch": signal.source_branch,
             "relevance": signal.payload.get("relevance", "high"),
         }
-        logger.info("High-value finding from %s: %s", signal.source_branch, notification["finding"][:100])
+        logger.info(
+            "High-value finding from %s: %s", signal.source_branch, notification["finding"][:100]
+        )
 
     async def _handle_data_ready(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
         logger.info("Data ready signal from %s: %s", signal.source_branch, signal.payload)
 
     async def _handle_branch_error(self, signal: Signal, active_futures: set[asyncio.Task]) -> None:
-        logger.warning("Branch error from %s: %s", signal.source_branch, signal.payload.get("error", ""))
+        logger.warning(
+            "Branch error from %s: %s", signal.source_branch, signal.payload.get("error", "")
+        )
 
     async def _route_new_directive(self, branch_name: str, directive: dict) -> None:
         logger.info("Replan: routing directive to %s: %s", branch_name, directive)
@@ -322,4 +362,3 @@ class BranchCoordinator:
 
     def get_signals(self, session_id: UUID) -> list[dict[str, str | float]]:
         return self._signals_by_session.get(session_id, [])
-

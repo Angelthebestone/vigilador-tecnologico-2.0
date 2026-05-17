@@ -31,11 +31,13 @@ class DecisionAssistant:
                         report.upside.append(finding.statement)
                     elif finding.confidence < 0.5:
                         report.downside.append(finding.statement)
-                    report.risks.append({
-                        "finding": finding.statement,
-                        "confidence": finding.confidence,
-                        "topic": finding.topic,
-                    })
+                    report.risks.append(
+                        {
+                            "finding": finding.statement,
+                            "confidence": finding.confidence,
+                            "topic": finding.topic,
+                        }
+                    )
 
             if report.upside or report.downside:
                 total = len(report.upside) + len(report.downside)
@@ -47,7 +49,9 @@ class DecisionAssistant:
                 elif report.confidence >= 0.4:
                     report.recommendation = "Mixed signals — consider deeper investigation"
                 else:
-                    report.recommendation = "Insufficient high-confidence findings for clear recommendation"
+                    report.recommendation = (
+                        "Insufficient high-confidence findings for clear recommendation"
+                    )
             else:
                 report.recommendation = "No findings available for analysis"
         else:

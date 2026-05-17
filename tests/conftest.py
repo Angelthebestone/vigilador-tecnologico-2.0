@@ -10,25 +10,46 @@ import pytest
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("VT_EMBEDDING_API_KEY", "test-embedding-key")
-os.environ.setdefault("VT_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia")
+os.environ.setdefault(
+    "VT_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia"
+)
 
 from vigilancia_multiagente.api.app import app
 from vigilancia_multiagente.api import dependencies as api_dependencies
-from vigilancia_multiagente.api.routes import research_approve, research_governance, research_outputs, research_start_clarify
+from vigilancia_multiagente.api.routes import (
+    research_approve,
+    research_governance,
+    research_outputs,
+    research_start_clarify,
+)
 from vigilancia_multiagente.application.artifacts.manifest_service import SessionArtifactService
-from vigilancia_multiagente.application.clarification.clarification_service import ClarificationService
-from vigilancia_multiagente.application.evaluation.prompt_regression_service import PromptRegressionService
+from vigilancia_multiagente.application.clarification.clarification_service import (
+    ClarificationService,
+)
+from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
+    PromptRegressionService,
+)
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
-from vigilancia_multiagente.application.orchestration.orchestrator_service import OrchestratorService
+from vigilancia_multiagente.application.orchestration.orchestrator_service import (
+    OrchestratorService,
+)
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
-from vigilancia_multiagente.domain.models import BranchResult, Finding, ResearchPlan, ResearchSession, SourceRef
+from vigilancia_multiagente.domain.models import (
+    BranchResult,
+    Finding,
+    ResearchPlan,
+    ResearchSession,
+    SourceRef,
+)
 
 
 class FakeResult:
-    def __init__(self, row: dict[str, object] | None = None, rows: list[dict[str, object]] | None = None) -> None:
+    def __init__(
+        self, row: dict[str, object] | None = None, rows: list[dict[str, object]] | None = None
+    ) -> None:
         self._row = row
         self._rows = rows or []
 
@@ -136,7 +157,9 @@ class MemoryGraphSnapshotRepository:
     def __init__(self) -> None:
         self.snapshots: dict[UUID, dict[str, object]] = {}
 
-    async def save_graph_snapshot(self, session_id: UUID, snapshot: dict[str, object]) -> dict[str, object]:
+    async def save_graph_snapshot(
+        self, session_id: UUID, snapshot: dict[str, object]
+    ) -> dict[str, object]:
         self.snapshots[session_id] = snapshot
         return snapshot
 
@@ -151,7 +174,9 @@ class MemoryVectorIndex:
     async def upsert(self, record: object) -> None:
         self.records.append(record)
 
-    async def list_by_session(self, session_id: UUID | None, limit: int | None = None) -> list[object]:
+    async def list_by_session(
+        self, session_id: UUID | None, limit: int | None = None
+    ) -> list[object]:
         del session_id
         records = list(self.records)
         return records[:limit] if limit is not None else records
@@ -266,8 +291,6 @@ class FakeBranchCoordinator:
         return self.provider_usage.get(session_id, [])
 
 
-
-
 @pytest.fixture
 def memory_repositories(monkeypatch, tmp_path: Path):
     api_dependencies.event_log.clear()
@@ -302,7 +325,9 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_approve, "embedding_gateway", FakeEmbeddingGateway())
     monkeypatch.setattr(research_approve, "vector_index", vector_index)
     monkeypatch.setattr(research_approve, "graph_snapshot_repository", graph_snapshot_repo)
-    monkeypatch.setattr(research_approve, "global_knowledge_repository", MemoryGlobalKnowledgeRepository())
+    monkeypatch.setattr(
+        research_approve, "global_knowledge_repository", MemoryGlobalKnowledgeRepository()
+    )
     monkeypatch.setattr(research_approve, "agents", {})
     monkeypatch.setattr(research_approve, "event_log", api_dependencies.event_log)
 
@@ -321,7 +346,11 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_governance, "branch_coordinator", branch_coordinator)
     monkeypatch.setattr(research_governance, "branch_result_repository", branch_repo)
     monkeypatch.setattr(research_governance, "prompt_regression_service", PromptRegressionService())
-    monkeypatch.setattr(research_governance, "governance_loader", GovernanceContractLoader(Path("specs/002-vigilancia-multiagente/contracts")))
+    monkeypatch.setattr(
+        research_governance,
+        "governance_loader",
+        GovernanceContractLoader(Path("specs/002-vigilancia-multiagente/contracts")),
+    )
 
     with TestClient(app) as client:
         yield {
@@ -335,4 +364,3 @@ def memory_repositories(monkeypatch, tmp_path: Path):
             "vector_index": vector_index,
             "graph_snapshot_repo": graph_snapshot_repo,
         }
-

@@ -41,7 +41,9 @@ def composer() -> PromptComposer:
     return PromptComposer()
 
 
-def test_compose_returns_composed_prompt(system_base: SystemBase, overlay: BranchOverlay, composer: PromptComposer) -> None:
+def test_compose_returns_composed_prompt(
+    system_base: SystemBase, overlay: BranchOverlay, composer: PromptComposer
+) -> None:
     """A valid composition should return a ComposedPrompt with all sections."""
     result = composer.compose(system_base, overlay, "What is the latest in AI?")
 
@@ -56,14 +58,18 @@ def test_compose_returns_composed_prompt(system_base: SystemBase, overlay: Branc
     assert result.prompt_composition_id  # non-empty UUID for traceability
 
 
-def test_compose_empty_user_query(system_base: SystemBase, overlay: BranchOverlay, composer: PromptComposer) -> None:
+def test_compose_empty_user_query(
+    system_base: SystemBase, overlay: BranchOverlay, composer: PromptComposer
+) -> None:
     """An empty user query should still produce a valid prompt."""
     result = composer.compose(system_base, overlay, "")
     assert result.user_query == ""
     assert "User Query" in result.full_text
 
 
-def test_compose_with_branch_config(system_base: SystemBase, overlay: BranchOverlay, composer: PromptComposer) -> None:
+def test_compose_with_branch_config(
+    system_base: SystemBase, overlay: BranchOverlay, composer: PromptComposer
+) -> None:
     """Branch config should be included when provided."""
     from vigilancia_multiagente.domain.models import BranchConfig
 

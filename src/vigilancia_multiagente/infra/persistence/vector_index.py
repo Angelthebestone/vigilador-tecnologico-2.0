@@ -56,7 +56,9 @@ class PostgresVectorIndex:
             vector=normalized,
         )
 
-    async def list_by_session(self, session_id: UUID | None = None, limit: int | None = None) -> list[VectorRecord]:
+    async def list_by_session(
+        self, session_id: UUID | None = None, limit: int | None = None
+    ) -> list[VectorRecord]:
         query = """
             SELECT session_id, content_type, content_ref_id, vector::text AS vector_text
             FROM embedding_vectors

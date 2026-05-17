@@ -10,22 +10,38 @@ from uuid import uuid4
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
 from vigilancia_multiagente.application.governance.validators import PromptValidator
-from vigilancia_multiagente.application.research.followup_loop import IterationResult, run_followup_loop
+from vigilancia_multiagente.application.research.followup_loop import (
+    IterationResult,
+    run_followup_loop,
+)
 from vigilancia_multiagente.application.research.semantic_relations import (
     IterationEmbedding,
     SemanticRelation,
     build_relations,
 )
+from vigilancia_multiagente.application.extraction.entity_extractor import extract_from_payloads
 from vigilancia_multiagente.application.research.temporal_window import resolve_temporal_window
-from vigilancia_multiagente.domain.models import BranchConfig, BranchResult, BranchType, Finding, ResearchSession, SourceRef
+from vigilancia_multiagente.domain.models import (
+    BranchConfig,
+    BranchResult,
+    BranchType,
+    Finding,
+    ResearchSession,
+    SourceRef,
+)
 from vigilancia_multiagente.domain.system_base import SystemBase
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
-from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient, ToolExecutionResult
-from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderConfig, MCPProviderRegistry
+from vigilancia_multiagente.infra.mcp.execution_client import (
+    MCPExecutionClient,
+    ToolExecutionResult,
+)
+from vigilancia_multiagente.infra.mcp.provider_registry import (
+    MCPProviderConfig,
+    MCPProviderRegistry,
+)
 
 logger = logging.getLogger(__name__)
-
 
 
 @dataclass(slots=True)
@@ -79,10 +95,17 @@ class BaseBranchAgent:
         if self._signal_callback:
             await self._signal_callback(payload)
 
-    async def run(self, session: ResearchSession, branch_config: BranchConfig, depth_limit: int) -> AgentRunOutput:
+    async def run(
+        self, session: ResearchSession, branch_config: BranchConfig, depth_limit: int
+    ) -> AgentRunOutput:
         policy = self._governance_loader.load_skill_matrix()[self.branch_type]
         from vigilancia_multiagente.api.dependencies import smart_router
-        smart_order = smart_router.select(branch_config.focus_queries[0]) if branch_config.focus_queries else ()
+
+        smart_order = (
+            smart_router.select(branch_config.focus_queries[0])
+            if branch_config.focus_queries
+            else ()
+        )
         tool_order = smart_order or policy.tool_order
         branch_overlay = self._governance_loader.load_branch_overlay(self.branch_type)
         temporal = resolve_temporal_window(self.branch_type)
@@ -103,7 +126,9 @@ class BaseBranchAgent:
                 branch_config=branch_config,
                 policy=policy,
             )
-            self._validator.validate_composition(self._system_base, branch_overlay, session.user_query)
+            self._validator.validate_composition(
+                self._system_base, branch_overlay, session.user_query
+            )
 
         executions: list[ToolExecutionResult] = []
         query_payloads: list[dict[str, object]] = []
@@ -133,7 +158,9 @@ class BaseBranchAgent:
             query_payloads.append(payload)
             confidence = float(payload.get("confidence", 0.0))
             next_query = payload.get("next_query")
-            needs_follow_up = bool(payload.get("needs_follow_up", index < depth_limit and confidence < 0.8))
+            needs_follow_up = bool(
+                payload.get("needs_follow_up", index < depth_limit and confidence < 0.8)
+            )
             if needs_follow_up and not isinstance(next_query, str):
                 logger.warning("MCP tool %s missing next_query, stopping follow-up", tool_name)
                 return False, None
@@ -158,7 +185,9 @@ class BaseBranchAgent:
             IterationEmbedding(iteration_id=iteration.id, vector=vector)
             for iteration, vector in zip(iterations, embedding_vectors, strict=True)
         ]
-        semantic_relations = build_relations(embeddings, duplicate_threshold=0.999, support_threshold=0.7)
+        semantic_relations = build_relations(
+            embeddings, duplicate_threshold=0.999, support_threshold=0.7
+        )
 
         last_payload = query_payloads[-1]
         last_execution = executions[-1]
@@ -166,7 +195,8 @@ class BaseBranchAgent:
             id=uuid4(),
             session_id=session.id,
             url=self._require_text(last_payload, "url"),
-            title=self._optional_text(last_payload, "title") or self._optional_text(last_payload, "summary"),
+            title=self._optional_text(last_payload, "title")
+            or self._optional_text(last_payload, "summary"),
             provider=last_execution.provider,
             branch_type=self.branch_type,
             accessed_at=datetime.now(UTC),
@@ -175,11 +205,14 @@ class BaseBranchAgent:
         finding = Finding(
             id=uuid4(),
             topic=f"{self.branch_type.value.lower()}-signals",
-            statement=self._optional_text(last_payload, "summary") or self._optional_text(last_payload, "statement") or seed_query,
+            statement=self._optional_text(last_payload, "summary")
+            or self._optional_text(last_payload, "statement")
+            or seed_query,
             confidence=self._optional_float(last_payload, "confidence") or 0.7,
             source_ids=[source.id],
             tags=[branch_overlay.version, temporal.basis],
         )
+        entities = extract_from_payloads(query_payloads, self.branch_type, [source.id])
         result = BranchResult(
             id=uuid4(),
             session_id=session.id,
@@ -187,6 +220,7 @@ class BaseBranchAgent:
             queries_executed=[item.query for item in iterations],
             findings=[finding],
             sources=[source],
+            entities=entities,
             started_at=iterations[0].started_at,
             completed_at=iterations[-1].completed_at,
             coverage_score=min(1.0, 0.55 + 0.12 * len(iterations)),
@@ -269,7 +303,9 @@ class BaseBranchAgent:
                 providers.append(provider)
         return providers
 
-    def _select_provider(self, providers: list[MCPProviderConfig], tool_name: str) -> MCPProviderConfig:
+    def _select_provider(
+        self, providers: list[MCPProviderConfig], tool_name: str
+    ) -> MCPProviderConfig:
         for provider in providers:
             if tool_name in provider.enabled_tools:
                 return provider

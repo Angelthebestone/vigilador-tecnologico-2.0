@@ -1,16 +1,23 @@
 """Ejecución función por función en sandbox."""
-import sys, os, re
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
+import sys
+import os
+import re
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 print("=" * 60)
 print("FUNCIÓN 1: _normalize_url (evidence_linker.py)")
 print("=" * 60)
 
+
 def normalize_url_old(url):
     return url.strip().lower()
 
+
 def normalize_url_new(url):
     return url.strip().lower().rstrip("/")
+
 
 tests = [
     ("http://a.com", "http://a.com", "http://a.com"),
@@ -31,6 +38,7 @@ print("=" * 60)
 print("FUNCIÓN 2: extract_section (report_synthesizer.py)")
 print("=" * 60)
 
+
 def extract_section_old(markdown, section_name):
     for name in (section_name, section_name.lower()):
         match = re.search(
@@ -42,6 +50,7 @@ def extract_section_old(markdown, section_name):
             return match.group(1).strip()
     return ""
 
+
 def extract_section_new(markdown, section_name):
     for name in (section_name, section_name.lower()):
         match = re.search(
@@ -52,6 +61,7 @@ def extract_section_new(markdown, section_name):
         if match:
             return match.group(1).strip()
     return ""
+
 
 md_1 = """## Resumen Ejecutivo
 primer parrafo
@@ -183,7 +193,7 @@ print("=" * 60)
 print("FUNCIÓN 7: compute (branch_kpi_service.py)")
 print("=" * 60)
 
-from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService, BranchKPI
+from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService
 from vigilancia_multiagente.domain.models import BranchResult, BranchType, Finding, SourceRef
 from uuid import uuid4
 from datetime import datetime, UTC
@@ -193,8 +203,19 @@ br = BranchResult(
     session_id=uuid4(),
     branch_type=BranchType.AVANCES,
     queries_executed=["q1"],
-    findings=[Finding(id=uuid4(), topic="topic", statement="stmt", confidence=0.85, source_ids=[uuid4()])],
-    sources=[SourceRef(id=uuid4(), session_id=uuid4(), url="http://a.com", provider="tavily", branch_type=BranchType.AVANCES, accessed_at=datetime.now(UTC))],
+    findings=[
+        Finding(id=uuid4(), topic="topic", statement="stmt", confidence=0.85, source_ids=[uuid4()])
+    ],
+    sources=[
+        SourceRef(
+            id=uuid4(),
+            session_id=uuid4(),
+            url="http://a.com",
+            provider="tavily",
+            branch_type=BranchType.AVANCES,
+            accessed_at=datetime.now(UTC),
+        )
+    ],
     coverage_score=0.75,
     confidence_score=0.85,
 )
@@ -207,27 +228,36 @@ print(f"  coverage_kpi: {kpi.coverage_kpi} (expected 0.75)")
 print(f"  precision_kpi: {kpi.precision_kpi} (expected 0.85)")
 print(f"  latency_ms_kpi: {kpi.latency_ms_kpi} (expected 350)")
 print(f"  cost_kpi: {kpi.cost_kpi} (expected 1.25)")
-print(f"  ALL OK: {kpi.coverage_kpi == 0.75 and kpi.precision_kpi == 0.85 and kpi.latency_ms_kpi == 350}")
+print(
+    f"  ALL OK: {kpi.coverage_kpi == 0.75 and kpi.precision_kpi == 0.85 and kpi.latency_ms_kpi == 350}"
+)
 
 print()
 print("=" * 60)
 print("FUNCIÓN 8: _normalize_vector + _coerce_vector (vector_index.py)")
 print("=" * 60)
 
-from vigilancia_multiagente.infra.persistence.vector_index import _normalize_vector, _coerce_vector, _vector_literal, _parse_vector_text
+from vigilancia_multiagente.infra.persistence.vector_index import (
+    _normalize_vector,
+    _coerce_vector,
+    _vector_literal,
+    _parse_vector_text,
+)
 
 # normalize
 v = [3.0, 4.0]
 nv = _normalize_vector(v)
 expected = [0.6, 0.8]
-print(f"  normalize [3,4]: {nv} (expected {expected}) {'OK' if abs(nv[0]-0.6)<0.001 and abs(nv[1]-0.8)<0.001 else 'FAIL'}")
+print(
+    f"  normalize [3,4]: {nv} (expected {expected}) {'OK' if abs(nv[0] - 0.6) < 0.001 and abs(nv[1] - 0.8) < 0.001 else 'FAIL'}"
+)
 
 # coerce
-cv = _coerce_vector([1,2,3,4], 3)
-print(f"  coerce [1,2,3,4]->3: {cv} (expected [1,2,3]) {'OK' if cv == [1,2,3] else 'FAIL'}")
+cv = _coerce_vector([1, 2, 3, 4], 3)
+print(f"  coerce [1,2,3,4]->3: {cv} (expected [1,2,3]) {'OK' if cv == [1, 2, 3] else 'FAIL'}")
 
-cv2 = _coerce_vector([1,2], 3)
-print(f"  coerce [1,2]->3: {cv2} (expected [1,2,0]) {'OK' if cv2 == [1,2,0] else 'FAIL'}")
+cv2 = _coerce_vector([1, 2], 3)
+print(f"  coerce [1,2]->3: {cv2} (expected [1,2,0]) {'OK' if cv2 == [1, 2, 0] else 'FAIL'}")
 
 # vector literal
 vl = _vector_literal([0.1, 0.2])
@@ -235,7 +265,9 @@ print(f"  literal: {vl} {'OK' if vl.startswith('[') and vl.endswith(']') else 'F
 
 # parse text
 pt = _parse_vector_text("[0.1000000000,0.2000000000]")
-print(f"  parse [0.1,0.2]: {pt} {'OK' if abs(pt[0]-0.1)<0.001 and abs(pt[1]-0.2)<0.001 else 'FAIL'}")
+print(
+    f"  parse [0.1,0.2]: {pt} {'OK' if abs(pt[0] - 0.1) < 0.001 and abs(pt[1] - 0.2) < 0.001 else 'FAIL'}"
+)
 
 # zero vector normalization
 zv = _normalize_vector([0.0, 0.0])

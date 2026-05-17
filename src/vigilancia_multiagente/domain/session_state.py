@@ -31,4 +31,3 @@ VALID_TRANSITIONS: dict[SessionStatus, set[SessionStatus]] = {
 def ensure_transition(current: SessionStatus, target: SessionStatus) -> None:
     if target not in VALID_TRANSITIONS[current]:
         raise ValueError(f"Invalid session transition: {current} -> {target}")
-

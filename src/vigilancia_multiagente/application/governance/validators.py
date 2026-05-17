@@ -10,13 +10,15 @@ from __future__ import annotations
 from vigilancia_multiagente.domain.system_base import BranchOverlay, SystemBase
 
 # Fields that a BranchOverlay MUST NOT redefine (belong to SystemBase).
-_FORBIDDEN_OVERLAY_KEYS: frozenset[str] = frozenset({
-    "tool_usage_policy",
-    "safety_limits",
-    "error_handling",
-    "output_style",
-    "embedding_config",
-})
+_FORBIDDEN_OVERLAY_KEYS: frozenset[str] = frozenset(
+    {
+        "tool_usage_policy",
+        "safety_limits",
+        "error_handling",
+        "output_style",
+        "embedding_config",
+    }
+)
 
 
 class PromptValidationError(ValueError):

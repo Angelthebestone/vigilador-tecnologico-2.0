@@ -29,4 +29,3 @@ def format_sse(event: SessionEvent) -> str:
         "payload": event.payload,
     }
     return f"event: {event.name}\ndata: {json.dumps(envelope, ensure_ascii=True)}\n\n"
-

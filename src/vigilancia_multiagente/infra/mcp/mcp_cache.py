@@ -40,35 +40,37 @@ class MCPSmartCache:
     _lock: Lock = field(default_factory=Lock, repr=False)
 
     # Default TTLs per tool (in seconds)
-    _ttls: dict[str, float] = field(default_factory=lambda: {
-        "tavily_search": timedelta(hours=1).total_seconds(),
-        "tavily_extract": timedelta(hours=24).total_seconds(),
-        "web_search_exa": timedelta(hours=1).total_seconds(),
-        "web_search_advanced_exa": timedelta(days=7).total_seconds(),
-        "read_url": timedelta(hours=24).total_seconds(),
-        "search_web": timedelta(hours=1).total_seconds(),
-        "guess_datetime_url": timedelta(hours=24).total_seconds(),
-        "brave_web_search": timedelta(hours=1).total_seconds(),
-        "brave_news_search": timedelta(minutes=30).total_seconds(),
-        "firecrawl_scrape": timedelta(days=1).total_seconds(),
-        "search_google_scholar_key_words": timedelta(days=3).total_seconds(),
-        "search_papers": timedelta(days=3).total_seconds(),
-        "fetch": timedelta(hours=1).total_seconds(),
-        "execute_code": timedelta(seconds=60).total_seconds(),
-        "list_libraries": timedelta(hours=1).total_seconds(),
-        "visualize": timedelta(seconds=60).total_seconds(),
-        "convert_to_markdown": timedelta(hours=1).total_seconds(),
-        "browser_navigate": 0.0,
-        "browser_snapshot": 0.0,
-        "browser_screenshot": 0.0,
-        "browser_click": 0.0,
-        "browser_type": 0.0,
-        "browser_select_option": 0.0,
-        "browser_hover": 0.0,
-        "browser_tabs": 0.0,
-        "browser_network_requests": 0.0,
-        "browser_network_request": 0.0,
-    })
+    _ttls: dict[str, float] = field(
+        default_factory=lambda: {
+            "tavily_search": timedelta(hours=1).total_seconds(),
+            "tavily_extract": timedelta(hours=24).total_seconds(),
+            "web_search_exa": timedelta(hours=1).total_seconds(),
+            "web_search_advanced_exa": timedelta(days=7).total_seconds(),
+            "read_url": timedelta(hours=24).total_seconds(),
+            "search_web": timedelta(hours=1).total_seconds(),
+            "guess_datetime_url": timedelta(hours=24).total_seconds(),
+            "brave_web_search": timedelta(hours=1).total_seconds(),
+            "brave_news_search": timedelta(minutes=30).total_seconds(),
+            "firecrawl_scrape": timedelta(days=1).total_seconds(),
+            "search_google_scholar_key_words": timedelta(days=3).total_seconds(),
+            "search_papers": timedelta(days=3).total_seconds(),
+            "fetch": timedelta(hours=1).total_seconds(),
+            "execute_code": timedelta(seconds=60).total_seconds(),
+            "list_libraries": timedelta(hours=1).total_seconds(),
+            "visualize": timedelta(seconds=60).total_seconds(),
+            "convert_to_markdown": timedelta(hours=1).total_seconds(),
+            "browser_navigate": 0.0,
+            "browser_snapshot": 0.0,
+            "browser_screenshot": 0.0,
+            "browser_click": 0.0,
+            "browser_type": 0.0,
+            "browser_select_option": 0.0,
+            "browser_hover": 0.0,
+            "browser_tabs": 0.0,
+            "browser_network_requests": 0.0,
+            "browser_network_request": 0.0,
+        }
+    )
 
     @staticmethod
     def _normalize(tool: str, query: str) -> str:

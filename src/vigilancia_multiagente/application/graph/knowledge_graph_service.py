@@ -10,11 +10,13 @@ from networkx.algorithms.community import label_propagation_communities
 from scipy.spatial.distance import cosine as _cosine
 
 from vigilancia_multiagente.domain.models import (
+    EntityType,
     Finding,
     GraphCentrality,
     GraphCluster,
     GraphPathResult,
     GraphSearchHit,
+    NamedEntity,
     SourceRef,
 )
 
@@ -38,38 +40,50 @@ class GraphAnalyticsPayload:
 
 
 class KnowledgeGraphService:
-    def build(self, session_id: UUID, findings: list[Finding], sources: list[SourceRef], topic: str | None = None, patents: list[dict] | None = None) -> GraphPayload:
+    def build(
+        self,
+        session_id: UUID,
+        findings: list[Finding],
+        sources: list[SourceRef],
+        topic: str | None = None,
+        patents: list[dict] | None = None,
+        entities: list[NamedEntity] | None = None,
+    ) -> GraphPayload:
         nodes: list[dict[str, object]] = []
         edges: list[dict[str, object]] = []
         source_nodes = {source.id: f"source:{source.id}" for source in sources}
 
         # --- Technology node from session topic ---
         if topic:
-            nodes.append({
-                "id": "technology:main",
-                "type": "TECHNOLOGY",
-                "label": topic,
-                "metadata": {"category": "emerging", "status": "active"},
-            })
+            nodes.append(
+                {
+                    "id": "technology:main",
+                    "type": "TECHNOLOGY",
+                    "label": topic,
+                    "metadata": {"category": "emerging", "status": "active"},
+                }
+            )
 
         # --- Patent nodes from Serper results ---
         if patents:
             for patent in patents:
                 patent_num = patent.get("patentNumber") or patent.get("title", "")
                 patent_id = f"patent:{patent_num}"
-                nodes.append({
-                    "id": patent_id,
-                    "type": "PATENT",
-                    "label": patent.get("title", ""),
-                    "metadata": {
-                        "patent_number": patent.get("patentNumber", ""),
-                        "assignee": patent.get("assignee", ""),
-                        "filing_date": patent.get("filingDate", ""),
-                        "status": patent.get("status", ""),
-                        "snippet": patent.get("snippet", ""),
-                        "url": patent.get("link", ""),
-                    },
-                })
+                nodes.append(
+                    {
+                        "id": patent_id,
+                        "type": "PATENT",
+                        "label": patent.get("title", ""),
+                        "metadata": {
+                            "patent_number": patent.get("patentNumber", ""),
+                            "assignee": patent.get("assignee", ""),
+                            "filing_date": patent.get("filingDate", ""),
+                            "status": patent.get("status", ""),
+                            "snippet": patent.get("snippet", ""),
+                            "url": patent.get("link", ""),
+                        },
+                    }
+                )
 
         for source in sources:
             nodes.append(
@@ -120,12 +134,14 @@ class KnowledgeGraphService:
                     concept_data[tag] = {"frequency": 0, "node_id": f"concept:{tag}"}
                 concept_data[tag]["frequency"] += 1  # type: ignore[operator]
         for tag, data in concept_data.items():
-            nodes.append({
-                "id": data["node_id"],
-                "type": "CONCEPT",
-                "label": tag,
-                "metadata": {"frequency": data["frequency"]},
-            })
+            nodes.append(
+                {
+                    "id": data["node_id"],
+                    "type": "CONCEPT",
+                    "label": tag,
+                    "metadata": {"frequency": data["frequency"]},
+                }
+            )
 
         # --- related_to edges via bipartite projection ---
         concept_names = {tag for f in findings for tag in f.tags}
@@ -139,13 +155,15 @@ class KnowledgeGraphService:
                     B.add_edge(fid, tag)
             proj = nx.bipartite.weighted_projected_graph(B, concept_names, ratio=True)
             for tag_a, tag_b, data in proj.edges(data=True):
-                edges.append({
-                    "id": f"concept:{tag_a}->concept:{tag_b}",
-                    "source": f"concept:{tag_a}",
-                    "target": f"concept:{tag_b}",
-                    "relation_type": "related_to",
-                    "weight": round(data["weight"], 4),
-                })
+                edges.append(
+                    {
+                        "id": f"concept:{tag_a}->concept:{tag_b}",
+                        "source": f"concept:{tag_a}",
+                        "target": f"concept:{tag_b}",
+                        "relation_type": "related_to",
+                        "weight": round(data["weight"], 4),
+                    }
+                )
 
         # --- references edges: SOURCE to CONCEPT ---
         source_concepts: dict[str, set[str]] = {}
@@ -160,13 +178,94 @@ class KnowledgeGraphService:
                     source_concepts[source_key].add(tag)
         for source_key, concept_tags in source_concepts.items():
             for tag in sorted(concept_tags):
-                edges.append({
-                    "id": f"{source_key}->concept:{tag}",
-                    "source": source_key,
-                    "target": f"concept:{tag}",
-                    "relation_type": "REFERENCES",
-                    "weight": 1.0,
-                })
+                edges.append(
+                    {
+                        "id": f"{source_key}->concept:{tag}",
+                        "source": source_key,
+                        "target": f"concept:{tag}",
+                        "relation_type": "REFERENCES",
+                        "weight": 1.0,
+                    }
+                )
+
+        # --- PERSON / COMPANY nodes from entity extraction ---
+        if entities:
+            # Dedup por nombre normalizado
+            entity_by_name: dict[str, NamedEntity] = {}
+            for entity in entities:
+                key = entity.name.lower()
+                if key not in entity_by_name:
+                    entity_by_name[key] = entity
+
+            for entity in entity_by_name.values():
+                node_id = f"{'person' if entity.entity_type == EntityType.PERSON else 'company'}:{entity.name.lower().replace(' ', '_')}"
+                nodes.append(
+                    {
+                        "id": node_id,
+                        "type": entity.entity_type.value,
+                        "label": entity.name,
+                        "metadata": {
+                            "affiliation": entity.affiliation or "",
+                            "branch_type": entity.branch_type.value,
+                            "confidence": entity.confidence,
+                        },
+                    }
+                )
+                # FINDING -[mentions]-> PERSON/COMPANY
+                for finding in findings:
+                    if any(sid in entity.source_ids for sid in finding.source_ids):
+                        edges.append(
+                            {
+                                "id": f"finding:{finding.id}->{node_id}",
+                                "source": f"finding:{finding.id}",
+                                "target": node_id,
+                                "relation_type": "mentions",
+                                "weight": round(entity.confidence, 4),
+                            }
+                        )
+
+            # COMPANY -[employs]-> PERSON  (si comparte afiliación)
+            persons = [e for e in entity_by_name.values() if e.entity_type == EntityType.PERSON]
+            companies = [e for e in entity_by_name.values() if e.entity_type == EntityType.COMPANY]
+            for person in persons:
+                if not person.affiliation:
+                    continue
+                for company in companies:
+                    if (
+                        person.affiliation.lower() in company.name.lower()
+                        or company.name.lower() in person.affiliation.lower()
+                    ):
+                        pid = f"person:{person.name.lower().replace(' ', '_')}"
+                        cid = f"company:{company.name.lower().replace(' ', '_')}"
+                        edges.append(
+                            {
+                                "id": f"{cid}-employs->{pid}",
+                                "source": cid,
+                                "target": pid,
+                                "relation_type": "employs",
+                                "weight": 0.8,
+                            }
+                        )
+
+            # COMPANY -[assigned]-> PATENT  (por assignee en metadata)
+            for node in nodes:
+                if node.get("type") != "PATENT":
+                    continue
+                assignee = str(node.get("metadata", {}).get("assignee", "")).lower()
+                if not assignee:
+                    continue
+                for company in companies:
+                    if company.name.lower() in assignee or assignee in company.name.lower():
+                        cid = f"company:{company.name.lower().replace(' ', '_')}"
+                        edges.append(
+                            {
+                                "id": f"{cid}-assigned->{node['id']}",
+                                "source": cid,
+                                "target": str(node["id"]),
+                                "relation_type": "assigned",
+                                "weight": 0.9,
+                            }
+                        )
 
         return GraphPayload(session_id=session_id, nodes=nodes, edges=edges)
 
@@ -257,12 +356,16 @@ class KnowledgeGraphService:
             return [start_node_id] + [v for _, v in nx.dfs_edges(G, source=start_node_id)]
         return [start_node_id] + [v for _, v in nx.bfs_edges(G, source=start_node_id)]
 
-    def shortest_path(self, graph: GraphPayload, source_node_id: str, target_node_id: str) -> GraphPathResult:
+    def shortest_path(
+        self, graph: GraphPayload, source_node_id: str, target_node_id: str
+    ) -> GraphPathResult:
         G = self._to_nx(graph)
         if source_node_id not in G or target_node_id not in G:
             return GraphPathResult(source_node_id, target_node_id, [], [], float("inf"))
         try:
-            node_ids = nx.shortest_path(G, source=source_node_id, target=target_node_id, weight="weight")
+            node_ids = nx.shortest_path(
+                G, source=source_node_id, target=target_node_id, weight="weight"
+            )
         except nx.NetworkXNoPath:
             return GraphPathResult(source_node_id, target_node_id, [], [], float("inf"))
         edge_ids = []
@@ -311,15 +414,15 @@ class KnowledgeGraphService:
     # Descubrimiento de ecosistema
     # ------------------------------------------------------------------
 
-    def discover_ecosystem(self, seed: str, graph: GraphPayload, depth: int = 2) -> dict[str, object]:
+    def discover_ecosystem(
+        self, seed: str, graph: GraphPayload, depth: int = 2
+    ) -> dict[str, object]:
         if not graph.nodes:
             return {}
         node_by_id = {str(node["id"]): node for node in graph.nodes}
         G = self._to_nx(graph)
         seed_nodes = [
-            str(node["id"])
-            for node in graph.nodes
-            if seed.lower() in node["label"].lower()
+            str(node["id"]) for node in graph.nodes if seed.lower() in node["label"].lower()
         ]
         if not seed_nodes:
             return {}
@@ -348,18 +451,22 @@ class KnowledgeGraphService:
                 nbr_type = neighbor_node.get("type", "")
                 if cur_type == "FINDING" and nbr_type == "SOURCE":
                     adopted = result.setdefault("adopted_by", [])
-                    adopted.append({
-                        "finding_id": current,
-                        "finding_label": current_node.get("label", ""),
-                        "source_id": neighbor,
-                        "source_label": neighbor_node.get("label", ""),
-                    })
+                    adopted.append(
+                        {
+                            "finding_id": current,
+                            "finding_label": current_node.get("label", ""),
+                            "source_id": neighbor,
+                            "source_label": neighbor_node.get("label", ""),
+                        }
+                    )
                 if cur_depth > 0 and nbr_type == "FINDING":
                     depends = result.setdefault("depends_on", [])
-                    depends.append({
-                        "source_node": current,
-                        "target_node": neighbor,
-                    })
+                    depends.append(
+                        {
+                            "source_node": current,
+                            "target_node": neighbor,
+                        }
+                    )
         source_findings: dict[str, list[str]] = defaultdict(list)
         for edge in graph.edges:
             src = str(edge["source"])
@@ -371,11 +478,13 @@ class KnowledgeGraphService:
             if len(in_reach) > 1:
                 for i in range(len(in_reach)):
                     for j in range(i + 1, len(in_reach)):
-                        result.setdefault("competes_with", []).append({
-                            "source_id": source_id,
-                            "finding_a": in_reach[i],
-                            "finding_b": in_reach[j],
-                        })
+                        result.setdefault("competes_with", []).append(
+                            {
+                                "source_id": source_id,
+                                "finding_a": in_reach[i],
+                                "finding_b": in_reach[j],
+                            }
+                        )
         for node in graph.nodes:
             node_id = str(node["id"])
             if node_id not in visited or node.get("type") != "FINDING":
@@ -384,12 +493,14 @@ class KnowledgeGraphService:
             confidence = metadata.get("confidence", 0)
             if isinstance(confidence, (int, float)) and confidence >= 0.8:
                 tags = metadata.get("tags", [])
-                result.setdefault("emerging", []).append({
-                    "node_id": node_id,
-                    "label": node.get("label", ""),
-                    "confidence": confidence,
-                    "tags": list(tags) if isinstance(tags, list) else [],
-                })
+                result.setdefault("emerging", []).append(
+                    {
+                        "node_id": node_id,
+                        "label": node.get("label", ""),
+                        "confidence": confidence,
+                        "tags": list(tags) if isinstance(tags, list) else [],
+                    }
+                )
         return result
 
     # ------------------------------------------------------------------
@@ -451,7 +562,9 @@ class KnowledgeGraphService:
             internal = sub.number_of_edges()
             possible = max(1, len(members) * (len(members) - 1) // 2)
             score = internal / possible if len(members) > 1 else 0.0
-            clusters.append(GraphCluster(cluster_id=f"cluster-{index}", node_ids=members, score=round(score, 4)))
+            clusters.append(
+                GraphCluster(cluster_id=f"cluster-{index}", node_ids=members, score=round(score, 4))
+            )
         return clusters
 
     # ------------------------------------------------------------------
@@ -478,12 +591,14 @@ class KnowledgeGraphService:
             ny_norm = ((nx_pos[1] - min_y) / range_y) * 2.0 - 1.0
             deg = G.degree(nid)
             size = 0.8 + (deg / max_deg) * 2.2
-            layout.append({
-                "node_id": nid,
-                "x": round(nx_norm, 4),
-                "y": round(ny_norm, 4),
-                "size": round(size, 4),
-            })
+            layout.append(
+                {
+                    "node_id": nid,
+                    "x": round(nx_norm, 4),
+                    "y": round(ny_norm, 4),
+                    "size": round(size, 4),
+                }
+            )
         return layout
 
     # ------------------------------------------------------------------
@@ -502,7 +617,9 @@ class KnowledgeGraphService:
         return lookup
 
     @staticmethod
-    def _vector_score(query_vector: list[float] | None, candidate_vector: list[float] | None) -> float:
+    def _vector_score(
+        query_vector: list[float] | None, candidate_vector: list[float] | None
+    ) -> float:
         if not query_vector or not candidate_vector:
             return 0.0
         return round(1.0 - _cosine(query_vector, candidate_vector), 4)

@@ -11,7 +11,9 @@ class TemporalWindow:
     basis: str
 
 
-def resolve_temporal_window(branch_type: BranchType, years_back_override: int | None = None) -> TemporalWindow:
+def resolve_temporal_window(
+    branch_type: BranchType, years_back_override: int | None = None
+) -> TemporalWindow:
     now_year = datetime.now(UTC).year
     years_back_by_branch = {
         BranchType.AVANCES: 5,
@@ -27,4 +29,3 @@ def resolve_temporal_window(branch_type: BranchType, years_back_override: int | 
         end_year=now_year,
         basis=f"dynamic-{branch_type.value.lower()}",
     )
-

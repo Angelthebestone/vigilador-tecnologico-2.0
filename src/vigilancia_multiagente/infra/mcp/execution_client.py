@@ -116,9 +116,10 @@ class MCPExecutionClient:
         request = json.dumps({"tool": tool_name, "arguments": arguments}).encode("utf-8")
         stdout, stderr = await process.communicate(request)
         if process.returncode != 0:
-            raise RuntimeError(stderr.decode("utf-8") or f"STDIO MCP command failed: {provider.name}")
+            raise RuntimeError(
+                stderr.decode("utf-8") or f"STDIO MCP command failed: {provider.name}"
+            )
         payload = json.loads(stdout.decode("utf-8"))
         if not isinstance(payload, dict):
             raise TypeError("MCP STDIO response must be a JSON object")
         return payload
-

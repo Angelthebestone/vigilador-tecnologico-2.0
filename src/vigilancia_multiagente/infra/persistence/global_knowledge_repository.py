@@ -45,10 +45,16 @@ class GlobalKnowledgeRepository:
                 {
                     "session_id": str(snapshot.session_id),
                     "query_summary": snapshot.query_summary,
-                    "findings_graph": _json_dump(snapshot.findings_graph) if snapshot.findings_graph is not None else None,
+                    "findings_graph": _json_dump(snapshot.findings_graph)
+                    if snapshot.findings_graph is not None
+                    else None,
                     "embedding": embedding_literal,
-                    "entities": _json_dump(snapshot.entities) if snapshot.entities is not None else None,
-                    "source_scores": _json_dump(snapshot.source_scores) if snapshot.source_scores is not None else None,
+                    "entities": _json_dump(snapshot.entities)
+                    if snapshot.entities is not None
+                    else None,
+                    "source_scores": _json_dump(snapshot.source_scores)
+                    if snapshot.source_scores is not None
+                    else None,
                     "created_at": snapshot.created_at,
                     "expires_at": snapshot.expires_at,
                 },
@@ -99,8 +105,12 @@ class GlobalKnowledgeRepository:
                 "query_summary": str(row["query_summary"]),
                 "has_graph": bool(row["has_graph"]),
                 "entity_count": int(row["entity_count"]),
-                "created_at": row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else str(row["created_at"]),
-                "expires_at": row["expires_at"].isoformat() if row["expires_at"] and hasattr(row["expires_at"], "isoformat") else None,
+                "created_at": row["created_at"].isoformat()
+                if hasattr(row["created_at"], "isoformat")
+                else str(row["created_at"]),
+                "expires_at": row["expires_at"].isoformat()
+                if row["expires_at"] and hasattr(row["expires_at"], "isoformat")
+                else None,
             }
             for row in rows
         ]

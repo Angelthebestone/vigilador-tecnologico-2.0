@@ -7,7 +7,9 @@ pytestmark = pytest.mark.asyncio
 
 async def test_extract_yearly_data():
     """Test parsing yearly data from text."""
-    from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
+    from vigilancia_multiagente.application.forecasting.trend_forecaster import (
+        TrendForecasterService,
+    )
 
     forecaster = TrendForecasterService()
     result = forecaster._parse_yearly_data("2020: 15, 2021: 22, 2022: 30")
@@ -19,13 +21,16 @@ async def test_extract_yearly_data():
 
 async def test_simple_linear_projection():
     """Test fallback linear projection."""
-    from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
+    from vigilancia_multiagente.application.forecasting.trend_forecaster import (
+        TrendForecasterService,
+    )
 
     forecaster = TrendForecasterService()
     projection = forecaster._simple_linear_projection(
-        [2020, 2021, 2022], [10, 20, 30],
+        [2020, 2021, 2022],
+        [10, 20, 30],
         {"years": [2020, 2021, 2022], "values": [10, 20, 30]},
-        "low"
+        "low",
     )
     assert len(projection.projected_values) >= 2
     assert projection.model_type == "linear"
@@ -34,7 +39,9 @@ async def test_simple_linear_projection():
 
 async def test_inflection_detection():
     """Test inflection point detection via polynomial projection."""
-    from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
+    from vigilancia_multiagente.application.forecasting.trend_forecaster import (
+        TrendForecasterService,
+    )
 
     forecaster = TrendForecasterService()
     result = await forecaster._project_via_sandbox(
@@ -47,12 +54,12 @@ async def test_inflection_detection():
 
 async def test_insufficient_data():
     """Test that <3 data points returns insufficient quality."""
-    from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
+    from vigilancia_multiagente.application.forecasting.trend_forecaster import (
+        TrendForecasterService,
+    )
 
     forecaster = TrendForecasterService()
     projection = forecaster._simple_linear_projection(
-        [2020, 2021], [10, 20],
-        {"years": [2020, 2021], "values": [10, 20]},
-        "insufficient"
+        [2020, 2021], [10, 20], {"years": [2020, 2021], "values": [10, 20]}, "insufficient"
     )
     assert projection.data_quality == "insufficient"

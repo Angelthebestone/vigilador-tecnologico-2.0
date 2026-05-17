@@ -17,10 +17,7 @@ class MemorySourceTrustRepository:
 
     async def get_top_sources(self, limit: int = 10) -> list[dict]:
         sorted_sources = sorted(self.scores.items(), key=lambda x: x[1], reverse=True)
-        return [
-            {"source_id": sid, "current_score": sc}
-            for sid, sc in sorted_sources[:limit]
-        ]
+        return [{"source_id": sid, "current_score": sc} for sid, sc in sorted_sources[:limit]]
 
 
 async def test_confirmation_increases_score():

@@ -40,6 +40,7 @@ async def _append_audit_log(entry: dict[str, Any]) -> None:
 
 # ── Tool list ─────────────────────────────────────────────────────────────
 
+
 @app.list_tools()
 async def list_tools() -> list[types.Tool]:
     return [
@@ -72,10 +73,7 @@ async def list_tools() -> list[types.Tool]:
         ),
         types.Tool(
             name="visualize",
-            description=(
-                "Generate a visualization from data. "
-                "Returns base64-encoded image."
-            ),
+            description=("Generate a visualization from data. Returns base64-encoded image."),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -110,6 +108,7 @@ async def list_tools() -> list[types.Tool]:
 
 # ── call_tool dispatcher ─────────────────────────────────────────────────
 
+
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
     try:
@@ -138,14 +137,13 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
         return [
             types.TextContent(
                 type="text",
-                text=json.dumps(
-                    {"status": "error", "error": str(e)}, ensure_ascii=False
-                ),
+                text=json.dumps({"status": "error", "error": str(e)}, ensure_ascii=False),
             )
         ]
 
 
 # ── T016: execute_code ───────────────────────────────────────────────────
+
 
 async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
     start = time.monotonic()
@@ -175,9 +173,7 @@ async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout=timeout
-                )
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
                 returncode = proc.returncode
                 success = returncode == 0
                 if not success:
@@ -223,15 +219,14 @@ async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
 
 # ── T017: list_libraries ─────────────────────────────────────────────────
 
+
 async def _list_libraries() -> dict[str, Any]:
     packages = [
         "matplotlib",
-        "seaborn",
         "numpy",
         "pandas",
         "scipy",
-        "sklearn",
-        "metaknowledge",
+        "scikit-learn",
         "scienceplots",
     ]
     libs: dict[str, str | None] = {}
@@ -245,8 +240,10 @@ async def _list_libraries() -> dict[str, Any]:
 
 # ── T018: visualize ──────────────────────────────────────────────────────
 
+
 async def _visualize(data: dict, plot_type: str, fmt: str) -> dict[str, Any]:
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -255,6 +252,7 @@ async def _visualize(data: dict, plot_type: str, fmt: str) -> dict[str, Any]:
 
     try:
         import scienceplots  # noqa: F401
+
         plt.style.use("science")
         plt.rcParams["text.usetex"] = False
     except Exception:
@@ -348,6 +346,7 @@ async def _visualize(data: dict, plot_type: str, fmt: str) -> dict[str, Any]:
 
 
 # ── Entry point ───────────────────────────────────────────────────────────
+
 
 async def main() -> None:
     _ensure_log_dir()

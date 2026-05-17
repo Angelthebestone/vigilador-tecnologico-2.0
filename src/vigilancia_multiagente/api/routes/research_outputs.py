@@ -55,7 +55,9 @@ async def get_report(session_id: UUID) -> dict[str, object]:
         "total_sources_consulted": report.total_sources_consulted,
         "total_learnings": report.total_learnings,
         "confidence_score": report.confidence_score,
-        "generated_at": report.generated_at.isoformat() if hasattr(report.generated_at, "isoformat") else report.generated_at,
+        "generated_at": report.generated_at.isoformat()
+        if hasattr(report.generated_at, "isoformat")
+        else report.generated_at,
     }
 
 
@@ -72,7 +74,9 @@ async def get_sources(session_id: UUID) -> dict[str, object]:
 
 @router.get("/{session_id}/providers")
 async def get_providers(session_id: UUID) -> dict[str, object]:
-    metrics = metrics_service.aggregate_provider_metrics(session_id, branch_coordinator.get_provider_usage(session_id))
+    metrics = metrics_service.aggregate_provider_metrics(
+        session_id, branch_coordinator.get_provider_usage(session_id)
+    )
     return {
         "session_id": str(session_id),
         "providers": [
@@ -169,7 +173,9 @@ async def get_graph_analytics(session_id: UUID) -> dict[str, object]:
 
 @router.post("/{session_id}/graph/path")
 @router.get("/{session_id}/graph/path")
-async def get_graph_path(session_id: UUID, source_node_id: str = Query(...), target_node_id: str = Query(...)) -> dict[str, object]:
+async def get_graph_path(
+    session_id: UUID, source_node_id: str = Query(...), target_node_id: str = Query(...)
+) -> dict[str, object]:
     graph = await _graph_for_session(session_id)
     path = graph_service.shortest_path(graph, source_node_id, target_node_id)
     if not path.node_ids:
@@ -185,7 +191,9 @@ async def get_graph_path(session_id: UUID, source_node_id: str = Query(...), tar
 
 
 @router.get("/{session_id}/graph/search")
-async def search_graph(session_id: UUID, query: str = Query(..., min_length=1)) -> dict[str, object]:
+async def search_graph(
+    session_id: UUID, query: str = Query(..., min_length=1)
+) -> dict[str, object]:
     graph = await _graph_for_session(session_id)
     query_vector = await embedding_gateway.embed(query, task_type=TaskType.RETRIEVAL_QUERY)
     vectors = await vector_index.list_by_session(session_id)
@@ -194,8 +202,7 @@ async def search_graph(session_id: UUID, query: str = Query(..., min_length=1)) 
         query,
         query_vector=query_vector,
         vector_records=[
-            {"content_ref_id": record.content_ref_id, "vector": record.vector}
-            for record in vectors
+            {"content_ref_id": record.content_ref_id, "vector": record.vector} for record in vectors
         ],
     )
     return {
@@ -217,7 +224,11 @@ async def search_graph(session_id: UUID, query: str = Query(..., min_length=1)) 
 @router.get("/{session_id}/graph/{node_id}/sources")
 async def get_node_sources(session_id: UUID, node_id: str) -> dict[str, object]:
     graph = await _graph_for_session(session_id)
-    return {"session_id": str(session_id), "node_id": node_id, "source_node_ids": graph_service.sources_for_node(node_id, graph)}
+    return {
+        "session_id": str(session_id),
+        "node_id": node_id,
+        "source_node_ids": graph_service.sources_for_node(node_id, graph),
+    }
 
 
 @router.post("/{session_id}/decision")
@@ -252,7 +263,10 @@ async def _build_graph_for_session(session_id: UUID) -> GraphPayload:
     except Exception as exc:
         logger.warning("Failed for session %s: %s", session_id, exc)
 
-    return graph_service.build(session_id, findings, sources, topic=topic, patents=patents)
+    entities = [entity for result in results for entity in result.entities]
+    return graph_service.build(
+        session_id, findings, sources, topic=topic, patents=patents, entities=entities
+    )
 
 
 async def _graph_payload_for_session(session_id: UUID) -> dict[str, object]:
@@ -347,14 +361,18 @@ async def analyze_obsolescence(session_id: UUID, tech: str = Query(...)) -> dict
         logger.warning("Failed for session %s: %s", session_id, exc)
         exa_results = None
 
-    result = await detector.analyze(tech, brave_news_results=brave_results, exa_company_results=exa_results)
+    result = await detector.analyze(
+        tech, brave_news_results=brave_results, exa_company_results=exa_results
+    )
     return {"session_id": str(session_id), "tech": tech, "result": result}
 
 
 @router.post("/{session_id}/hype-analysis")
 async def hype_analysis(session_id: UUID, tech: str = Query(...)) -> dict:
     arxiv_results = await _tool_results("arxiv", "search_papers", {"query": tech})
-    exa_results = await _tool_results("exa", "web_search_advanced_exa", {"query": f"{tech} startups companies funding"})
+    exa_results = await _tool_results(
+        "exa", "web_search_advanced_exa", {"query": f"{tech} startups companies funding"}
+    )
     firecrawl_results = await _tool_results("firecrawl", "firecrawl_scrape", {"url": tech})
     serper_results = None
     if serper_client is not None:
@@ -363,7 +381,9 @@ async def hype_analysis(session_id: UUID, tech: str = Query(...)) -> dict:
         except Exception as exc:
             logger.warning("Serper patents failed for session %s: %s", session_id, exc)
 
-    if all(result is None for result in (arxiv_results, exa_results, firecrawl_results, serper_results)):
+    if all(
+        result is None for result in (arxiv_results, exa_results, firecrawl_results, serper_results)
+    ):
         raise HTTPException(status_code=501, detail="Hype analysis providers are not available")
 
     detector = HypeDetector()
@@ -389,9 +409,12 @@ def _source_payload(source) -> dict[str, object]:
 
 
 @router.get("/{session_id}/graph/ecosystem")
-async def get_ecosystem(session_id: UUID, seed: str = Query(..., min_length=1), depth: int = Query(2, ge=1, le=5)) -> dict[str, object]:
+async def get_ecosystem(
+    session_id: UUID, seed: str = Query(..., min_length=1), depth: int = Query(2, ge=1, le=5)
+) -> dict[str, object]:
     """Discover technology ecosystem from a seed term."""
     from vigilancia_multiagente.api.dependencies import graph_service
+
     graph = await _graph_for_session(session_id)
     ecosystem = graph_service.discover_ecosystem(seed, graph, depth=depth)
     return {"session_id": str(session_id), "seed": seed, "depth": depth, "ecosystem": ecosystem}
@@ -407,12 +430,17 @@ async def search_cross_session(
     query_vector = await embedding_gateway.embed(query, task_type=TaskType.RETRIEVAL_QUERY)
     vector_records = await vector_index.list_by_session(None, limit=limit * 20)
     results = await graph_service.search_across_sessions(
-        query, query_vector, vector_records, limit=limit,
+        query,
+        query_vector,
+        vector_records,
+        limit=limit,
     )
     return {"session_id": str(session_id), "query": query, "limit": limit, "results": results}
 
 
-async def _tool_results(provider_name: str, tool_name: str, arguments: dict[str, object]) -> list | None:
+async def _tool_results(
+    provider_name: str, tool_name: str, arguments: dict[str, object]
+) -> list | None:
     try:
         provider = provider_registry.get(provider_name)
         response = await execution_client.execute_tool(provider, tool_name, arguments)

@@ -4,14 +4,19 @@ from uuid import UUID
 def test_research_lifecycle_end_to_end(memory_repositories):
     client = memory_repositories["client"]
 
-    start_response = client.post("/research/start", json={"user_query": "technology watch", "scope": {"geo": "global"}})
+    start_response = client.post(
+        "/research/start", json={"user_query": "technology watch", "scope": {"geo": "global"}}
+    )
     assert start_response.status_code == 200
     session_id = UUID(start_response.json()["session_id"])
     assert start_response.json()["status"] == "clarifying"
     stream_response = client.get(f"/research/{session_id}/stream")
     assert "ClarificationRequested" in stream_response.text
 
-    clarify_response = client.post(f"/research/{session_id}/clarify", json={"answers": {"scope-horizon": "mid-term", "scope-geo": "global"}})
+    clarify_response = client.post(
+        f"/research/{session_id}/clarify",
+        json={"answers": {"scope-horizon": "mid-term", "scope-geo": "global"}},
+    )
     assert clarify_response.status_code == 200
     assert clarify_response.json()["status"] == "planning"
     assert clarify_response.json()["requires_approval"] is True
@@ -48,4 +53,3 @@ def test_research_lifecycle_end_to_end(memory_repositories):
     evaluation_response = client.get(f"/research/{session_id}/evaluation")
     assert evaluation_response.status_code == 200
     assert evaluation_response.json()["by_branch"]
-

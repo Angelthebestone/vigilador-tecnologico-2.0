@@ -68,7 +68,9 @@ class MiniMaxClient:
 
         response = await self._client.post(
             "/v1/chat/completions",
-            headers={"Authorization": f"Bearer {self._settings.minimax_api_key.get_secret_value()}"},
+            headers={
+                "Authorization": f"Bearer {self._settings.minimax_api_key.get_secret_value()}"
+            },
             json={
                 "model": self._settings.minimax_model,
                 "messages": [m.to_dict() for m in enriched],

@@ -24,7 +24,9 @@ async def get_iterations(session_id: UUID) -> dict[str, object]:
 @router.get("/{session_id}/agent-contracts")
 async def get_agent_contracts(session_id: UUID) -> dict[str, object]:
     skill_matrix = governance_loader.load_skill_matrix()
-    branch_overlays = [governance_loader.load_branch_overlay(branch_type) for branch_type in skill_matrix]
+    branch_overlays = [
+        governance_loader.load_branch_overlay(branch_type) for branch_type in skill_matrix
+    ]
     return {
         "session_id": str(session_id),
         "skill_matrix": [
@@ -65,10 +67,11 @@ async def get_evaluation(session_id: UUID) -> dict[str, object]:
             "precision_kpi": result.confidence_score or 0.0,
             "latency_ms_kpi": 500,
             "cost_kpi": 0.0,
-            "prompt_regression_passed": prompt_regression_service.evaluate(result.branch_type.value, 0.0, 0.0).passed,
+            "prompt_regression_passed": prompt_regression_service.evaluate(
+                result.branch_type.value, 0.0, 0.0
+            ).passed,
             "golden_case_id": None,
         }
         for result in results
     ]
     return {"session_id": str(session_id), "by_branch": evaluations}
-

@@ -38,9 +38,9 @@ def _render_markdown(report: dict) -> str:
     lines = [f"# {report.get('title', 'Report')}"]
     lines.append(f"_Generated: {report.get('generated_at', datetime.utcnow().isoformat())}_\n")
 
-    for section in report.get('sections', []):
+    for section in report.get("sections", []):
         lines.append(f"## {section.get('heading', '')}")
-        lines.append(section.get('content', ''))
+        lines.append(section.get("content", ""))
         lines.append("")
 
     return "\n".join(lines)

@@ -4,7 +4,15 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from vigilancia_multiagente.api.dependencies import clarification_service, event_log, minimax_client, orchestrator, plan_builder, plan_repository, session_repository
+from vigilancia_multiagente.api.dependencies import (
+    clarification_service,
+    event_log,
+    minimax_client,
+    orchestrator,
+    plan_builder,
+    plan_repository,
+    session_repository,
+)
 from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 from vigilancia_multiagente.domain.models import ResearchPlan
 from vigilancia_multiagente.domain.session_state import SessionStatus
@@ -24,12 +32,28 @@ class ClarifyRequest(BaseModel):
 @router.post("/start")
 async def start_research(payload: StartRequest) -> dict[str, object]:
     session = await orchestrator.start_session(payload.user_query, payload.scope)
-    questions = await clarification_service.generate_questions(payload.user_query, llm=minimax_client)
-    event = format_sse(SessionEvent.now("SessionStarted", session.id, {"status": session.status, "user_query": payload.user_query}))
+    questions = await clarification_service.generate_questions(
+        payload.user_query, llm=minimax_client
+    )
+    event = format_sse(
+        SessionEvent.now(
+            "SessionStarted",
+            session.id,
+            {"status": session.status, "user_query": payload.user_query},
+        )
+    )
     event_log[str(session.id)] = [event]
-    event_log[str(session.id)].append(format_sse(SessionEvent.now("ClarificationRequested", session.id, {
-        "questions": [asdict(q) for q in questions],
-    })))
+    event_log[str(session.id)].append(
+        format_sse(
+            SessionEvent.now(
+                "ClarificationRequested",
+                session.id,
+                {
+                    "questions": [asdict(q) for q in questions],
+                },
+            )
+        )
+    )
     return {
         "session_id": str(session.id),
         "status": session.status.lower(),
@@ -42,14 +66,25 @@ async def clarify(session_id: str, payload: ClarifyRequest) -> dict[str, object]
     clarification_service.save_answers(UUID(session_id), payload.answers)
     session = await session_repository.get_by_id(UUID(session_id))
     plan = await plan_builder.build(
-        UUID(session_id), payload.answers,
+        UUID(session_id),
+        payload.answers,
         user_query=session.user_query if session else "",
         llm=minimax_client,
     )
     await plan_repository.create(plan)
     session = await orchestrator.transition(UUID(session_id), SessionStatus.PLANNING)
     event_log.setdefault(session_id, []).append(
-        format_sse(SessionEvent.now("PlanGenerated", session.id, {"plan_id": str(plan.id), "branches": [branch.branch_type.value for branch in plan.branches], "requires_approval": plan.requires_approval}))
+        format_sse(
+            SessionEvent.now(
+                "PlanGenerated",
+                session.id,
+                {
+                    "plan_id": str(plan.id),
+                    "branches": [branch.branch_type.value for branch in plan.branches],
+                    "requires_approval": plan.requires_approval,
+                },
+            )
+        )
     )
     return {
         "session_id": str(session.id),
@@ -93,4 +128,3 @@ def _plan_payload(plan: ResearchPlan) -> dict[str, object]:
             for branch in plan.branches
         ],
     }
-

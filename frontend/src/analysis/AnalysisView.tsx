@@ -31,14 +31,14 @@ function AnalysisContent({ sessionId }: { sessionId: string | null }) {
     getMetrics(sessionId)
       .then((res) => {
         if (!active) return;
+        const raw = res as typeof res & {
+          branchKpis?: { branchType: BranchType; coverageKpi: number; precisionKpi: number; latencyMsKpi: number }[];
+          confidenceScore?: number;
+          totalSources?: number;
+          totalFindings?: number;
+        };
         setMetrics({
-          branchKpis: [] as {
-            branchType: BranchType;
-            coverageKpi: number;
-            precisionKpi: number;
-            latencyMsKpi: number;
-            costKpi: number;
-          }[],
+          branchKpis: raw.branchKpis ?? [],
           providerMetrics: res.providers.map((p) => ({
             providerName: p.name,
             avgLatencyMs: p.avgLatencyMs,
@@ -46,9 +46,9 @@ function AnalysisContent({ sessionId }: { sessionId: string | null }) {
             retryRate: p.retryRate,
             latencyBuckets: {},
           })),
-          confidenceScore: 0,
-          totalSources: 0,
-          totalFindings: 0,
+          confidenceScore: raw.confidenceScore ?? 0,
+          totalSources: raw.totalSources ?? 0,
+          totalFindings: raw.totalFindings ?? 0,
         });
       })
       .catch((err: unknown) => {

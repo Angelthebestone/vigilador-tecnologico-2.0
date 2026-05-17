@@ -3,7 +3,13 @@ from pathlib import Path
 import pytest
 
 from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient
-from vigilancia_multiagente.infra.mcp.provider_registry import MCPAuthMode, MCPProviderConfig, MCPProviderRegistry, MCPTransport, RetryPolicy
+from vigilancia_multiagente.infra.mcp.provider_registry import (
+    MCPAuthMode,
+    MCPProviderConfig,
+    MCPProviderRegistry,
+    MCPTransport,
+    RetryPolicy,
+)
 
 
 def test_provider_registry_loads_manifest_and_indexes_tools():
@@ -11,7 +17,10 @@ def test_provider_registry_loads_manifest_and_indexes_tools():
     registry.load_manifest(Path("src/vigilancia_multiagente/infra/mcp/mcp-providers.json"))
 
     assert registry.get("tavily").transport == MCPTransport.HTTP
-    assert registry.provider_names_for_tools(("tavily_search", "web_search_exa")) == ("tavily", "exa")
+    assert registry.provider_names_for_tools(("tavily_search", "web_search_exa")) == (
+        "tavily",
+        "exa",
+    )
 
 
 @pytest.mark.asyncio
@@ -49,4 +58,3 @@ async def test_execution_client_uses_http_retry_and_stdio_paths(monkeypatch):
     assert http_result.payload["provider"] == "web"
     assert stdio_result.payload["provider"] == "local"
     await client.close()
-

@@ -8,10 +8,17 @@ from typing import Any, Optional
 logger = logging.getLogger(__name__)
 
 _BLOCKED_PATTERNS = (
-    "access denied", "accessdenied", "forbidden",
-    "blocked", "captcha", "please verify",
-    "too many requests", "rate limit",
-    "service unavailable", "503", "403",
+    "access denied",
+    "accessdenied",
+    "forbidden",
+    "blocked",
+    "captcha",
+    "please verify",
+    "too many requests",
+    "rate limit",
+    "service unavailable",
+    "503",
+    "403",
 )
 
 
@@ -21,7 +28,9 @@ class PlaywrightProvider:
     Provides browser automation capabilities through MCP tools.
     """
 
-    def __init__(self, execution_client: Any = None, provider_registry: Any = None, headless: bool = True) -> None:
+    def __init__(
+        self, execution_client: Any = None, provider_registry: Any = None, headless: bool = True
+    ) -> None:
         self.execution_client = execution_client
         self.provider_registry = provider_registry
         self.headless = headless
@@ -40,7 +49,9 @@ class PlaywrightProvider:
 
         try:
             result = await self.execution_client.execute_tool(
-                provider, "browser_navigate", {"url": url},
+                provider,
+                "browser_navigate",
+                {"url": url},
             )
             response = {
                 "success": True,
@@ -61,7 +72,9 @@ class PlaywrightProvider:
         try:
             args = {"target": target} if target else {}
             result = await self.execution_client.execute_tool(
-                provider, "browser_snapshot", args,
+                provider,
+                "browser_snapshot",
+                args,
             )
             return {
                 "success": True,
@@ -80,7 +93,9 @@ class PlaywrightProvider:
 
         try:
             result = await self.execution_client.execute_tool(
-                provider, "browser_screenshot", {"full_page": full_page},
+                provider,
+                "browser_screenshot",
+                {"full_page": full_page},
             )
             return {
                 "success": True,
@@ -102,7 +117,9 @@ class PlaywrightProvider:
             if element:
                 args["element"] = element
             result = await self.execution_client.execute_tool(
-                provider, "browser_click", args,
+                provider,
+                "browser_click",
+                args,
             )
             return {
                 "success": True,
@@ -121,7 +138,9 @@ class PlaywrightProvider:
 
         try:
             result = await self.execution_client.execute_tool(
-                provider, "browser_type", {"target": target, "text": text, "submit": submit},
+                provider,
+                "browser_type",
+                {"target": target, "text": text, "submit": submit},
             )
             return {
                 "success": True,
@@ -140,7 +159,9 @@ class PlaywrightProvider:
 
         try:
             result = await self.execution_client.execute_tool(
-                provider, "browser_network_requests", {"static": static},
+                provider,
+                "browser_network_requests",
+                {"static": static},
             )
             payload = result.payload
             if isinstance(payload, dict):
@@ -160,7 +181,9 @@ class PlaywrightProvider:
 
         try:
             result = await self.execution_client.execute_tool(
-                provider, "browser_network_request", {"index": index},
+                provider,
+                "browser_network_request",
+                {"index": index},
             )
             return {
                 "success": True,
@@ -171,7 +194,9 @@ class PlaywrightProvider:
             logger.warning("Playwright get_network_request_detail failed: %s", exc)
             return {"success": False, "error": str(exc)}
 
-    async def _handle_blocked_response(self, response: dict[str, Any], source_url: str) -> dict[str, Any]:
+    async def _handle_blocked_response(
+        self, response: dict[str, Any], source_url: str
+    ) -> dict[str, Any]:
         """
         Detect if a response indicates blocked access and emit negative source signal.
 

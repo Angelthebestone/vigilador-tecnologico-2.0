@@ -1,4 +1,6 @@
-from vigilancia_multiagente.application.evaluation.prompt_regression_service import PromptRegressionService
+from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
+    PromptRegressionService,
+)
 
 
 def test_prompt_regression_gate_thresholds():
@@ -36,4 +38,3 @@ def test_composed_prompt_regression_all_branches():
         assert result.prompt_composition_id, f"Missing composition_id for {bt.value}"
         assert result.full_text, f"Empty composed prompt for {bt.value}"
         assert "Never invent data." in result.full_text
-

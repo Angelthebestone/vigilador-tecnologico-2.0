@@ -1,7 +1,7 @@
 <tool name="execute_code">
   <function_signature>## execute_code(code: str, timeout: int)</function_signature>
   <best_for>running Python analysis on collected data, statistical computations, generating charts</best_for>
-  <details>Pre-loaded: matplotlib, seaborn, numpy, pandas, scipy, metaknowledge, pyscisci, scienceplots. No network access. Timeout default: 120s.</details>
+  <details>Pre-loaded: matplotlib, numpy, pandas, scipy, scikit-learn, scienceplots. No network access. Timeout default: 120s.</details>
   <limits>Timeout: 120s, no network, output limit: 1MB</limits>
   <selection_heuristics>
     <prefer_over>Doing analysis manually — sandbox is faster and auditable</prefer_over>
@@ -41,6 +41,6 @@
   <rule>The sandbox has NO network access — do not attempt to download data or call APIs from within executed code.</rule>
   <rule>Always import libraries inside the code string (the environment does not auto-import).</rule>
   <rule>Use scienceplots style for publication-quality charts: plt.style.use('science')</rule>
-  <rule>If you need to analyze bibliometric data, pass the data as JSON and parse it with pandas in the code.</rule>
+  <rule>To analyze collected data (publication counts per year, confidence distributions, term frequencies, trend slopes), pass it as JSON and process it with pandas/numpy/scipy in the code.</rule>
   <rule>Audit logging is automatic — every execution is recorded with timestamp and result summary.</rule>
 </rules>

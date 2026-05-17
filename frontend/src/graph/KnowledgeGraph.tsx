@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { GraphData, Source } from '@/types';
 import { StateBlock } from '@/components';
 import { GraphCanvas } from './GraphCanvas';
@@ -26,9 +26,34 @@ export function KnowledgeGraph({
   pathEdgeIds,
   onSelectNode,
 }: KnowledgeGraphProps) {
+  const [showSources, setShowSources] = useState(false);
+
   const selectedNode = useMemo(
     () => data?.nodes.find((n) => n.id === selectedNodeId) ?? null,
     [data, selectedNodeId],
+  );
+
+  // Los nodos SOURCE (fuentes/URLs) recargan el grafo: la fuente de cada nodo
+  // ya se ve en el panel lateral al seleccionarlo. Ocultos por defecto; el
+  // toggle los revela para inspeccionar contenidos que comparten fuente.
+  const visibleData = useMemo<GraphData | null>(() => {
+    if (!data || showSources) return data;
+    const sourceIds = new Set(
+      data.nodes.filter((n) => n.nodeType === 'SOURCE').map((n) => n.id),
+    );
+    if (sourceIds.size === 0) return data;
+    return {
+      ...data,
+      nodes: data.nodes.filter((n) => !sourceIds.has(n.id)),
+      edges: data.edges.filter(
+        (e) => !sourceIds.has(e.source) && !sourceIds.has(e.target),
+      ),
+    };
+  }, [data, showSources]);
+
+  const sourceCount = useMemo(
+    () => data?.nodes.filter((n) => n.nodeType === 'SOURCE').length ?? 0,
+    [data],
   );
 
   if (loading) {
@@ -59,12 +84,24 @@ export function KnowledgeGraph({
   return (
     <div className="kgraph">
       <GraphCanvas
-        data={data}
+        data={visibleData ?? data}
         selectedNodeId={selectedNodeId}
         pathNodeIds={pathNodeIds}
         pathEdgeIds={pathEdgeIds}
         onSelectNode={onSelectNode}
       />
+      {sourceCount > 0 && (
+        <button
+          type="button"
+          className="kgraph__src-toggle"
+          aria-pressed={showSources}
+          onClick={() => setShowSources((v) => !v)}
+        >
+          {showSources
+            ? `Ocultar fuentes (${sourceCount})`
+            : `Mostrar fuentes (${sourceCount})`}
+        </button>
+      )}
       <GraphLegend />
       {selectedNode && (
         <SourcesPanel

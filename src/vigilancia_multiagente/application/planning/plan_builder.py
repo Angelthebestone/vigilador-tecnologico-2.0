@@ -42,16 +42,24 @@ class PlanBuilder:
                 prompt = load_prompt("orchestration/planning").format(
                     user_query=user_query, clarification_answers=json.dumps(answers)
                 )
-                response = await llm.complete(messages=[MiniMaxMessage(role="user", content=prompt)])
+                response = await llm.complete(
+                    messages=[MiniMaxMessage(role="user", content=prompt)]
+                )
                 data = json.loads(response.content)
                 branches_data = data.get("branches", [])
                 branches = _parse_branches_from_llm(branches_data)
                 if branches:
                     return ResearchPlan(
-                        id=uuid4(), session_id=session_id, version=1,
+                        id=uuid4(),
+                        session_id=session_id,
+                        version=1,
                         system_base_version=settings.system_base_version,
                         branches=branches,
-                        global_constraints={"depth_limit": 3, "geographic_scope": geo, "temporal_policy": "dynamic"},
+                        global_constraints={
+                            "depth_limit": 3,
+                            "geographic_scope": geo,
+                            "temporal_policy": "dynamic",
+                        },
                         requires_approval=True,
                     )
             except (json.JSONDecodeError, KeyError, TypeError, RuntimeError):
@@ -96,11 +104,12 @@ def _parse_branches_from_llm(data: list[dict]) -> list[BranchConfig]:
             for provider in item.get("mcp_providers", DEFAULT_PROVIDERS[bt])
             if provider != "serper"
         ] or DEFAULT_PROVIDERS[bt]
-        branches.append(BranchConfig(
-            branch_type=bt,
-            focus_queries=list(item.get("focus_queries", [])),
-            mcp_providers=providers,
-            priority_weight=item.get("priority_weight"),
-        ))
+        branches.append(
+            BranchConfig(
+                branch_type=bt,
+                focus_queries=list(item.get("focus_queries", [])),
+                mcp_providers=providers,
+                priority_weight=item.get("priority_weight"),
+            )
+        )
     return branches
-

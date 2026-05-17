@@ -2,12 +2,19 @@ import logging
 import re
 from uuid import UUID
 
-logger = logging.getLogger(__name__)
-
-from vigilancia_multiagente.domain.models import BranchResult, Finding, FinalReport, Recommendation, SourceRef
+from vigilancia_multiagente.domain.models import (
+    BranchResult,
+    Finding,
+    FinalReport,
+    Recommendation,
+    SourceRef,
+)
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
+
+logger = logging.getLogger(__name__)
+
 
 class ReportSynthesizer:
     async def synthesize(
@@ -21,11 +28,21 @@ class ReportSynthesizer:
         from vigilancia_multiagente.api.dependencies import event_log
         from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 
-        event_log[str(session_id)].append(format_sse(SessionEvent.now("FusionStarted", session_id, {
-            "message": "Synthesizing cross-branch results...",
-        })))
+        event_log[str(session_id)].append(
+            format_sse(
+                SessionEvent.now(
+                    "FusionStarted",
+                    session_id,
+                    {
+                        "message": "Synthesizing cross-branch results...",
+                    },
+                )
+            )
+        )
         branch_sections = {
-            result.branch_type.value.lower(): "\n".join(f"- {item.statement}" for item in result.findings)
+            result.branch_type.value.lower(): "\n".join(
+                f"- {item.statement}" for item in result.findings
+            )
             for result in branch_results
         }
         opportunities = [item.statement for item in linked_findings[:3]]
@@ -34,10 +51,18 @@ class ReportSynthesizer:
             for item in linked_findings[:3]
         ]
 
-        event_log[str(session_id)].append(format_sse(SessionEvent.now("FusionProgress", session_id, {
-            "progress": 50,
-            "current_analysis": "cross-branch correlations",
-        })))
+        event_log[str(session_id)].append(
+            format_sse(
+                SessionEvent.now(
+                    "FusionProgress",
+                    session_id,
+                    {
+                        "progress": 50,
+                        "current_analysis": "cross-branch correlations",
+                    },
+                )
+            )
+        )
 
         if llm is not None:
             import json
@@ -54,7 +79,9 @@ class ReportSynthesizer:
                     competitivo=branch_sections.get("competitivo", ""),
                     oportunidades=branch_sections.get("oportunidades", ""),
                 )
-                response = await llm.complete(messages=[MiniMaxMessage(role="user", content=prompt + "\n\n" + sections_text)])
+                response = await llm.complete(
+                    messages=[MiniMaxMessage(role="user", content=prompt + "\n\n" + sections_text)]
+                )
                 data = json.loads(response.content)
                 if "executive_summary" in data:
                     raw_recommendations = data.get("recommendations")
@@ -129,4 +156,3 @@ def extract_section(markdown: str, section_name: str) -> str:
         if match:
             return match.group(1).strip()
     return ""
-

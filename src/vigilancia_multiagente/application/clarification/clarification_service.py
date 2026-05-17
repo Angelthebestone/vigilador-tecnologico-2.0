@@ -17,13 +17,17 @@ class ClarificationService:
     def __init__(self) -> None:
         self._answers: dict[UUID, dict[str, str]] = {}
 
-    async def generate_questions(self, user_query: str, llm: MiniMaxClient | None = None) -> list[ClarificationQuestion]:
+    async def generate_questions(
+        self, user_query: str, llm: MiniMaxClient | None = None
+    ) -> list[ClarificationQuestion]:
         if llm is not None:
             import json
 
             try:
                 prompt = load_prompt("orchestration/clarify").format(user_query=user_query)
-                response = await llm.complete(messages=[MiniMaxMessage(role="user", content=prompt)])
+                response = await llm.complete(
+                    messages=[MiniMaxMessage(role="user", content=prompt)]
+                )
                 data = json.loads(response.content)
                 return [
                     ClarificationQuestion(id=q["id"], text=q["text"], options=tuple(q["options"]))
@@ -49,4 +53,3 @@ class ClarificationService:
 
     def get_answers(self, session_id: UUID) -> dict[str, str]:
         return self._answers.get(session_id, {})
-

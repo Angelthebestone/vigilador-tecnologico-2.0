@@ -89,16 +89,22 @@ class PromptComposer:
 
         # --- System Base sections ---
         sections["global_rules"] = _fmt_list("Global Rules (Tool Usage)", system_base.global_rules)
-        sections["tool_usage_policy"] = _fmt_dict("Tool Usage Policy", system_base.tool_usage_policy)
+        sections["tool_usage_policy"] = _fmt_dict(
+            "Tool Usage Policy", system_base.tool_usage_policy
+        )
         sections["safety_limits"] = _fmt_dict("Safety Limits", system_base.safety_limits)
         sections["error_handling"] = _fmt_list("Error Handling", system_base.error_handling)
         sections["output_style"] = _fmt_list("Output Style", system_base.output_style)
-        sections["embedding_config"] = _fmt_dict("Embedding Configuration", system_base.embedding_config)
+        sections["embedding_config"] = _fmt_dict(
+            "Embedding Configuration", system_base.embedding_config
+        )
 
         # --- Branch Overlay sections ---
         sections["objective"] = f"## Objective\n\n{overlay.objective}"
         if overlay.required_context:
-            sections["context"] = "## Required Context\n\n" + "\n".join(f"- {ctx}" for ctx in overlay.required_context)
+            sections["context"] = "## Required Context\n\n" + "\n".join(
+                f"- {ctx}" for ctx in overlay.required_context
+            )
         if overlay.output_schema:
             schema_lines = "\n".join(f"  - `{k}`: {v}" for k, v in overlay.output_schema.items())
             sections["output_schema"] = f"## Output Schema\n\n{schema_lines}"
@@ -109,7 +115,9 @@ class PromptComposer:
         if overlay.dont_rules:
             sections["dont_rules"] = _fmt_list("Don't", overlay.dont_rules)
         if overlay.uncertainty_handling:
-            sections["uncertainty_handling"] = f"## Uncertainty Handling\n\n{overlay.uncertainty_handling}"
+            sections["uncertainty_handling"] = (
+                f"## Uncertainty Handling\n\n{overlay.uncertainty_handling}"
+            )
 
         # --- Skill Matrix + Tool Usage Guides: tools disponibles para esta rama ---
         if policy is not None:
@@ -186,7 +194,7 @@ def _fmt_list(header: str, items: tuple[str, ...]) -> str:
     """Format a tuple of items as a markdown section."""
     if not items:
         return f"## {header}\n\n_None_"
-    return f"## {header}\n\n" + "\n".join(f"{i+1}. {item}" for i, item in enumerate(items))
+    return f"## {header}\n\n" + "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items))
 
 
 def _fmt_dict(header: str, mapping: dict[str, object]) -> str:
@@ -217,4 +225,9 @@ def _render_skill_matrix(policy: AgentSkillPolicy) -> str:
         fallback = order[i + 1] if i + 1 < len(order) else "FAIL branch"
         rows.append(f"| `{tool}` | {timeout}ms | {retry} | {fallback} |")
 
-    return "## Tools Disponibles\n\nOrden de ejecución: " + " → ".join(f"`{t}`" for t in order) + "\n\n" + "\n".join(rows)
+    return (
+        "## Tools Disponibles\n\nOrden de ejecución: "
+        + " → ".join(f"`{t}`" for t in order)
+        + "\n\n"
+        + "\n".join(rows)
+    )

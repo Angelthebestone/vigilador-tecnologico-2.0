@@ -2,7 +2,10 @@
 
 import pytest
 
-from vigilancia_multiagente.application.governance.validators import PromptValidationError, PromptValidator
+from vigilancia_multiagente.application.governance.validators import (
+    PromptValidationError,
+    PromptValidator,
+)
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import BranchOverlay, SystemBase
 
@@ -40,7 +43,9 @@ def test_valid_overlay_passes(validator: PromptValidator, system_base: SystemBas
     validator.validate_overlay(system_base, overlay)
 
 
-def test_overlay_without_objective_raises_error(validator: PromptValidator, system_base: SystemBase) -> None:
+def test_overlay_without_objective_raises_error(
+    validator: PromptValidator, system_base: SystemBase
+) -> None:
     """An overlay without an objective should fail."""
     overlay = BranchOverlay(
         branch_type=BranchType.AVANCES,
@@ -170,7 +175,9 @@ def test_branch_overlay_has_required_fields() -> None:
 
 def test_all_branch_types_have_overlays() -> None:
     """All six branch types should have defined overlays in the contract loader."""
-    from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
+    from vigilancia_multiagente.application.governance.contract_loader import (
+        GovernanceContractLoader,
+    )
     from pathlib import Path
 
     contracts_root = Path("specs/002-vigilancia-multiagente/contracts")
@@ -186,7 +193,9 @@ def test_all_branch_types_have_overlays() -> None:
 
 def test_contract_loader_backward_compatible() -> None:
     """The overlay loader returns BranchOverlay with all expected fields."""
-    from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
+    from vigilancia_multiagente.application.governance.contract_loader import (
+        GovernanceContractLoader,
+    )
     from vigilancia_multiagente.domain.system_base import BranchOverlay
     from pathlib import Path
 

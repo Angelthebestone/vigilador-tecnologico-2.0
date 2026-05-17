@@ -19,10 +19,21 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 UPLOADS_DIR = Path(__file__).resolve().parents[4] / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
-ALLOWED_EXTENSIONS = frozenset({
-    "pdf", "docx", "pptx", "xlsx", "html", "csv",
-    "json", "xml", "png", "jpg", "jpeg",
-})
+ALLOWED_EXTENSIONS = frozenset(
+    {
+        "pdf",
+        "docx",
+        "pptx",
+        "xlsx",
+        "html",
+        "csv",
+        "json",
+        "xml",
+        "png",
+        "jpg",
+        "jpeg",
+    }
+)
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 

@@ -13,6 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 pip install -e ".[dev]"
 ```
 
+**Download spaCy NER models** (required for named-entity extraction — PERSON/COMPANY graph nodes):
+```bash
+python -m spacy download en_core_web_sm
+python -m spacy download es_core_news_sm
+```
+If the models are not installed, `EntityExtractor` degrades gracefully (returns no entities) instead of failing.
+
 **Run dev server:**
 ```bash
 uvicorn vigilancia_multiagente.api.app:app --reload --host 0.0.0.0 --port 8000

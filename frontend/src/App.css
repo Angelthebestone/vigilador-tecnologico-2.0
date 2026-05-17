@@ -1714,6 +1714,34 @@
   min-width: 210px;
 }
 
+.kgraph__src-toggle {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--paper-card);
+  border: var(--ink-line);
+  box-shadow: 3px 3px 0 rgba(19, 47, 32, 0.12);
+  padding: 8px 13px;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    box-shadow 0.12s ease;
+}
+
+.kgraph__src-toggle:hover {
+  color: var(--ink);
+}
+
+.kgraph__src-toggle[aria-pressed='true'] {
+  color: var(--ink);
+  box-shadow: inset 2px 2px 0 rgba(19, 47, 32, 0.12);
+}
+
 .glegend__head {
   font-family: var(--mono);
   font-size: 10px;

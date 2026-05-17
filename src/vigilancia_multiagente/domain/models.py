@@ -141,6 +141,22 @@ class FinalReport:
     confidence_score: float = 0.0
 
 
+class EntityType(StrEnum):
+    PERSON = "PERSON"
+    COMPANY = "COMPANY"
+
+
+@dataclass(slots=True)
+class NamedEntity:
+    id: UUID
+    name: str
+    entity_type: EntityType
+    branch_type: BranchType
+    source_ids: list[UUID] = field(default_factory=list)
+    affiliation: str | None = None  # empresa para PERSON, sector para COMPANY
+    confidence: float = 0.7
+
+
 @dataclass(slots=True)
 class BranchResult:
     id: UUID
@@ -154,4 +170,4 @@ class BranchResult:
     coverage_score: float | None = None
     confidence_score: float | None = None
     errors: list[str] = field(default_factory=list)
-
+    entities: list[NamedEntity] = field(default_factory=list)

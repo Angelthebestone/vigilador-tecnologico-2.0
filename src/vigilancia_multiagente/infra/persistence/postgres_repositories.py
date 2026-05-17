@@ -184,7 +184,9 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
             rows = result.mappings().all()
             return tuple(_branch_result_from_row(row) for row in rows)
 
-    async def append_iteration_records(self, session_id: UUID, records: Sequence[dict[str, object]]) -> None:
+    async def append_iteration_records(
+        self, session_id: UUID, records: Sequence[dict[str, object]]
+    ) -> None:
         if not records:
             return
         async with self._database.session() as db:
@@ -207,7 +209,9 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
             )
             await db.commit()
 
-    async def append_semantic_relations(self, session_id: UUID, records: Sequence[dict[str, object]]) -> None:
+    async def append_semantic_relations(
+        self, session_id: UUID, records: Sequence[dict[str, object]]
+    ) -> None:
         if not records:
             return
         async with self._database.session() as db:
@@ -234,7 +238,9 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
             )
             await db.commit()
 
-    async def append_provider_telemetry(self, session_id: UUID, records: Sequence[dict[str, object]]) -> None:
+    async def append_provider_telemetry(
+        self, session_id: UUID, records: Sequence[dict[str, object]]
+    ) -> None:
         if not records:
             return
         async with self._database.session() as db:
@@ -247,7 +253,12 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
                 ),
                 [
                     {
-                        "id": str(uuid5(NAMESPACE_URL, f"{session_id}:{index}:{record.get('provider')}:{record.get('tool')}")),
+                        "id": str(
+                            uuid5(
+                                NAMESPACE_URL,
+                                f"{session_id}:{index}:{record.get('provider')}:{record.get('tool')}",
+                            )
+                        ),
                         "session_id": str(session_id),
                         "payload": _json_dump(record),
                     }
@@ -273,7 +284,10 @@ class PostgresReportRepository(ReportRepository):
                                   generated_at = NOW()
                     """
                 ),
-                {"session_id": str(session_id), "report_markdown": _json_dump(_final_report_to_dict(report))},
+                {
+                    "session_id": str(session_id),
+                    "report_markdown": _json_dump(_final_report_to_dict(report)),
+                },
             )
             await db.commit()
             return report
@@ -297,7 +311,9 @@ class PostgresGraphSnapshotRepository(GraphSnapshotRepository):
     def __init__(self, database: Database) -> None:
         self._database = database
 
-    async def save_graph_snapshot(self, session_id: UUID, snapshot: dict[str, object]) -> dict[str, object]:
+    async def save_graph_snapshot(
+        self, session_id: UUID, snapshot: dict[str, object]
+    ) -> dict[str, object]:
         async with self._database.session() as db:
             await db.execute(
                 text(
@@ -324,7 +340,9 @@ class PostgresGraphSnapshotRepository(GraphSnapshotRepository):
     async def get_graph_snapshot(self, session_id: UUID) -> dict[str, object] | None:
         async with self._database.session() as db:
             result = await db.execute(
-                text("SELECT session_id, nodes, edges, analytics FROM graph_snapshots WHERE session_id = :session_id"),
+                text(
+                    "SELECT session_id, nodes, edges, analytics FROM graph_snapshots WHERE session_id = :session_id"
+                ),
                 {"session_id": str(session_id)},
             )
             row = result.mappings().one_or_none()
@@ -346,7 +364,9 @@ def _session_params(session: ResearchSession) -> dict[str, object]:
         "status": session.status.value,
         "user_query": session.user_query,
         "scope": _json_dump(session.scope) if session.scope is not None else None,
-        "clarification_set_id": str(session.clarification_set_id) if session.clarification_set_id else None,
+        "clarification_set_id": str(session.clarification_set_id)
+        if session.clarification_set_id
+        else None,
         "approved_plan_id": str(session.approved_plan_id) if session.approved_plan_id else None,
         "final_report_id": str(session.final_report_id) if session.final_report_id else None,
         "execution_time_seconds": session.execution_time_seconds,
@@ -575,7 +595,9 @@ def _optional_float(value: object | None) -> float | None:
 def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
     return {
         "session_id": str(report.session_id),
-        "generated_at": report.generated_at.isoformat() if isinstance(report.generated_at, datetime) else report.generated_at,
+        "generated_at": report.generated_at.isoformat()
+        if isinstance(report.generated_at, datetime)
+        else report.generated_at,
         "markdown": report.markdown,
         "executive_summary": report.executive_summary,
         "technical_section": report.technical_section,
@@ -596,7 +618,9 @@ def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
 def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
     return FinalReport(
         session_id=UUID(str(data["session_id"])),
-        generated_at=_ensure_datetime(data["generated_at"]) if isinstance(data.get("generated_at"), str) else data.get("generated_at"),
+        generated_at=_ensure_datetime(data["generated_at"])
+        if isinstance(data.get("generated_at"), str)
+        else data.get("generated_at"),
         markdown=data.get("markdown", ""),
         executive_summary=data.get("executive_summary", ""),
         technical_section=data.get("technical_section", ""),
@@ -604,7 +628,11 @@ def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
         risk_section=data.get("risk_section", ""),
         cross_analysis=data.get("cross_analysis", ""),
         recommendations=[
-            Recommendation(text=str(r["text"]), priority=str(r.get("priority", "medium")), based_on=[str(b) for b in r.get("based_on", [])])
+            Recommendation(
+                text=str(r["text"]),
+                priority=str(r.get("priority", "medium")),
+                based_on=[str(b) for b in r.get("based_on", [])],
+            )
             for r in (data.get("recommendations") or [])
         ],
         all_sources=[_source_from_dict(s) for s in (data.get("all_sources") or [])],

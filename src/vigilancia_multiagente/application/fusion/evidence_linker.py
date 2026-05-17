@@ -6,7 +6,9 @@ class EvidenceLinker:
     def __init__(self) -> None:
         self._source_scorer = SourceScorer()
 
-    def deduplicate_sources(self, branch_results: list[BranchResult], use_scoring: bool = True) -> list[SourceRef]:
+    def deduplicate_sources(
+        self, branch_results: list[BranchResult], use_scoring: bool = True
+    ) -> list[SourceRef]:
         dedup: dict[str, SourceRef] = {}
         for result in branch_results:
             for source in result.sources:
@@ -22,13 +24,11 @@ class EvidenceLinker:
                 )
         return sources
 
-    def link_findings(self, branch_results: list[BranchResult], dedup_sources: list[SourceRef]) -> list[Finding]:
+    def link_findings(
+        self, branch_results: list[BranchResult], dedup_sources: list[SourceRef]
+    ) -> list[Finding]:
         canonical_by_url = {_normalize_url(source.url): source.id for source in dedup_sources}
-        source_by_id = {
-            source.id: source
-            for result in branch_results
-            for source in result.sources
-        }
+        source_by_id = {source.id: source for result in branch_results for source in result.sources}
         available_ids = {source.id for source in dedup_sources}
         linked: list[Finding] = []
         for result in branch_results:
@@ -52,4 +52,3 @@ class EvidenceLinker:
 
 def _normalize_url(url: str) -> str:
     return url.strip().lower().rstrip("/")
-

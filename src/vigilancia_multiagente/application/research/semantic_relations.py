@@ -52,4 +52,3 @@ def build_relations(
                 )
             )
     return relations
-

@@ -5,7 +5,9 @@ from difflib import SequenceMatcher
 from typing import Optional
 
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
-from vigilancia_multiagente.infra.persistence.global_knowledge_repository import GlobalKnowledgeRepository
+from vigilancia_multiagente.infra.persistence.global_knowledge_repository import (
+    GlobalKnowledgeRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,11 +101,13 @@ class CrossSessionService:
                         break
 
                     if _is_contradictory(prior, current):
-                        contradictions.append({
-                            "claim_a": prior,
-                            "claim_b": current,
-                            "annotation": "contradiction",
-                        })
+                        contradictions.append(
+                            {
+                                "claim_a": prior,
+                                "claim_b": current,
+                                "annotation": "contradiction",
+                            }
+                        )
                         is_duplicate = True
                         break
 
@@ -119,6 +123,7 @@ class CrossSessionService:
 
 def _is_contradictory(a: dict, b: dict) -> bool:
     import re
+
     a_nums = re.findall(r"\d+\.?\d*", a.get("statement", ""))
     b_nums = re.findall(r"\d+\.?\d*", b.get("statement", ""))
     if a.get("topic") == b.get("topic") and a_nums and b_nums:

@@ -22,7 +22,9 @@ class MigrationRunner:
                     """
                 )
             )
-            existing = await connection.execute(text("SELECT filename FROM schema_migrations ORDER BY filename"))
+            existing = await connection.execute(
+                text("SELECT filename FROM schema_migrations ORDER BY filename")
+            )
             applied_names = {row[0] for row in existing.fetchall()}
 
             for migration_path in sorted(self._migrations_dir.glob("*.sql")):

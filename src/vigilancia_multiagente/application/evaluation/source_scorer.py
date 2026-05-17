@@ -14,57 +14,59 @@ class SourceScorer:
         # → 0.95
     """
 
-    _domain_scores: dict[str, float] = field(default_factory=lambda: {
-        # Academic & Research
-        "arxiv.org": 0.95,
-        "nature.com": 0.95,
-        "ieee.org": 0.92,
-        "scholar.google.com": 0.90,
-        "sciencedirect.com": 0.90,
-        "springer.com": 0.88,
-        "acm.org": 0.88,
-        "pubmed.ncbi.nlm.nih.gov": 0.92,
-        "openreview.net": 0.80,
-        "semanticscholar.org": 0.85,
-        # Established News
-        "reuters.com": 0.90,
-        "bloomberg.com": 0.90,
-        "ft.com": 0.88,
-        "wsj.com": 0.88,
-        "nytimes.com": 0.85,
-        "theguardian.com": 0.82,
-        "bbc.com": 0.85,
-        "economist.com": 0.87,
-        "techcrunch.com": 0.75,
-        "wired.com": 0.78,
-        "arstechnica.com": 0.80,
-        "theverge.com": 0.72,
-        # Industry & Official
-        "github.com": 0.75,
-        "gitlab.com": 0.70,
-        "stackoverflow.com": 0.70,
-        "linkedin.com": 0.45,
-        "sec.gov": 0.92,
-        "who.int": 0.90,
-        "nist.gov": 0.90,
-        "europa.eu": 0.85,
-        # Developer Blogs & Knowledge Bases
-        "medium.com": 0.40,
-        "dev.to": 0.50,
-        "hackernews.com": 0.45,
-        "news.ycombinator.com": 0.45,
-        "wikipedia.org": 0.65,
-        "stackexchange.com": 0.60,
-        "quora.com": 0.25,
-        "reddit.com": 0.15,
-        # Social & Low Signal
-        "twitter.com": 0.20,
-        "x.com": 0.20,
-        "youtube.com": 0.30,
-        "tiktok.com": 0.10,
-        "facebook.com": 0.15,
-        "instagram.com": 0.10,
-    })
+    _domain_scores: dict[str, float] = field(
+        default_factory=lambda: {
+            # Academic & Research
+            "arxiv.org": 0.95,
+            "nature.com": 0.95,
+            "ieee.org": 0.92,
+            "scholar.google.com": 0.90,
+            "sciencedirect.com": 0.90,
+            "springer.com": 0.88,
+            "acm.org": 0.88,
+            "pubmed.ncbi.nlm.nih.gov": 0.92,
+            "openreview.net": 0.80,
+            "semanticscholar.org": 0.85,
+            # Established News
+            "reuters.com": 0.90,
+            "bloomberg.com": 0.90,
+            "ft.com": 0.88,
+            "wsj.com": 0.88,
+            "nytimes.com": 0.85,
+            "theguardian.com": 0.82,
+            "bbc.com": 0.85,
+            "economist.com": 0.87,
+            "techcrunch.com": 0.75,
+            "wired.com": 0.78,
+            "arstechnica.com": 0.80,
+            "theverge.com": 0.72,
+            # Industry & Official
+            "github.com": 0.75,
+            "gitlab.com": 0.70,
+            "stackoverflow.com": 0.70,
+            "linkedin.com": 0.45,
+            "sec.gov": 0.92,
+            "who.int": 0.90,
+            "nist.gov": 0.90,
+            "europa.eu": 0.85,
+            # Developer Blogs & Knowledge Bases
+            "medium.com": 0.40,
+            "dev.to": 0.50,
+            "hackernews.com": 0.45,
+            "news.ycombinator.com": 0.45,
+            "wikipedia.org": 0.65,
+            "stackexchange.com": 0.60,
+            "quora.com": 0.25,
+            "reddit.com": 0.15,
+            # Social & Low Signal
+            "twitter.com": 0.20,
+            "x.com": 0.20,
+            "youtube.com": 0.30,
+            "tiktok.com": 0.10,
+            "facebook.com": 0.15,
+            "instagram.com": 0.10,
+        }
+    )
 
     _default_score: float = 0.50
 

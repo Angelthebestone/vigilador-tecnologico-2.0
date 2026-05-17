@@ -15,6 +15,7 @@ interface GraphStore {
 export const useGraphStore = create<GraphStore>()((set) => ({
   graphData: null,
   selectedNodeId: null,
+  showSources: false,
   loading: false,
   error: null,
 
@@ -33,10 +34,13 @@ export const useGraphStore = create<GraphStore>()((set) => ({
 
   setSelectedNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
+  toggleSources: () => set((s) => ({ showSources: !s.showSources })),
+
   reset: () =>
     set({
       graphData: null,
       selectedNodeId: null,
+      showSources: false,
       loading: false,
       error: null,
     }),

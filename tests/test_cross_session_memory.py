@@ -25,8 +25,22 @@ async def test_merge_findings_deduplication():
     """Test that merge_findings detects duplicates."""
     from vigilancia_multiagente.application.memory.cross_session_service import CrossSessionService
 
-    current = [{"title": "AI in Healthcare", "statement": "AI in Healthcare", "source": "src_a", "topic": "healthcare"}]
-    prior = [{"title": "AI in Healthcare", "statement": "AI in Healthcare", "source": "src_b", "topic": "healthcare"}]
+    current = [
+        {
+            "title": "AI in Healthcare",
+            "statement": "AI in Healthcare",
+            "source": "src_a",
+            "topic": "healthcare",
+        }
+    ]
+    prior = [
+        {
+            "title": "AI in Healthcare",
+            "statement": "AI in Healthcare",
+            "source": "src_b",
+            "topic": "healthcare",
+        }
+    ]
 
     service = CrossSessionService()
     result = await service.merge_findings(current, prior)

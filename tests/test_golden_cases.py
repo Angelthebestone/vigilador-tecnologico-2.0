@@ -43,4 +43,3 @@ def test_golden_case_composed_prompt_flow():
     assert "Identify technology signals." in result.full_text
     assert "Latest breakthroughs in AI" in result.full_text
     assert "cite sources" in result.full_text
-

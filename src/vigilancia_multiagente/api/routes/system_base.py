@@ -44,7 +44,9 @@ async def get_system_base() -> dict[str, object]:
         try:
             loaded = system_base_loader.load()
         except Exception as exc:
-            raise HTTPException(status_code=503, detail=f"System base not available: {exc}") from exc
+            raise HTTPException(
+                status_code=503, detail=f"System base not available: {exc}"
+            ) from exc
     else:
         loaded = system_base
 
@@ -55,7 +57,9 @@ async def get_system_base() -> dict[str, object]:
         "safety_limits": {k: str(v) for k, v in loaded.safety_limits.items()},
         "error_handling": list(loaded.error_handling),
         "output_style": list(loaded.output_style),
-        "model_behavior": {k: str(v) if v is not None else None for k, v in loaded.model_behavior.items()},
+        "model_behavior": {
+            k: str(v) if v is not None else None for k, v in loaded.model_behavior.items()
+        },
         "embedding_config": {k: str(v) for k, v in loaded.embedding_config.items()},
     }
 

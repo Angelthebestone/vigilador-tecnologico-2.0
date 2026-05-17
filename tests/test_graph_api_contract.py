@@ -37,9 +37,15 @@ def test_knowledge_graph_service_builds_traceable_graph():
 
 
 def test_contract_files_match_backend_expectations():
-    api_contract = Path("specs/002-vigilancia-multiagente/contracts/research-api.yaml").read_text(encoding="utf-8")
-    governance_contract = Path("specs/002-vigilancia-multiagente/contracts/agent-governance.md").read_text(encoding="utf-8")
-    mcp_manifest = Path("src/vigilancia_multiagente/infra/mcp/mcp-providers.json").read_text(encoding="utf-8")
+    api_contract = Path("specs/002-vigilancia-multiagente/contracts/research-api.yaml").read_text(
+        encoding="utf-8"
+    )
+    governance_contract = Path(
+        "specs/002-vigilancia-multiagente/contracts/agent-governance.md"
+    ).read_text(encoding="utf-8")
+    mcp_manifest = Path("src/vigilancia_multiagente/infra/mcp/mcp-providers.json").read_text(
+        encoding="utf-8"
+    )
     compose_file = Path("docker-compose.yml").read_text(encoding="utf-8")
 
     assert "/api/v2" in api_contract
@@ -63,6 +69,7 @@ def test_discover_ecosystem_returns_dict():
     from vigilancia_multiagente.application.graph.knowledge_graph_service import GraphPayload
 
     service = KnowledgeGraphService()
-    result = service.discover_ecosystem("test", graph=GraphPayload(session_id=uuid4(), nodes=[], edges=[]))
+    result = service.discover_ecosystem(
+        "test", graph=GraphPayload(session_id=uuid4(), nodes=[], edges=[])
+    )
     assert isinstance(result, dict)
-
