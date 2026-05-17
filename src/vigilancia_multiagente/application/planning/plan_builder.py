@@ -29,10 +29,15 @@ class PlanBuilder:
         answers: dict[str, str],
         user_query: str = "",
         llm: MiniMaxClient | None = None,
+        preload_context: dict | None = None,
     ) -> ResearchPlan:
         settings = get_settings()
         horizon = answers.get("scope-horizon", "mid-term")
         geo = answers.get("scope-geo", "global")
+        recurring = (preload_context or {}).get("recurring_entities") or []
+        # Las 2-3 entidades ya investigadas en sesiones previas se vuelven foco
+        # "delta": en vez de re-investigarlas, se busca lo nuevo sobre ellas.
+        delta_focus = [str(term) for term in recurring[:3] if str(term).strip()]
 
         if llm is not None and user_query:
             import json
@@ -48,6 +53,7 @@ class PlanBuilder:
                 branches_data = data.get("branches", [])
                 branches = _parse_branches_from_llm(branches_data)
                 if branches:
+                    _inject_delta_focus(branches, delta_focus)
                     return ResearchPlan(
                         id=uuid4(),
                         session_id=session_id,
@@ -70,6 +76,7 @@ class PlanBuilder:
                 focus_queries=[
                     f"{branch_type.value.lower()} technology signals {horizon}",
                     f"{branch_type.value.lower()} market context {geo}",
+                    *_delta_queries(branch_type, delta_focus),
                 ],
                 mcp_providers=DEFAULT_PROVIDERS[branch_type],
             )
@@ -88,6 +95,21 @@ class PlanBuilder:
             },
             requires_approval=True,
         )
+
+
+def _delta_queries(branch_type: BranchType, delta_focus: list[str]) -> list[str]:
+    """Queries 'delta' para re-investigar lo nuevo sobre entidades ya conocidas."""
+    return [
+        f"new developments on {term} since prior research ({branch_type.value.lower()})"
+        for term in delta_focus
+    ]
+
+
+def _inject_delta_focus(branches: list[BranchConfig], delta_focus: list[str]) -> None:
+    if not delta_focus:
+        return
+    for branch in branches:
+        branch.focus_queries.extend(_delta_queries(branch.branch_type, delta_focus))
 
 
 def _parse_branches_from_llm(data: list[dict]) -> list[BranchConfig]:

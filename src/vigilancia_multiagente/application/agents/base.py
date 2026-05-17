@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -15,6 +16,11 @@ from vigilancia_multiagente.application.research.followup_loop import (
     IterationResult,
     run_followup_loop,
 )
+from vigilancia_multiagente.application.research.followup_strategist import (
+    FollowupStrategist,
+    StrategistContext,
+)
+from vigilancia_multiagente.application.research.saturation import SaturationTracker
 from vigilancia_multiagente.application.research.semantic_relations import (
     IterationEmbedding,
     SemanticRelation,
@@ -86,6 +92,7 @@ class BaseBranchAgent:
         self._directive_queue: asyncio.Queue | None = None
         self._preload_context: dict | None = None
         self._signal_callback = signal_callback or self._noop_signal
+        self._cross_branch_hints: deque[str] = deque(maxlen=32)
 
     def set_preload_context(self, context: dict | None) -> None:
         self._preload_context = context
@@ -131,6 +138,8 @@ class BaseBranchAgent:
 
         executions: list[ToolExecutionResult] = []
         query_payloads: list[dict[str, object]] = []
+        strategist = FollowupStrategist()
+        explored_terms: set[str] = {seed_query}
 
         async def execute(query: str, index: int) -> tuple[bool, str | None]:
             tool_name = policy.tool_order[min(index - 1, len(policy.tool_order) - 1)]
@@ -156,34 +165,65 @@ class BaseBranchAgent:
             executions.append(execution)
             query_payloads.append(payload)
             confidence = float(payload.get("confidence", 0.0))
-            next_query = payload.get("next_query")
+            mcp_suggestion = payload.get("next_query")
             needs_follow_up = bool(
                 payload.get("needs_follow_up", index < depth_limit and confidence < 0.8)
             )
-            if needs_follow_up and not isinstance(next_query, str):
-                logger.warning("MCP tool %s missing next_query, stopping follow-up", tool_name)
+            explored_terms.add(query)
+            if not needs_follow_up:
                 return False, None
-            return needs_follow_up, str(next_query) if needs_follow_up else None
+
+            entities = payload.get("entities")
+            discovered = [str(e) for e in entities] if isinstance(entities, list) else []
+            strategist_query = strategist.propose(
+                StrategistContext(
+                    branch_type=self.branch_type.value,
+                    seed_query=seed_query,
+                    discovered_entities=discovered,
+                    explored_terms=explored_terms,
+                    cross_branch_hints=list(self._cross_branch_hints),
+                ),
+                mcp_suggestion=str(mcp_suggestion) if isinstance(mcp_suggestion, str) else None,
+            )
+            return True, strategist_query
+
+        tracker = SaturationTracker(self._embedding_gateway.embed_document)
+
+        def _iteration_text(idx: int) -> str:
+            payload = query_payloads[idx - 1]
+            return (
+                f"{payload.get('title', '')}\n"
+                f"{payload.get('summary') or payload.get('statement') or ''}"
+            ).strip()
 
         iterations = await run_followup_loop(
             branch_type=self.branch_type.value,
             seed_query=seed_query,
             depth_limit=depth_limit,
             execute=execute,
+            is_saturated=lambda index: tracker.is_saturated(index, _iteration_text(index)),
         )
 
+        # Reutiliza los vectores que el tracker ya calculó durante el loop;
+        # solo embebe las iteraciones que no se evaluaron para saturación.
+        embeddings: list[IterationEmbedding] = []
         if len(iterations) >= 2:
-            embedding_texts = [
-                f"{iteration.query}\n{payload.get('title', '')}\n{payload.get('summary') or payload.get('statement') or ''}"
-                for iteration, payload in zip(iterations, query_payloads, strict=True)
+            missing = [
+                idx for idx, _ in enumerate(iterations, start=1) if tracker.vector_for(idx) is None
             ]
-            embedding_vectors = await self._embedding_gateway.embed_documents(embedding_texts)
-        else:
-            embedding_vectors = []
-        embeddings = [
-            IterationEmbedding(iteration_id=iteration.id, vector=vector)
-            for iteration, vector in zip(iterations, embedding_vectors, strict=True)
-        ]
+            filled: dict[int, list[float]] = {}
+            if missing:
+                missing_vectors = await self._embedding_gateway.embed_documents(
+                    [f"{iterations[idx - 1].query}\n{_iteration_text(idx)}" for idx in missing]
+                )
+                filled = dict(zip(missing, missing_vectors, strict=True))
+            embeddings = [
+                IterationEmbedding(
+                    iteration_id=iteration.id,
+                    vector=tracker.vector_for(idx) or filled[idx],
+                )
+                for idx, iteration in enumerate(iterations, start=1)
+            ]
         semantic_relations = build_relations(
             embeddings, duplicate_threshold=0.999, support_threshold=0.7
         )
@@ -288,6 +328,9 @@ class BaseBranchAgent:
         if self._directive_queue is None:
             self._directive_queue = asyncio.Queue()
         await self._directive_queue.put(directive)
+        hint = directive.get("query") or directive.get("focus")
+        if isinstance(hint, str) and hint:
+            self._cross_branch_hints.append(hint)
 
     def _resolve_providers(
         self,

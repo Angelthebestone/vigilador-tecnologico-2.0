@@ -2,6 +2,13 @@ import logging
 import re
 from uuid import UUID
 
+from vigilancia_multiagente.application.evaluation.causal_timeline import CausalTimelineBuilder
+from vigilancia_multiagente.application.evaluation.contradiction_analyzer import (
+    ContradictionAnalyzer,
+)
+from vigilancia_multiagente.application.evaluation.finding_impact_scorer import FindingImpactScorer
+from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
+from vigilancia_multiagente.application.evaluation.weak_signal_detector import WeakSignalDetector
 from vigilancia_multiagente.domain.models import (
     BranchResult,
     FinalReport,
@@ -14,6 +21,54 @@ from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 logger = logging.getLogger(__name__)
+
+
+def _build_intelligence_sections(
+    branch_results: list[BranchResult],
+    recurring_entities: list[str] | None = None,
+) -> str:
+    """Genera secciones de inteligencia derivada (madurez tecnológica,
+    contradicciones, señales débiles, trayectoria causal, ranking por impacto)
+    de forma determinística.
+
+    Se calcula siempre, independientemente de si hay LLM, porque la evidencia
+    para estas secciones ya está en los branch_results.
+    """
+    all_findings = [f for result in branch_results for f in result.findings]
+
+    contradiction_report = ContradictionAnalyzer().analyze(all_findings)
+    weak_report = WeakSignalDetector().detect(branch_results, recurring_entities)
+    timeline = CausalTimelineBuilder().build(branch_results)
+    scored = FindingImpactScorer().score(branch_results)
+    maturity = HypeDetector.infer_from_branch_results(branch_results)
+
+    parts: list[str] = []
+    section = HypeDetector.render_section(maturity)
+    if section:
+        parts.append(section)
+    if scored:
+        parts.append("## Hallazgos priorizados por impacto")
+        parts.append("")
+        for item in scored[:10]:
+            parts.append(
+                f"- `{item.impact:.3f}` **{item.finding.topic}** — "
+                f"{item.finding.statement} "
+                f"(autoridad {item.authority}, novedad {item.novelty}, "
+                f"convergencia {item.convergence})"
+            )
+        parts.append("")
+
+    section = ContradictionAnalyzer.render_section(contradiction_report)
+    if section:
+        parts.append(section)
+    section = WeakSignalDetector.render_section(weak_report)
+    if section:
+        parts.append(section)
+    section = CausalTimelineBuilder.render_section(timeline)
+    if section:
+        parts.append(section)
+
+    return "\n".join(parts).strip()
 
 
 class ReportSynthesizer:
@@ -50,6 +105,7 @@ class ReportSynthesizer:
             {"text": f"Investigate {item.topic}", "priority": "medium"}
             for item in linked_findings[:3]
         ]
+        intelligence = _build_intelligence_sections(branch_results)
 
         event_log[str(session_id)].append(
             format_sse(
@@ -87,9 +143,12 @@ class ReportSynthesizer:
                     raw_recommendations = data.get("recommendations")
                     if not isinstance(raw_recommendations, list):
                         raw_recommendations = []
+                    markdown = json.dumps(data, indent=2)
+                    if intelligence:
+                        markdown = f"{markdown}\n\n{intelligence}\n"
                     return FinalReport(
                         session_id=session_id,
-                        markdown=json.dumps(data, indent=2),
+                        markdown=markdown,
                         executive_summary=data.get("executive_summary", ""),
                         technical_section=data.get("technical_section", ""),
                         commercial_section=data.get("commercial_section", ""),
@@ -112,6 +171,7 @@ class ReportSynthesizer:
             branch_sections=branch_sections,
             opportunities=opportunities,
             recommendations=recommendations,
+            intelligence=intelligence,
         )
         return FinalReport(
             session_id=session_id,
@@ -134,6 +194,7 @@ def _render_markdown(
     branch_sections: dict[str, str],
     opportunities: list[str],
     recommendations: list[dict[str, str]],
+    intelligence: str = "",
 ) -> str:
     lines = [f"# Final Report {session_id}", "", "## Branch Sections"]
     for branch, section in branch_sections.items():
@@ -143,6 +204,8 @@ def _render_markdown(
     lines.extend(f"- {item}" for item in opportunities)
     lines.extend(["", "## Recommendations"])
     lines.extend(f"- [{item['priority']}] {item['text']}" for item in recommendations)
+    if intelligence:
+        lines.extend(["", intelligence])
     return "\n".join(lines) + "\n"
 
 

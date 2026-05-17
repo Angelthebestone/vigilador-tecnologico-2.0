@@ -902,6 +902,60 @@
   margin-bottom: 12px;
 }
 
+.report__intel {
+  border-top: var(--hair-strong);
+  padding: 16px 20px;
+}
+
+.report__intel-head {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lime-deep);
+  margin-bottom: 10px;
+}
+
+.report__intel-block {
+  border: var(--hair);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.report__intel-block:last-child {
+  margin-bottom: 0;
+}
+
+.report__intel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.report__intel-body {
+  padding: 4px 14px 12px;
+  font-family: var(--serif-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.report__intel-body p {
+  margin: 0 0 6px;
+}
+
+.report__intel-body p:last-child {
+  margin-bottom: 0;
+}
+
 .report__stats {
   display: flex;
   border-top: var(--hair-strong);

@@ -26,7 +26,8 @@ export type IconName =
   | 'image'
   | 'check'
   | 'clock'
-  | 'gauge';
+  | 'gauge'
+  | 'scale';
 
 interface IconProps {
   name: IconName;
@@ -121,6 +122,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M3 14a7 7 0 0 1 14 0" />
       <path d="M10 14l4-4" />
       <circle cx="10" cy="14" r="1" />
+    </>
+  ),
+  scale: (
+    <>
+      <path d="M10 3v14M6 17h8" />
+      <path d="M10 5 4 8m6-3 6 3" />
+      <path d="M2 8a2.5 4 0 0 0 4 0M14 8a2.5 4 0 0 0 4 0" />
     </>
   ),
 };

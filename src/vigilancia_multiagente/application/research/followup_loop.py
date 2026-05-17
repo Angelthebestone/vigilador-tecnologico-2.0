@@ -19,6 +19,9 @@ class IterationResult:
 
 
 ExecutionFn = Callable[[str, int], Awaitable[tuple[bool, str | None]]]
+# Recibe el índice de la iteración recién completada; devuelve True si la
+# investigación ya está saturada (no aporta información nueva) y debe parar.
+SaturationFn = Callable[[int], Awaitable[bool]]
 
 
 async def run_followup_loop(
@@ -26,6 +29,7 @@ async def run_followup_loop(
     seed_query: str,
     depth_limit: int,
     execute: ExecutionFn,
+    is_saturated: SaturationFn | None = None,
 ) -> list[IterationResult]:
     if depth_limit < 1:
         raise ValueError("depth_limit must be >= 1")
@@ -40,6 +44,8 @@ async def run_followup_loop(
             stop_reason = "NO_FOLLOW_UP"
         elif index == depth_limit:
             stop_reason = "DEPTH_LIMIT"
+        elif is_saturated is not None and await is_saturated(index):
+            stop_reason = "SATURATED"
         results.append(
             IterationResult(
                 id=uuid4(),

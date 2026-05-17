@@ -47,6 +47,19 @@ CLARIFICATION_QUESTIONS = [
 ]
 
 # Plan con las 6 ramas
+# Entidades recurrentes de sesiones previas (CrossSessionService.preload_session).
+# El backend las inyecta como focus_queries "delta" en cada rama (#5: memoria
+# cross-session → plan) para re-investigar lo nuevo en vez de partir de cero.
+CROSS_SESSION_RECURRING = ["Toyota", "gemelos digitales"]
+
+
+def _delta_focus(branch: str) -> list[str]:
+    return [
+        f"new developments on {term} since prior research ({branch.lower()})"
+        for term in CROSS_SESSION_RECURRING
+    ]
+
+
 RESEARCH_PLAN = {
     "id": str(uuid.uuid4()),
     "version": 1,
@@ -63,6 +76,7 @@ RESEARCH_PLAN = {
                 "IA generativa modelos de lenguaje manufactura automotriz 2024",
                 "gemelos digitales IA planta automotriz producción",
                 "visión computacional control calidad carrocería defectos",
+                *_delta_focus("AVANCES"),
             ],
             "mcpProviders": ["tavily", "arxiv", "google_scholar"],
             "priorityWeight": 1.2,
@@ -73,6 +87,7 @@ RESEARCH_PLAN = {
                 "mercado IA manufactura automotriz valoración 2024 2025",
                 "inversión startups IA automotriz financiación rondas",
                 "costos implementación IA línea producción ROI",
+                *_delta_focus("COMERCIAL"),
             ],
             "mcpProviders": ["tavily", "exa", "serper"],
             "priorityWeight": 1.0,
@@ -83,6 +98,7 @@ RESEARCH_PLAN = {
                 "riesgos ciberseguridad sistemas IA fábricas automotrices",
                 "fallos IA producción recall automotriz incidentes",
                 "dependencia proveedores IA automotriz concentración mercado",
+                *_delta_focus("RIESGO"),
             ],
             "mcpProviders": ["tavily", "brave", "fetch"],
             "priorityWeight": 1.1,
@@ -93,6 +109,7 @@ RESEARCH_PLAN = {
                 "patentes IA manufactura automotriz 2023 2024 tendencias",
                 "regulación IA industria automotriz Europa Estados Unidos",
                 "estándares ISO IA sistemas autónomos manufactura",
+                *_delta_focus("PI_NORMATIVA"),
             ],
             "mcpProviders": ["google_scholar", "arxiv", "fetch"],
             "priorityWeight": 0.9,
@@ -103,6 +120,7 @@ RESEARCH_PLAN = {
                 "Toyota BMW Volkswagen estrategia IA manufactura",
                 "Tesla Gigafactory IA automatización producción",
                 "comparativa implementación IA automotriz competidores",
+                *_delta_focus("COMPETITIVO"),
             ],
             "mcpProviders": ["tavily", "exa", "serper"],
             "priorityWeight": 1.0,
@@ -113,6 +131,7 @@ RESEARCH_PLAN = {
                 "oportunidades negocio IA manufactura automotriz nicho",
                 "mercados emergentes IA automotriz India México",
                 "colaboraciones universidad empresa IA automotriz",
+                *_delta_focus("OPORTUNIDADES"),
             ],
             "mcpProviders": ["tavily", "brave", "exa"],
             "priorityWeight": 0.95,
@@ -482,6 +501,46 @@ FINAL_REPORT = {
     "markdown": "",  # se rellena abajo
 }
 
+# Secciones de inteligencia derivada (las genera el backend de forma
+# determinística: FindingImpactScorer, ContradictionAnalyzer,
+# WeakSignalDetector, CausalTimelineBuilder). Los títulos deben coincidir
+# literalmente con KNOWN_SECTIONS en IntelligenceSections.tsx.
+INTELLIGENCE_SECTIONS = "\n\n".join(
+    [
+        "## Madurez tecnológica\n\n"
+        "- **TRL 7-9 · comercialización**\n"
+        "- 14 empresas + 9 patentes dominan sobre 6 papers: tecnología en "
+        "comercialización.",
+        "## Hallazgos priorizados por impacto\n"
+        "- `0.871` **vision-defect-detection** — Detección de defectos por visión "
+        "alcanza 99.2% de precisión en líneas de Toyota (autoridad 0.95, novedad 0.92, "
+        "convergencia 0.85)\n"
+        "- `0.764` **predictive-maintenance** — Mantenimiento predictivo reduce paradas "
+        "no planificadas 38% en plantas Bosch (autoridad 0.8, novedad 0.9, convergencia 0.85)\n"
+        "- `0.612` **digital-twin-roi** — Gemelos digitales con ROI de 340% en 3 años "
+        "(autoridad 0.75, novedad 0.82, convergencia 0.7)",
+        "## Puntos en disputa\n\n"
+        "### digital-twin-roi\n"
+        "- **A** (conf. 0.85): Los gemelos digitales reducen el time-to-market 31% según "
+        "Stellantis\n"
+        "- **B** (conf. 0.60): Los gemelos digitales no muestran ROI medible en plantas "
+        "de menos de 500 empleados\n"
+        "- _Las fuentes difieren en polaridad sobre un tema compartido; revisar evidencia "
+        "antes de concluir._",
+        "## Señales débiles emergentes\n\n"
+        "- **neuromorphic-inspection** — Emergente: 2 menciones en 2 rama(s), ausente en "
+        "investigación previa.\n"
+        "- **federated-quality-models** — Emergente: 3 menciones en 2 rama(s), ausente en "
+        "investigación previa.\n"
+        "- **edge-llm-orchestration** — Emergente: 2 menciones en 2 rama(s), ausente en "
+        "investigación previa.",
+        "## Trayectoria causal\n\n"
+        "- **2021** (research) → **2023** (prototype): research → prototype\n"
+        "- **2023** (prototype) → **2024** (funding): prototype → funding\n"
+        "- **2024** (funding) → **2026** (market): funding → market",
+    ]
+)
+
 # Construir campo markdown a partir de las secciones
 FINAL_REPORT["markdown"] = "\n\n".join(
     [
@@ -495,6 +554,7 @@ FINAL_REPORT["markdown"] = "\n\n".join(
         + "\n".join(
             f"- **[{r['priority'].upper()}]** {r['text']}" for r in FINAL_REPORT["recommendations"]
         ),
+        INTELLIGENCE_SECTIONS,
     ]
 )
 

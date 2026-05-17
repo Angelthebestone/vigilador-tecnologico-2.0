@@ -65,11 +65,16 @@ async def start_research(payload: StartRequest) -> dict[str, object]:
 async def clarify(session_id: str, payload: ClarifyRequest) -> dict[str, object]:
     clarification_service.save_answers(UUID(session_id), payload.answers)
     session = await session_repository.get_by_id(UUID(session_id))
+    user_query = session.user_query if session else ""
+    # Memoria cross-session: si ya investigamos temas relacionados, arrancar
+    # desde el delta en vez de desde cero.
+    preload_context = await orchestrator.preload_for_session(user_query)
     plan = await plan_builder.build(
         UUID(session_id),
         payload.answers,
-        user_query=session.user_query if session else "",
+        user_query=user_query,
         llm=minimax_client,
+        preload_context=preload_context,
     )
     await plan_repository.create(plan)
     session = await orchestrator.transition(UUID(session_id), SessionStatus.PLANNING)

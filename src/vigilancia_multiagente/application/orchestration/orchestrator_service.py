@@ -3,6 +3,10 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from vigilancia_multiagente.application.evaluation.claim_polarity import (
+    claims_overlap,
+    polarity_conflict,
+)
 from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
 from vigilancia_multiagente.domain.models import ResearchPlan, ResearchSession
 from vigilancia_multiagente.domain.repositories import SessionRepository
@@ -108,11 +112,11 @@ class OrchestratorService:
                     claim_b = b.get("claim")
                     if not claim_a or not claim_b:
                         continue
-                    if self._claims_match(claim_a, claim_b):
+                    if claims_overlap(claim_a, claim_b):
                         await self.source_scorer.record_confirmation(
                             a.get("source", ""), b.get("source", "")
                         )
-                    elif self._claims_contradict(claim_a, claim_b):
+                    elif polarity_conflict(claim_a, claim_b):
                         await self.source_scorer.record_contradiction(
                             a.get("source", ""), b.get("source", "")
                         )
@@ -121,25 +125,3 @@ class OrchestratorService:
             )
         except Exception as e:
             logger.warning(f"Source scoring failed (non-blocking): {e}")
-
-    @staticmethod
-    def _claims_match(claim_a: str, claim_b: str) -> bool:
-        overlap = len(set(claim_a.lower().split()) & set(claim_b.lower().split()))
-        return overlap >= 3
-
-    @staticmethod
-    def _claims_contradict(claim_a: str, claim_b: str) -> bool:
-        contradictions = {
-            "not",
-            "never",
-            "no",
-            "cannot",
-            "doesn't",
-            "don't",
-            "won't",
-            "isn't",
-            "aren't",
-        }
-        words_a = set(claim_a.lower().split())
-        words_b = set(claim_b.lower().split())
-        return bool(words_a & contradictions) != bool(words_b & contradictions)

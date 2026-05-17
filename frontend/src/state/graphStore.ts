@@ -5,10 +5,12 @@ import { getGraph } from '@/api';
 interface GraphStore {
   graphData: GraphData | null;
   selectedNodeId: string | null;
+  showSources: boolean;
   loading: boolean;
   error: string | null;
   fetchGraph: (sessionId: string) => Promise<void>;
   setSelectedNode: (nodeId: string | null) => void;
+  toggleSources: () => void;
   reset: () => void;
 }
 

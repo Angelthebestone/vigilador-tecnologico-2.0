@@ -2,6 +2,7 @@ import type { FinalReport } from '@/types';
 import { useStore } from '@/state/useStore';
 import { reportExportUrl } from '@/api';
 import { Icon } from '@/components';
+import { IntelligenceSections } from './IntelligenceSections';
 
 interface ReportSummaryProps {
   report: FinalReport;
@@ -46,6 +47,8 @@ export function ReportSummary({ report }: ReportSummaryProps) {
           <p>{report.executiveSummary || 'Sin resumen disponible.'}</p>
         )}
       </div>
+
+      <IntelligenceSections markdown={report.markdown} />
 
       <div className="report__stats">
         <div className="report__stat">
