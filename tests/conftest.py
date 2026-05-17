@@ -18,6 +18,7 @@ from vigilancia_multiagente.api import dependencies as api_dependencies
 from vigilancia_multiagente.api.app import app
 from vigilancia_multiagente.api.routes import (
     research_approve,
+    research_delete,
     research_governance,
     research_outputs,
     research_start_clarify,
@@ -342,6 +343,8 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_outputs, "vector_index", vector_index)
     monkeypatch.setattr(research_outputs, "graph_snapshot_repository", graph_snapshot_repo)
     monkeypatch.setattr(research_outputs, "event_log", api_dependencies.event_log)
+
+    monkeypatch.setattr(research_delete, "session_repository", session_repo)
 
     monkeypatch.setattr(research_governance, "branch_coordinator", branch_coordinator)
     monkeypatch.setattr(research_governance, "branch_result_repository", branch_repo)

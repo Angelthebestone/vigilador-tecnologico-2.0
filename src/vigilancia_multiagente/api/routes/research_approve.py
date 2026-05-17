@@ -61,7 +61,7 @@ class ModifyPlanRequest(BaseModel):
 async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, object]:
     session = await session_repository.get_by_id(session_id)
     if session is None:
-        raise KeyError(f"Session not found: {session_id}")
+        raise HTTPException(status_code=404, detail="Session not found")
     if not payload.approved:
         return {
             "session_id": str(session_id),
@@ -71,7 +71,7 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
 
     plan = await plan_repository.get_latest_for_session(session_id)
     if plan is None:
-        raise KeyError(f"Plan not found for session: {session_id}")
+        raise HTTPException(status_code=404, detail="Plan not found")
 
     session = await orchestrator.transition(session_id, SessionStatus.APPROVED)
     session.approved_plan_id = plan.id
