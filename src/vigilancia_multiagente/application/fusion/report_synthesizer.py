@@ -4,8 +4,8 @@ from uuid import UUID
 
 from vigilancia_multiagente.domain.models import (
     BranchResult,
-    Finding,
     FinalReport,
+    Finding,
     Recommendation,
     SourceRef,
 )

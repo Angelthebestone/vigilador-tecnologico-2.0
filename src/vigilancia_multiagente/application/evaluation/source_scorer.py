@@ -71,7 +71,7 @@ class SourceScorer:
     _default_score: float = 0.50
 
     def score(self, url: str) -> float:
-        """Return a confidence score 0.0–1.0 for a given URL.
+        """Return a confidence score 0.0-1.0 for a given URL.
 
         Extracts the registered domain from the URL and looks it up.
         Unknown domains get the default score (0.5).

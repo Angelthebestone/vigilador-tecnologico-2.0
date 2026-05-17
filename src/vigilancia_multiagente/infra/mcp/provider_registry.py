@@ -284,7 +284,7 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
     auth_mode = MCPAuthMode(str(item.get("auth_mode", "NONE")))
     retry_payload = item.get("retry_policy") or {}
     headers = item.get("headers") or {}
-    provider = MCPProviderConfig(
+    return MCPProviderConfig(
         name=str(item["name"]),
         transport=transport,
         base_url_or_command=str(item["base_url_or_command"]),
@@ -299,7 +299,6 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
         capabilities=tuple(str(capability) for capability in item.get("capabilities", [])),
         headers={str(key): str(value) for key, value in headers.items()},
     )
-    return provider
 
 
 def _secret(value: object) -> str | None:

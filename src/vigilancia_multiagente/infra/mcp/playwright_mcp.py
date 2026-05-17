@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class PlaywrightProvider:
             logger.warning("Playwright navigate failed for %s: %s", url, exc)
             return {"success": False, "error": str(exc), "blocked": False}
 
-    async def snapshot(self, target: Optional[str] = None) -> dict[str, Any]:
+    async def snapshot(self, target: str | None = None) -> dict[str, Any]:
         """Capture accessibility snapshot of current page."""
         provider = self._get_provider()
         if provider is None or self.execution_client is None:
@@ -106,7 +106,7 @@ class PlaywrightProvider:
             logger.warning("Playwright screenshot failed: %s", exc)
             return {"success": False, "error": str(exc)}
 
-    async def click(self, target: str, element: Optional[str] = None) -> dict[str, Any]:
+    async def click(self, target: str, element: str | None = None) -> dict[str, Any]:
         """Click on an element identified by target selector."""
         provider = self._get_provider()
         if provider is None or self.execution_client is None:

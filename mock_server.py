@@ -15,7 +15,7 @@ Tema de ejemplo: "IA generativa en manufactura automotriz"
 import asyncio
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI
@@ -478,7 +478,7 @@ FINAL_REPORT = {
     "totalSourcesConsulted": len(SOURCES),
     "totalLearnings": 28,
     "confidenceScore": 0.847,
-    "generatedAt": datetime.now(timezone.utc).isoformat(),
+    "generatedAt": datetime.now(UTC).isoformat(),
     "markdown": "",  # se rellena abajo
 }
 
@@ -1375,7 +1375,7 @@ async def sessions_timeline():
             {
                 "sessionId": SESSION_ID,
                 "querySummary": QUERY_EJEMPLO,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "entities": [
                     n["label"] for n in GRAPH_NODES if n["nodeType"] in ("PERSON", "COMPANY")
                 ],

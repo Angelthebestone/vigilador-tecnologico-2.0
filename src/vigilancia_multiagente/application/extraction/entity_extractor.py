@@ -57,7 +57,7 @@ def _load_nlp(model_name: str):
         return None
     try:
         return spacy.load(model_name, disable=["lemmatizer", "tagger", "parser"])
-    except (OSError, IOError):
+    except OSError:
         logger.warning(
             "Modelo spaCy '%s' no encontrado. Ejecuta: python -m spacy download %s",
             model_name,
@@ -94,7 +94,7 @@ def extract_entities(
 
     try:
         doc = nlp(text)
-    except Exception:  # noqa: BLE001 - NER no debe romper el pipeline de research
+    except Exception:
         logger.exception("Fallo procesando texto con spaCy NER")
         return []
 

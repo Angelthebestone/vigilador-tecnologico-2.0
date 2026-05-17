@@ -11,7 +11,7 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, ClassVar
 
 import httpx
 
@@ -39,7 +39,7 @@ class SerperClient:
     api_key: str
     _client: httpx.AsyncClient | None = field(default=None, repr=False)
 
-    _BASE_URLS = {
+    _BASE_URLS: ClassVar[dict[str, str]] = {
         "news": "https://google.serper.dev/news",
         "patents": "https://google.serper.dev/patents",
         "scholar": "https://google.serper.dev/scholar",

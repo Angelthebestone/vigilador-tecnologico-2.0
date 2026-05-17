@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import json
-from uuid import NAMESPACE_URL, uuid5
 from collections.abc import Sequence
 from datetime import datetime
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import text
 
@@ -25,8 +24,8 @@ from vigilancia_multiagente.domain.repositories import (
     GraphSnapshotRepository,
     PlanRepository,
     ReportRepository,
-    SessionTelemetryRepository,
     SessionRepository,
+    SessionTelemetryRepository,
 )
 from vigilancia_multiagente.domain.session_state import SessionStatus
 from vigilancia_multiagente.infra.db.connection import Database

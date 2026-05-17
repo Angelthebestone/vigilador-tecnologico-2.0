@@ -1,7 +1,6 @@
-import logging
 import asyncio
+import logging
 from datetime import UTC, datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
@@ -17,7 +16,7 @@ class OrchestratorService:
         self,
         session_repository: SessionRepository,
         cross_session_service=None,
-        trend_forecaster: Optional[TrendForecasterService] = None,
+        trend_forecaster: TrendForecasterService | None = None,
         source_scorer=None,
         report_generator=None,
     ) -> None:
@@ -70,7 +69,7 @@ class OrchestratorService:
         outputs = await asyncio.gather(*branch_tasks, consumer_task, return_exceptions=True)
 
         results = []
-        for idx, output in enumerate(outputs[: len(plan.branches)]):
+        for output in outputs[: len(plan.branches)]:
             if isinstance(output, Exception):
                 continue
             if hasattr(output, "branch_result"):

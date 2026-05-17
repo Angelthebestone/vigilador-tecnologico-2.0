@@ -16,8 +16,8 @@ router = APIRouter(prefix="/research", tags=["research"])
 async def delete_session(session_id: str):
     try:
         sid = UUID(session_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid session ID format")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid session ID format") from exc
 
     session = await session_repository.get_by_id(sid)
     if session is None:

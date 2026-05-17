@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,10 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[5]
 _LOG_DIR = _PROJECT_ROOT / "logs" / "sandbox"
 
 app = Server("sandbox-mcp")
+
+# Referencias fuertes a tareas fire-and-forget: sin esto el GC puede
+# recolectar la tarea de audit log antes de que termine de escribir.
+_background_tasks: set[asyncio.Task] = set()
 
 
 def _ensure_log_dir() -> None:
@@ -133,7 +137,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 text=json.dumps(result, ensure_ascii=False, default=str),
             )
         ]
-    except (asyncio.TimeoutError, subprocess.CalledProcessError, ValueError, OSError) as e:
+    except (TimeoutError, subprocess.CalledProcessError, ValueError, OSError) as e:
         return [
             types.TextContent(
                 type="text",
@@ -187,7 +191,7 @@ async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
                     "stderr": stderr.decode("utf-8", errors="replace"),
                     "returncode": returncode,
                 }
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 proc.kill()
                 await proc.wait()
                 error = f"Execution timed out after {timeout}s"
@@ -202,10 +206,10 @@ async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
             "duration_ms": int((time.monotonic() - start) * 1000),
         }
     finally:
-        asyncio.create_task(
+        task = asyncio.create_task(
             _append_audit_log(
                 {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                     "code_preview": code_preview,
                     "duration_ms": int((time.monotonic() - start) * 1000),
                     "success": success,
@@ -213,6 +217,8 @@ async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
                 }
             )
         )
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
 
     return result
 

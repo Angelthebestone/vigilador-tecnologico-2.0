@@ -1,6 +1,7 @@
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from datetime import datetime
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 

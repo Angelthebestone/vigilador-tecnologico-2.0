@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import Sequence
-from enum import Enum
+from enum import StrEnum
 from math import sqrt
 from typing import Any
 
@@ -9,7 +9,7 @@ import httpx
 from vigilancia_multiagente.config.settings import get_settings
 
 
-class TaskType(str, Enum):
+class TaskType(StrEnum):
     RETRIEVAL_QUERY = "RETRIEVAL_QUERY"
     RETRIEVAL_DOCUMENT = "RETRIEVAL_DOCUMENT"
 

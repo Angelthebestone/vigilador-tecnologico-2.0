@@ -14,8 +14,8 @@ os.environ.setdefault(
     "VT_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/vigilancia"
 )
 
-from vigilancia_multiagente.api.app import app
 from vigilancia_multiagente.api import dependencies as api_dependencies
+from vigilancia_multiagente.api.app import app
 from vigilancia_multiagente.api.routes import (
     research_approve,
     research_governance,
@@ -30,8 +30,8 @@ from vigilancia_multiagente.application.evaluation.prompt_regression_service imp
     PromptRegressionService,
 )
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
-from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
+from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
 from vigilancia_multiagente.application.orchestration.orchestrator_service import (
     OrchestratorService,
@@ -53,7 +53,7 @@ class FakeResult:
         self._row = row
         self._rows = rows or []
 
-    def mappings(self) -> "FakeResult":
+    def mappings(self) -> FakeResult:
         return self
 
     def one(self) -> dict[str, object]:

@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from vigilancia_multiagente.application.governance.system_base_loader import (
-    SystemBaseLoadError,
     SystemBaseLoader,
+    SystemBaseLoadError,
 )
 
 

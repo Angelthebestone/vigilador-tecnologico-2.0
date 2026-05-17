@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -17,7 +16,7 @@ class SourceTrustRecord:
     current_score: int = 50
     confirmation_count: int = 0
     contradiction_count: int = 0
-    last_accessed: Optional[datetime] = None
+    last_accessed: datetime | None = None
     score_history: list[ScoreChange] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)

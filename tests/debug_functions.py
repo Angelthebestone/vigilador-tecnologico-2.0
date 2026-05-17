@@ -1,8 +1,8 @@
 """Ejecución función por función en sandbox."""
 
-import sys
 import os
 import re
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
@@ -193,10 +193,11 @@ print("=" * 60)
 print("FUNCIÓN 7: compute (branch_kpi_service.py)")
 print("=" * 60)
 
+from datetime import UTC, datetime
+from uuid import uuid4
+
 from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService
 from vigilancia_multiagente.domain.models import BranchResult, BranchType, Finding, SourceRef
-from uuid import uuid4
-from datetime import datetime, UTC
 
 br = BranchResult(
     id=uuid4(),
@@ -238,10 +239,10 @@ print("FUNCIÓN 8: _normalize_vector + _coerce_vector (vector_index.py)")
 print("=" * 60)
 
 from vigilancia_multiagente.infra.persistence.vector_index import (
-    _normalize_vector,
     _coerce_vector,
-    _vector_literal,
+    _normalize_vector,
     _parse_vector_text,
+    _vector_literal,
 )
 
 # normalize

@@ -7,11 +7,12 @@ pytestmark = pytest.mark.asyncio
 
 async def test_signal_emission_and_consumption():
     """Test that emitting a signal triggers the consumer loop."""
-    from vigilancia_multiagente.application.execution.branch_coordinator import (
-        Signal,
-        MAX_REPLANS_PER_SESSION,
-    )
     import asyncio
+
+    from vigilancia_multiagente.application.execution.branch_coordinator import (
+        MAX_REPLANS_PER_SESSION,
+        Signal,
+    )
 
     queue = asyncio.Queue()
 
@@ -37,11 +38,12 @@ async def test_signal_emission_and_consumption():
 
 async def test_replan_iteration_limiter():
     """Test replan stops after max iterations (no hang)."""
-    from vigilancia_multiagente.application.execution.branch_coordinator import (
-        Signal,
-        MAX_REPLANS_PER_SESSION,
-    )
     import asyncio
+
+    from vigilancia_multiagente.application.execution.branch_coordinator import (
+        MAX_REPLANS_PER_SESSION,
+        Signal,
+    )
 
     queue = asyncio.Queue()
 
@@ -59,8 +61,9 @@ async def test_replan_iteration_limiter():
 
 async def test_high_value_finding_notification():
     """Test that high_value_finding signals create cross-branch notifications."""
-    from vigilancia_multiagente.application.execution.branch_coordinator import Signal
     import asyncio
+
+    from vigilancia_multiagente.application.execution.branch_coordinator import Signal
 
     queue = asyncio.Queue()
 

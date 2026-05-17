@@ -6,8 +6,6 @@ from vigilancia_multiagente.application.agents.competitivo_agent import Competit
 from vigilancia_multiagente.application.agents.oportunidades_agent import OportunidadesAgent
 from vigilancia_multiagente.application.agents.pi_normativa_agent import PiNormativaAgent
 from vigilancia_multiagente.application.agents.riesgo_agent import RiesgoAgent
-from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
-from vigilancia_multiagente.application.governance.system_base_loader import SystemBaseLoader
 from vigilancia_multiagente.application.artifacts.manifest_service import SessionArtifactService
 from vigilancia_multiagente.application.clarification.clarification_service import (
     ClarificationService,
@@ -18,46 +16,47 @@ from vigilancia_multiagente.application.evaluation.golden_cases_runner import Go
 from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
     PromptRegressionService,
 )
+from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 from vigilancia_multiagente.application.execution.branch_coordinator import BranchCoordinator
 from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
 from vigilancia_multiagente.application.fusion.report_synthesizer import ReportSynthesizer
-from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
+from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
+from vigilancia_multiagente.application.governance.smart_router import SmartToolRouter
+from vigilancia_multiagente.application.governance.system_base_loader import SystemBaseLoader
+from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
+from vigilancia_multiagente.application.memory.cross_session_service import CrossSessionService
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
 from vigilancia_multiagente.application.orchestration.orchestrator_service import (
     OrchestratorService,
 )
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
+from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
+from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.infra.db.connection import database
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient
-from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderRegistry
-from vigilancia_multiagente.infra.serper.serper_client import SerperClient
-from vigilancia_multiagente.infra.persistence.postgres_repositories import (
-    PostgresBranchResultRepository,
-    PostgresPlanRepository,
-    PostgresGraphSnapshotRepository,
-    PostgresReportRepository,
-    PostgresSessionRepository,
-)
-from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
-from vigilancia_multiagente.application.governance.smart_router import SmartToolRouter
-from vigilancia_multiagente.application.memory.cross_session_service import CrossSessionService
-from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
 from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
-from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex
+from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderRegistry
 from vigilancia_multiagente.infra.persistence.global_knowledge_repository import (
     GlobalKnowledgeRepository,
+)
+from vigilancia_multiagente.infra.persistence.postgres_repositories import (
+    PostgresBranchResultRepository,
+    PostgresGraphSnapshotRepository,
+    PostgresPlanRepository,
+    PostgresReportRepository,
+    PostgresSessionRepository,
 )
 from vigilancia_multiagente.infra.persistence.source_trust_repository import (
     SourceTrustRepository,
 )
-from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
-
+from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex
+from vigilancia_multiagente.infra.serper.serper_client import SerperClient
 
 settings = get_settings()
 

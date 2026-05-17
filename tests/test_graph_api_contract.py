@@ -1,5 +1,5 @@
-from pathlib import Path
 from datetime import UTC, datetime
+from pathlib import Path
 from uuid import uuid4
 
 import pytest

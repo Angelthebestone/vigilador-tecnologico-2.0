@@ -27,6 +27,7 @@ async def test_session_time_within_bounds():
     start = time.time()
 
     from uuid import uuid4
+
     from vigilancia_multiagente.domain.global_knowledge import GlobalKnowledgeSnapshot
 
     snapshot = GlobalKnowledgeSnapshot(

@@ -6,7 +6,6 @@ from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
-
 DEFAULT_PROVIDERS: dict[BranchType, list[str]] = {
     BranchType.AVANCES: ["tavily", "exa", "jina"],
     BranchType.COMERCIAL: ["exa", "brave", "tavily"],

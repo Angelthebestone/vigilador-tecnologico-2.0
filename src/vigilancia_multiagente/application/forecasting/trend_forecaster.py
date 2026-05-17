@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from vigilancia_multiagente.domain.trend_projection import TrendProjection
 
@@ -80,7 +79,7 @@ class TrendForecasterService:
 
         return self._simple_linear_projection(years, values, series, data_quality)
 
-    async def _project_via_sandbox(self, years: list[int], values: list[float]) -> Optional[dict]:
+    async def _project_via_sandbox(self, years: list[int], values: list[float]) -> dict | None:
         """Compute polynomial projection using numpy directly."""
         try:
             import numpy as np
@@ -102,7 +101,7 @@ class TrendForecasterService:
                         "lower_bound": round(float(v * 0.8), 1),
                         "upper_bound": round(float(v * 1.2), 1),
                     }
-                    for y, v in zip(future_years, projected)
+                    for y, v in zip(future_years, projected, strict=True)
                 ],
                 "model": "polynomial",
             }
@@ -122,7 +121,7 @@ class TrendForecasterService:
         x_mean = sum(years) / n
         y_mean = sum(values) / n
 
-        num = sum((y - x_mean) * (v - y_mean) for y, v in zip(years, values))
+        num = sum((y - x_mean) * (v - y_mean) for y, v in zip(years, values, strict=True))
         den = sum((y - x_mean) ** 2 for y in years)
         slope = num / den if den != 0 else 0
         intercept = y_mean - slope * x_mean

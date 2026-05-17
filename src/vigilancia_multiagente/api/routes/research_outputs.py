@@ -6,18 +6,15 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
-from vigilancia_multiagente.domain.session_state import SessionStatus
-
 from vigilancia_multiagente.api.dependencies import (
     branch_coordinator,
     branch_result_repository,
     embedding_gateway,
-    evidence_linker,
     event_log,
+    evidence_linker,
     execution_client,
-    graph_snapshot_repository,
     graph_service,
+    graph_snapshot_repository,
     metrics_service,
     provider_registry,
     report_repository,
@@ -25,10 +22,11 @@ from vigilancia_multiagente.api.dependencies import (
     session_repository,
     vector_index,
 )
-
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
+from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
 from vigilancia_multiagente.application.fusion.decision_assistant import DecisionAssistant
 from vigilancia_multiagente.application.graph.knowledge_graph_service import GraphPayload
+from vigilancia_multiagente.domain.session_state import SessionStatus
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import TaskType
 
 logger = logging.getLogger(__name__)

@@ -73,14 +73,14 @@ export function GraphCanvas({
         d3
           .forceLink<SimNode, { source: string; target: string }>(links)
           .id((d) => d.id)
-          .distance(90)
-          .strength(0.4),
+          .distance(160)
+          .strength(0.3),
       )
-      .force('charge', d3.forceManyBody().strength(-260))
+      .force('charge', d3.forceManyBody().strength(-650))
       .force('center', d3.forceCenter(size.w / 2, size.h / 2))
-      .force('collide', d3.forceCollide(34))
-      .force('x', d3.forceX(size.w / 2).strength(0.04))
-      .force('y', d3.forceY(size.h / 2).strength(0.04));
+      .force('collide', d3.forceCollide(64))
+      .force('x', d3.forceX(size.w / 2).strength(0.03))
+      .force('y', d3.forceY(size.h / 2).strength(0.03));
 
     sim.on('tick', () => {
       const next: Record<string, { x: number; y: number }> = {};
@@ -158,7 +158,7 @@ export function GraphCanvas({
         y: positions[n.id]!.y,
         centrality: n.centrality,
       }));
-    return filterOverlappingLabels(withPos, 64);
+    return filterOverlappingLabels(withPos, 96);
   }, [data.nodes, positions]);
 
   const highlightSet = useMemo(() => {

@@ -66,7 +66,7 @@ class ConversationService:
                 "answer": f"Found {len(relevant)} relevant findings and {len(graph_results)} graph nodes related to your question.",
                 "evidence": relevant[:5],
                 "graph_nodes": graph_results[:5],
-                "sources": list(set(f.get("source", "") for f in relevant[:5] if f.get("source"))),
+                "sources": list({f.get("source", "") for f in relevant[:5] if f.get("source")}),
                 "from_graph": True,
             }
 

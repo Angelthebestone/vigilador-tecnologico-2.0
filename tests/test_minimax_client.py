@@ -1,6 +1,6 @@
 """Tests for MiniMaxClient request payload and response parsing."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,7 +12,7 @@ from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient, _pars
 
 @dataclass
 class FakeSettings:
-    minimax_api_key: SecretStr | None = SecretStr("test-key")
+    minimax_api_key: SecretStr | None = field(default_factory=lambda: SecretStr("test-key"))
     minimax_model: str = "MiniMax-M2.7"
     minimax_base_url: str = "https://api.minimax.io"
 

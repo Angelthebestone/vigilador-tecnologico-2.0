@@ -1,6 +1,6 @@
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Awaitable, Callable
 from uuid import UUID, uuid4
 
 

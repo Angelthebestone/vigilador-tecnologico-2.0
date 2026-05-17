@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from itertools import pairwise
 from math import sqrt
 from uuid import UUID
 
@@ -369,7 +370,7 @@ class KnowledgeGraphService:
         except nx.NetworkXNoPath:
             return GraphPathResult(source_node_id, target_node_id, [], [], float("inf"))
         edge_ids = []
-        for left, right in zip(node_ids, node_ids[1:]):
+        for left, right in pairwise(node_ids):
             eid = G.edges[left, right].get("id", f"{left}->{right}")
             edge_ids.append(eid)
         total_cost = float(len(edge_ids))

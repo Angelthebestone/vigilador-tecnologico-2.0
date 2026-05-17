@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from tests.conftest import FakeDatabase, FakeResult, MemorySessionRepository
 from vigilancia_multiagente.application.orchestration.orchestrator_service import (
     OrchestratorService,
 )
@@ -11,15 +12,13 @@ from vigilancia_multiagente.domain.models import (
     BranchResult,
     BranchStatus,
     BranchType,
-    Finding,
     FinalReport,
+    Finding,
     ResearchPlan,
     ResearchSession,
     SourceRef,
 )
 from vigilancia_multiagente.domain.session_state import SessionStatus
-
-from tests.conftest import FakeDatabase, FakeResult, MemorySessionRepository
 from vigilancia_multiagente.infra.persistence.postgres_repositories import (
     PostgresBranchResultRepository,
     PostgresPlanRepository,

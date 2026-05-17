@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 # Module-level constants (immutable by convention, never mutated at runtime)
 _QUERY_TYPES: dict[str, tuple[str, ...]] = {
@@ -128,7 +128,7 @@ class SmartToolRouter:
     def _classify_tool(self, tool_name: str) -> str:
         return self._TOOL_QUERY_TYPES.get(tool_name, "general")
 
-    async def _select_provider(self, candidates: list[str], tool_name: str) -> Optional[str]:
+    async def _select_provider(self, candidates: list[str], tool_name: str) -> str | None:
         """Pick best provider from *candidates* using source trust scores."""
         if len(candidates) <= 1:
             return candidates[0] if candidates else None

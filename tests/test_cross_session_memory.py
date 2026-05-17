@@ -7,8 +7,9 @@ pytestmark = pytest.mark.asyncio
 
 async def test_save_and_retrieve_snapshot():
     """Test saving a snapshot and retrieving related sessions."""
-    from vigilancia_multiagente.domain.global_knowledge import GlobalKnowledgeSnapshot
     from uuid import uuid4
+
+    from vigilancia_multiagente.domain.global_knowledge import GlobalKnowledgeSnapshot
 
     snapshot = GlobalKnowledgeSnapshot(
         session_id=uuid4(),

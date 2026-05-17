@@ -1,7 +1,6 @@
 import json
 import logging
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import text
 
@@ -14,7 +13,7 @@ class SourceTrustRepository:
     def __init__(self, database: Database) -> None:
         self._database = database
 
-    async def get_score(self, source_id: str) -> Optional[int]:
+    async def get_score(self, source_id: str) -> int | None:
         async with self._database.session() as db:
             result = await db.execute(
                 text("SELECT current_score FROM source_trust WHERE source_id = :source_id"),
@@ -23,7 +22,7 @@ class SourceTrustRepository:
             row = result.one_or_none()
             return row[0] if row else None
 
-    async def update_score(self, source_id: str, delta: int, reason: str) -> Optional[int]:
+    async def update_score(self, source_id: str, delta: int, reason: str) -> int | None:
         history_entry = json.dumps(
             {"delta": delta, "reason": reason, "timestamp": datetime.utcnow().isoformat()}
         )
@@ -63,9 +62,7 @@ class SourceTrustRepository:
             await db.commit()
             return score
 
-    async def get_top_sources(
-        self, limit: int = 10, source_type: Optional[str] = None
-    ) -> list[dict]:
+    async def get_top_sources(self, limit: int = 10, source_type: str | None = None) -> list[dict]:
         async with self._database.session() as db:
             if source_type:
                 result = await db.execute(

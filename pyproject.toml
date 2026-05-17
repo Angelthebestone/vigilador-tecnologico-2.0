@@ -43,6 +43,50 @@ build-backend = "hatchling.build"
 line-length = 100
 target-version = "py311"
 
+[tool.ruff.lint]
+# Ruleset ampliado: además del set por defecto (E, F) se activan familias
+# de alto valor — bugs probables (B), simplificación (SIM), modernización
+# (UP), reglas ruff (RUF), perf (PERF, C4, PIE), orden de imports (I),
+# returns (RET).
+#
+# Quedaron fuera por ser ruidosas o contextuales en este codebase:
+#   ARG  → handlers FastAPI / callbacks con firma fija (no es código muerto)
+#   N    → NetworkX usa G, B como convención (no son malos nombres)
+#   TC   → mover imports a TYPE_CHECKING aporta poco aquí
+select = [
+    "E",
+    "F",
+    "B",
+    "SIM",
+    "UP",
+    "RUF",
+    "PIE",
+    "C4",
+    "PERF",
+    "I",
+    "RET",
+]
+ignore = [
+    # El formateador ya gestiona el ancho razonable; forzarlo en
+    # strings/URLs largas genera ruido sin valor.
+    "E501",
+    # PERF401/403: reescribir loops con lógica condicional como
+    # comprehensions en código crítico (graph service) añade riesgo
+    # de regresión por una ganancia de microsegundos. No vale la pena.
+    "PERF401",
+    "PERF403",
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# Depends/Query/Path/Body en defaults es el patrón idiomático de FastAPI,
+# no un bug (B008).
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+]
+
 [tool.ruff.lint.per-file-ignores]
 # Script de exploración manual: intercala print() con import a propósito
 # para separar cada función bajo prueba en la salida de consola.

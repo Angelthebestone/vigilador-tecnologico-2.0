@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from vigilancia_multiagente.application.extraction.entity_extractor import extract_from_payloads
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
 from vigilancia_multiagente.application.governance.validators import PromptValidator
@@ -19,7 +20,6 @@ from vigilancia_multiagente.application.research.semantic_relations import (
     SemanticRelation,
     build_relations,
 )
-from vigilancia_multiagente.application.extraction.entity_extractor import extract_from_payloads
 from vigilancia_multiagente.application.research.temporal_window import resolve_temporal_window
 from vigilancia_multiagente.domain.models import (
     BranchConfig,

@@ -104,7 +104,7 @@ class MCPExecutionClient:
         tool_name: str,
         arguments: dict[str, Any],
     ) -> dict[str, Any]:
-        command = [provider.base_url_or_command] + list(provider.arguments)
+        command = [provider.base_url_or_command, *list(provider.arguments)]
         env = {**os.environ, **provider.environment}
         process = await asyncio.create_subprocess_exec(
             *command,

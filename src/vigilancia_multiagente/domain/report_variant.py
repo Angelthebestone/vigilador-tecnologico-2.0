@@ -1,10 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import StrEnum
 from uuid import UUID
-from enum import Enum
 
 
-class ReportType(str, Enum):
+class ReportType(StrEnum):
     TECHNICAL = "technical"
     EXECUTIVE = "executive"
     RISK = "risk"
