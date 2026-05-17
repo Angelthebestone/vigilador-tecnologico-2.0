@@ -33,6 +33,7 @@ dev = [
   "pytest>=8.2.0",
   "pytest-asyncio>=0.23.8",
   "ruff>=0.5.0",
+  "mypy>=1.10.0",
 ]
 
 [build-system]
@@ -91,4 +92,26 @@ extend-immutable-calls = [
 # Script de exploración manual: intercala print() con import a propósito
 # para separar cada función bajo prueba en la salida de consola.
 "tests/debug_functions.py" = ["E402"]
+
+[tool.mypy]
+python_version = "3.11"
+# Adopción gradual: chequeo pragmático en código de dominio/lógica.
+# No se exigen anotaciones completas (no disallow_untyped_defs) para no
+# bloquear el desarrollo; el foco es detectar errores de tipo reales.
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+exclude = ["tests/debug_functions.py"]
+
+[[tool.mypy.overrides]]
+# Capa de infraestructura: SQLAlchemy/asyncpg devuelven RowMapping y
+# columnas tipadas como `object`. mypy las marca como incompatibles aunque
+# en runtime son correctas — es ruido de librería sin stubs precisos, no
+# bugs. Se relaja el chequeo nominal aquí.
+module = [
+    "vigilancia_multiagente.infra.persistence.*",
+    "vigilancia_multiagente.infra.mcp.provider_registry",
+]
+disable_error_code = ["arg-type", "attr-defined", "call-overload", "assignment"]
 

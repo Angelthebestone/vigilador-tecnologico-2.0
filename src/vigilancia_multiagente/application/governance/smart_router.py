@@ -132,7 +132,7 @@ class SmartToolRouter:
         """Pick best provider from *candidates* using source trust scores."""
         if len(candidates) <= 1:
             return candidates[0] if candidates else None
-        if hasattr(self, "source_scorer") and self.source_scorer:
+        if self.source_scorer:
             preferred = await self.source_scorer.get_preferred_sources(limit=1)
             if preferred and preferred[0]["source_id"] in candidates:
                 return preferred[0]["source_id"]

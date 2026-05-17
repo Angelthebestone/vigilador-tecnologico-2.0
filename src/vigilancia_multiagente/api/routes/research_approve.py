@@ -29,6 +29,9 @@ from vigilancia_multiagente.api.dependencies import (
 )
 from vigilancia_multiagente.api.routes.reports import store_report
 from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
+from vigilancia_multiagente.application.graph.knowledge_graph_service import (
+    GraphAnalyticsPayload,
+)
 from vigilancia_multiagente.domain.conversation_state import SessionContinuationState
 from vigilancia_multiagente.domain.global_knowledge import GlobalKnowledgeSnapshot
 from vigilancia_multiagente.domain.models import BranchConfig, BranchType, ResearchPlan
@@ -428,7 +431,7 @@ def _plan_payload(plan: ResearchPlan) -> dict[str, object]:
     }
 
 
-def _graph_analytics_payload(graph_analytics: object) -> dict[str, object]:
+def _graph_analytics_payload(graph_analytics: GraphAnalyticsPayload) -> dict[str, object]:
     return {
         "session_id": str(graph_analytics.session_id),
         "node_count": graph_analytics.node_count,

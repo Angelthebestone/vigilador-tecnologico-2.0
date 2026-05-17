@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 
 from vigilancia_multiagente.domain.models import BranchType
@@ -9,6 +9,10 @@ class TemporalWindow:
     start_year: int
     end_year: int
     basis: str
+
+    def as_dict(self) -> dict[str, object]:
+        """Representación serializable para pasar como argumento de tools MCP."""
+        return asdict(self)
 
 
 def resolve_temporal_window(

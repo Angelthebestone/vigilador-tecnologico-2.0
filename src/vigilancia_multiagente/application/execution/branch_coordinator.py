@@ -72,7 +72,7 @@ class BranchCoordinator:
         for idx, output in enumerate(outputs):
             if output is None:
                 continue  # consumer_task result, skip
-            if isinstance(output, Exception):
+            if isinstance(output, BaseException):
                 branch_type = plan.branches[idx].branch_type
                 logger.warning("Branch %s failed: %s", branch_type, output)
                 results.append(

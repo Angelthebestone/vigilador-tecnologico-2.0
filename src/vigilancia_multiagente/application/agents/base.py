@@ -92,8 +92,7 @@ class BaseBranchAgent:
 
     async def signal_branch(self, target: BranchType, payload: SignalPayload) -> None:
         """Queue a cross-branch signal for processing by BranchCoordinator."""
-        if self._signal_callback:
-            await self._signal_callback(payload)
+        await self._signal_callback(payload)
 
     async def run(
         self, session: ResearchSession, branch_config: BranchConfig, depth_limit: int

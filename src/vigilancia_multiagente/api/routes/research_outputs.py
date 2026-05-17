@@ -53,9 +53,7 @@ async def get_report(session_id: UUID) -> dict[str, object]:
         "total_sources_consulted": report.total_sources_consulted,
         "total_learnings": report.total_learnings,
         "confidence_score": report.confidence_score,
-        "generated_at": report.generated_at.isoformat()
-        if hasattr(report.generated_at, "isoformat")
-        else report.generated_at,
+        "generated_at": report.generated_at.isoformat(),
     }
 
 

@@ -52,7 +52,7 @@ class OrchestratorService:
     async def execute_research(
         self, session: ResearchSession, plan: ResearchPlan, branch_coordinator
     ) -> list:
-        signal_queue = asyncio.Queue()
+        signal_queue: asyncio.Queue = asyncio.Queue()
         depth_limit = int(plan.global_constraints.get("depth_limit", 3))
 
         branch_tasks = [
@@ -70,7 +70,7 @@ class OrchestratorService:
 
         results = []
         for output in outputs[: len(plan.branches)]:
-            if isinstance(output, Exception):
+            if isinstance(output, BaseException):
                 continue
             if hasattr(output, "branch_result"):
                 results.append(output.branch_result)
@@ -98,7 +98,7 @@ class OrchestratorService:
             return []
 
     async def cross_reference_findings(self, session_data: dict) -> None:
-        if not hasattr(self, "source_scorer") or not self.source_scorer:
+        if not self.source_scorer:
             return
         try:
             findings_list = session_data.get("findings", [])
