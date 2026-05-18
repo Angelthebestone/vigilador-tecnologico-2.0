@@ -14,6 +14,7 @@ Tema de ejemplo: "IA generativa en manufactura automotriz"
 
 import asyncio
 import json
+import random
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -1192,6 +1193,55 @@ GRAPH_EDGES = [
     },
 ]
 
+# Ecosistema tecnológico simulado (T041)
+MOCK_ECOSYSTEM = {
+    "technologies": [
+        {
+            "name": "Generative AI (LLMs)",
+            "category": "NLP/Generación",
+            "maturity": 0.75,
+            "adoption": 0.65,
+            "trend": "rising",
+            "keyPlayers": ["OpenAI", "Google DeepMind", "Meta AI"],
+        },
+        {
+            "name": "Digital Twins / Simulación",
+            "category": "Simulación",
+            "maturity": 0.70,
+            "adoption": 0.55,
+            "trend": "rising",
+            "keyPlayers": ["NVIDIA Omniverse", "Siemens", "Microsoft Azure"],
+        },
+        {
+            "name": "Computer Vision (ViTs)",
+            "category": "Visión Artificial",
+            "maturity": 0.85,
+            "adoption": 0.72,
+            "trend": "stable",
+            "keyPlayers": ["Meta AI", "Google", "OpenCV"],
+        },
+        {
+            "name": "Edge AI / TinyML",
+            "category": "Hardware IA",
+            "maturity": 0.50,
+            "adoption": 0.30,
+            "trend": "emerging",
+            "keyPlayers": ["Qualcomm", "ARM", "Syntiant"],
+        },
+    ],
+    "relationships": [
+        {"source": "Generative AI (LLMs)", "target": "Digital Twins / Simulación", "type": "complementa"},
+        {"source": "Computer Vision (ViTs)", "target": "Edge AI / TinyML", "type": "se_ejecuta_en"},
+        {"source": "Digital Twins / Simulación", "target": "Edge AI / TinyML", "type": "requiere"},
+    ],
+    "maturityLevels": {
+        "emerging": {"count": 1, "avgMaturity": 0.50},
+        "rising": {"count": 2, "avgMaturity": 0.725},
+        "stable": {"count": 1, "avgMaturity": 0.85},
+        "declining": {"count": 0, "avgMaturity": 0.0},
+    },
+}
+
 # ---------------------------------------------------------------------------
 # App FastAPI
 # ---------------------------------------------------------------------------
@@ -1329,6 +1379,14 @@ async def research_stream(session_id: str):
 
         await asyncio.sleep(0.5)
 
+        # T054: ~20% de probabilidad de fallo + recuperación en una rama aleatoria
+        if random.random() < 0.20:
+            failed_branch = random.choice(branches)
+            yield sse_event("BranchFailed", {"branch": failed_branch, "reason": "Error en proveedor MCP tavily: timeout excedido (30s)"})
+            await asyncio.sleep(0.3)
+            yield sse_event("BranchRestarted", {"branch": failed_branch, "reason": "Reintento con proveedor alternativo (exa)"})
+            await asyncio.sleep(0.3)
+
         # Completar ramas
         for branch in branches:
             yield sse_event("BranchCompleted", {"branch": branch})
@@ -1344,6 +1402,7 @@ async def research_stream(session_id: str):
         yield sse_event("FusionProgress", {"sessionId": session_id, "progress": 50})
 
         await asyncio.sleep(1.5)
+        # Nota: El backend real emite 1 FusionProgress (50%). El mock emite 2 para testear la UI.
         yield sse_event("FusionProgress", {"sessionId": session_id, "progress": 100})
 
         await asyncio.sleep(0.8)
@@ -1359,6 +1418,20 @@ async def research_stream(session_id: str):
 
         await asyncio.sleep(0.5)
         yield sse_event("ReportVariantsGenerated", {"types": ["markdown", "html"]})
+
+        await asyncio.sleep(0.4)
+        # T055: EvaluationComputed con KPIs de todas las ramas
+        yield sse_event("EvaluationComputed", {
+            "sessionId": session_id,
+            "evaluations": [
+                {"branchType": "AVANCES", "coverageKpi": 0.91, "precisionKpi": 0.87, "latencyMsKpi": 4320},
+                {"branchType": "COMERCIAL", "coverageKpi": 0.83, "precisionKpi": 0.79, "latencyMsKpi": 3840},
+                {"branchType": "RIESGO", "coverageKpi": 0.88, "precisionKpi": 0.85, "latencyMsKpi": 4100},
+                {"branchType": "PI_NORMATIVA", "coverageKpi": 0.94, "precisionKpi": 0.91, "latencyMsKpi": 3650},
+                {"branchType": "COMPETITIVO", "coverageKpi": 0.86, "precisionKpi": 0.83, "latencyMsKpi": 3920},
+                {"branchType": "OPORTUNIDADES", "coverageKpi": 0.79, "precisionKpi": 0.76, "latencyMsKpi": 3510},
+            ],
+        })
 
         # Mantener conexión abierta brevemente y luego cerrar
         await asyncio.sleep(2.0)
@@ -1441,6 +1514,9 @@ async def research_graph_path(session_id: str, sourceNodeId: str, targetNodeId: 
 
 @app.get("/api/v2/research/{session_id}/providers")
 async def research_providers(session_id: str):
+    # T052: Nota: branchKpis, confidenceCalibration y campos agregados son
+    # extensión del mock para desarrollo frontend — el backend real no los
+    # incluye en este endpoint.
     return {
         "sessionId": session_id,
         "providers": [
@@ -1572,6 +1648,141 @@ async def upload_document():
         "markdown": "# Documento cargado\n\nContenido simulado del documento procesado.",
         "format": "pdf",
         "filename": "documento.pdf",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Endpoints nuevos (T037–T055)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/v2/research/{session_id}/graph/nodes")
+async def research_graph_nodes(session_id: str):
+    """T037: Devuelve solo los nodos del grafo."""
+    return {"sessionId": session_id, "total": len(GRAPH_NODES), "items": GRAPH_NODES}
+
+
+@app.get("/api/v2/research/{session_id}/graph/edges")
+async def research_graph_edges(session_id: str):
+    """T038: Devuelve solo las aristas del grafo."""
+    return {"sessionId": session_id, "total": len(GRAPH_EDGES), "items": GRAPH_EDGES}
+
+
+@app.get("/api/v2/research/{session_id}/graph/{node_id}/sources")
+async def research_graph_node_sources(session_id: str, node_id: str):
+    """T039: Devuelve los IDs de las fuentes de un nodo específico."""
+    matched = [n for n in GRAPH_NODES if n["id"] == node_id]
+    source_ids = matched[0].get("sourceIds", []) if matched else []
+    return {"sessionId": session_id, "nodeId": node_id, "sourceNodeIds": source_ids}
+
+
+@app.post("/api/v2/research/{session_id}/modify")
+async def research_modify(session_id: str, body: dict):
+    """T040: Simula modificación del plan de investigación."""
+    return {
+        "sessionId": session_id,
+        "status": "PLANNING",
+        "message": "Plan modificado exitosamente.",
+        "plan": RESEARCH_PLAN,
+    }
+
+
+@app.get("/api/v2/research/{session_id}/graph/ecosystem")
+async def research_graph_ecosystem(session_id: str, seed: str = "", depth: int = 2):
+    """T041: Simula descubrimiento de ecosistema tecnológico."""
+    return {"sessionId": session_id, "ecosystem": MOCK_ECOSYSTEM, "seed": seed, "depth": depth}
+
+
+@app.get("/api/v2/research/{session_id}/graph/search-cross-session")
+async def research_graph_search_cross_session(session_id: str, query: str = "", limit: int = 10):
+    """T042: Simula búsqueda cross-session."""
+    return {
+        "sessionId": session_id,
+        "query": query,
+        "limit": limit,
+        "results": [
+            {
+                "sessionId": "prev-session-001",
+                "querySummary": "Blockchain en cadena de suministro automotriz",
+                "timestamp": "2026-03-10T14:00:00Z",
+                "matchedNodes": [n["id"] for n in GRAPH_NODES if query.lower() in n["label"].lower()],
+                "relevanceScore": 0.78,
+            },
+            {
+                "sessionId": "prev-session-002",
+                "querySummary": "IoT industrial para mantenimiento predictivo",
+                "timestamp": "2026-01-22T09:30:00Z",
+                "matchedNodes": [],
+                "relevanceScore": 0.65,
+            },
+            {
+                "sessionId": "prev-session-003",
+                "querySummary": "Gemelos digitales en manufactura automotriz",
+                "timestamp": "2025-11-05T16:45:00Z",
+                "matchedNodes": ["n2", "n1"],
+                "relevanceScore": 0.91,
+            },
+        ],
+    }
+
+
+@app.post("/api/v2/research/{session_id}/decision")
+async def research_decision(session_id: str, body: dict):
+    """T043: Simula análisis de decisión."""
+    question = body.get("question", "")
+    return {
+        "sessionId": session_id,
+        "question": question,
+        "decision": {
+            "recommendedOption": "Inversión en IA para control de calidad",
+            "scores": {
+                "Integración gemelos digitales": 0.87,
+                "Plataforma SaaS inspección visual": 0.82,
+                "Consultoría adopción Tier-2/3": 0.74,
+            },
+            "confidence": 0.82,
+            "rationale": "La opción recomendada maximiza el ROI en el horizonte 2-3 años "
+            "alineándose con la madurez tecnológica actual del mercado.",
+        },
+    }
+
+
+@app.post("/api/v2/research/{session_id}/obsolescence")
+async def research_obsolescence(session_id: str, body: dict):
+    """T050: Simula análisis de obsolescencia tecnológica."""
+    tech = body.get("tech", "Computer Vision")
+    risk = random.choice(["alta", "media", "baja"])
+    lifespan = random.choice(["2-3 years", "3-5 years", "5-8 years"])
+    results = [{
+        "technology": tech,
+        "obsolescenceRisk": risk,
+        "estimatedLifespan": lifespan,
+        "replacementTrends": [
+            "Modelos fundacionales multimodales",
+            "Arquitecturas neuronales eficientes en edge",
+        ],
+    }]
+    return {"sessionId": session_id, "results": results}
+
+
+@app.post("/api/v2/research/{session_id}/hype-analysis")
+async def research_hype_analysis(session_id: str, body: dict):
+    """T051: Simula análisis de ciclo de hype."""
+    tech = body.get("tech", "")
+    return {
+        "sessionId": session_id,
+        "tech": tech,
+        "hypeCycle": {
+            "phase": "Trough of Disillusionment",
+            "peakYear": 2026,
+            "maturityHorizon": "2-5 years",
+            "technologies": [
+                {"name": "Generative AI for Manufacturing", "phase": "Peak of Inflated Expectations", "visibility": 0.85, "maturity": 0.30},
+                {"name": "Digital Twins", "phase": "Slope of Enlightenment", "visibility": 0.72, "maturity": 0.65},
+                {"name": "Edge AI / TinyML", "phase": "Innovation Trigger", "visibility": 0.40, "maturity": 0.15},
+                {"name": "Computer Vision QC", "phase": "Plateau of Productivity", "visibility": 0.60, "maturity": 0.88},
+            ],
+        },
     }
 
 

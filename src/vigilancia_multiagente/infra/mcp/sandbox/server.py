@@ -31,7 +31,7 @@ from mcp.server.stdio import stdio_server
 _PROJECT_ROOT = Path(__file__).resolve().parents[5]
 _LOG_DIR = _PROJECT_ROOT / "logs" / "sandbox"
 
-app = Server("sandbox-mcp")
+app: Server = Server("sandbox-mcp")
 
 # Referencias fuertes a tareas fire-and-forget: sin esto el GC puede
 # recolectar la tarea de audit log antes de que termine de escribir.

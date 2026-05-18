@@ -5,6 +5,12 @@ import { GraphCanvas } from './GraphCanvas';
 import { GraphLegend } from './GraphLegend';
 import { SourcesPanel } from './SourcesPanel';
 
+function centralNodeLabel(nodes: string[]): string {
+  if (nodes.length === 0) return '—';
+  if (nodes.length <= 5) return nodes.join(', ');
+  return `${nodes.slice(0, 5).join(', ')} y ${nodes.length - 5} más`;
+}
+
 interface KnowledgeGraphProps {
   data: GraphData | null;
   loading: boolean;
@@ -103,6 +109,33 @@ export function KnowledgeGraph({
         </button>
       )}
       <GraphLegend />
+      {data.analytics && (
+        <section className="ganalytics" aria-label="Analíticas del grafo">
+          <h3 className="ganalytics__head">Analíticas del grafo</h3>
+          <div className="ganalytics__body">
+            <div className="ganalytics__row">
+              <span className="ganalytics__label">Nodos centrales</span>
+              <span className="ganalytics__value">{centralNodeLabel(data.analytics.centralNodes)}</span>
+            </div>
+            <div className="ganalytics__row">
+              <span className="ganalytics__label">Clusters detectados</span>
+              <span className="ganalytics__value">{data.analytics.clusters.length}</span>
+            </div>
+            <div className="ganalytics__row">
+              <span className="ganalytics__label">Densidad del grafo</span>
+              <span className="ganalytics__value">{data.analytics.density.toFixed(3)}</span>
+            </div>
+            <div className="ganalytics__row">
+              <span className="ganalytics__label">Longitud media de caminos</span>
+              <span className="ganalytics__value">{data.analytics.avgPathLength.toFixed(2)}</span>
+            </div>
+            <div className="ganalytics__row">
+              <span className="ganalytics__label">Coeficiente de clustering</span>
+              <span className="ganalytics__value">{data.analytics.clusteringCoefficient.toFixed(3)}</span>
+            </div>
+          </div>
+        </section>
+      )}
       {selectedNode && (
         <SourcesPanel
           node={selectedNode}

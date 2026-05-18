@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/state/useStore';
 import { useHistoryStore } from '@/state/historyStore';
 import { useChatStore } from '@/state/chatStore';
@@ -7,6 +7,7 @@ import { ChatView } from '@/chat';
 import { AnalysisView } from '@/analysis';
 import { HistoryBar, SessionTimeline } from '@/history';
 import { TabNav, ConnectionStatus } from '@/components';
+import { getPlan, getReport } from '@/api';
 
 type MainTab = 'chat' | 'analisis' | 'memoria';
 
@@ -28,6 +29,10 @@ export function MainLayout() {
 
   const sseStatus = useStore((s) => s.sseStatus);
   const clearSession = useStore((s) => s.clearSession);
+  const setPlan = useStore((s) => s.setPlan);
+  const setReport = useStore((s) => s.setReport);
+  const setSessionStatus = useStore((s) => s.setSessionStatus);
+  const sessionId = useStore((s) => s.sessionId);
 
   const sessions = useHistoryStore((s) => s.sessions);
   const activeSessionId = useHistoryStore((s) => s.activeSessionId);
@@ -37,6 +42,15 @@ export function MainLayout() {
   const removeSession = useHistoryStore((s) => s.removeSession);
   const clearMessages = useChatStore((s) => s.clearMessages);
   const resetAgents = useAgentsStore((s) => s.resetAgents);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    getPlan(sessionId).then((res) => setPlan(res.plan)).catch(() => {});
+    const status = useStore.getState().sessionStatus;
+    if (status === 'COMPLETED') {
+      getReport(sessionId).then((report) => setReport(report)).catch(() => {});
+    }
+  }, [sessionId, setPlan, setReport, setSessionStatus]);
 
   function handleNew() {
     newSession();

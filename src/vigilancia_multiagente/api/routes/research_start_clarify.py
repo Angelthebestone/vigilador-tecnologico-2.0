@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from vigilancia_multiagente.api import audit_logger
 from vigilancia_multiagente.api.dependencies import (
     clarification_service,
     event_log,
@@ -32,6 +33,7 @@ class ClarifyRequest(BaseModel):
 @router.post("/start")
 async def start_research(payload: StartRequest) -> dict[str, object]:
     session = await orchestrator.start_session(payload.user_query, payload.scope)
+    audit_logger.debug("SessionStarted: session_id=%s, user_query=%s", session.id, payload.user_query)
     questions = await clarification_service.generate_questions(
         payload.user_query, llm=minimax_client
     )
@@ -77,6 +79,7 @@ async def clarify(session_id: str, payload: ClarifyRequest) -> dict[str, object]
         preload_context=preload_context,
     )
     await plan_repository.create(plan)
+    audit_logger.debug("PlanGenerated: session_id=%s", session_id)
     session = await orchestrator.transition(UUID(session_id), SessionStatus.PLANNING)
     event_log.setdefault(session_id, []).append(
         format_sse(

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
@@ -32,7 +33,7 @@ class RankedDocument:
 
 
 class SemanticReranker:
-    def __init__(self, embedding_gateway=None) -> None:
+    def __init__(self, embedding_gateway: Any = None) -> None:
         self._settings = get_settings()
         self._embedding_gateway = embedding_gateway
 
@@ -99,7 +100,7 @@ class SemanticReranker:
             cosine_similarity,
         )
 
-        query_vec = await self._embedding_gateway.embed_document(query)
+        query_vec = await self._embedding_gateway.embed_document(query)  # pyright: ignore
         doc_vecs = await self._embedding_gateway.embed_documents(documents)
         scored = [
             RankedDocument(

@@ -2,6 +2,7 @@ import json
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+from typing import cast
 
 from vigilancia_multiagente.config.settings import Settings
 
@@ -320,21 +321,21 @@ class MCPProviderRegistry:
 def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
     transport = MCPTransport(str(item["transport"]))
     auth_mode = MCPAuthMode(str(item.get("auth_mode", "NONE")))
-    retry_payload = item.get("retry_policy") or {}
-    headers = item.get("headers") or {}
+    retry_payload = cast(dict[str, object], item.get("retry_policy") or {})
+    headers = cast(dict[str, object], item.get("headers") or {})
     return MCPProviderConfig(
         name=str(item["name"]),
         transport=transport,
         base_url_or_command=str(item["base_url_or_command"]),
-        arguments=list(item.get("arguments", [])),
+        arguments=cast(list[str], item.get("arguments", [])),
         auth_mode=auth_mode,
-        timeout_ms=int(item.get("timeout_ms", 30000)),
+        timeout_ms=cast(int, item.get("timeout_ms", 30000)),
         retry_policy=RetryPolicy(
-            max_attempts=int(retry_payload.get("max_attempts", 2)),
-            backoff_ms=int(retry_payload.get("backoff_ms", 500)),
+            max_attempts=cast(int, retry_payload.get("max_attempts", 2)),
+            backoff_ms=cast(int, retry_payload.get("backoff_ms", 500)),
         ),
-        enabled_tools=tuple(str(tool) for tool in item.get("enabled_tools", [])),
-        capabilities=tuple(str(capability) for capability in item.get("capabilities", [])),
+        enabled_tools=tuple(str(tool) for tool in cast(list[str], item.get("enabled_tools", []))),
+        capabilities=tuple(str(capability) for capability in cast(list[str], item.get("capabilities", []))),
         headers={str(key): str(value) for key, value in headers.items()},
     )
 
@@ -342,7 +343,7 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
 def _secret(value: object) -> str | None:
     if value is None:
         return None
-    return value.get_secret_value() if hasattr(value, "get_secret_value") else str(value)
+    return value.get_secret_value() if hasattr(value, "get_secret_value") else str(value)  # pyright: ignore
 
 
 def _auth_headers(api_key: str | None, *, extra_name: str | None = None) -> dict[str, str]:

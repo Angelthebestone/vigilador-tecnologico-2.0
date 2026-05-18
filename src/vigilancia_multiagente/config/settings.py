@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     sandbox_timeout: int = 120
     sandbox_max_output_size: int = 1_048_576  # 1MB
 
+    # Audit mode: enable detailed logging of data transformation between layers
+    audit_mode: bool = False
+
     # MCP Provider API Keys (all optional — system falls back gracefully)
     tavily_api_key: SecretStr | None = None
     exa_api_key: SecretStr | None = None

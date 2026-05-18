@@ -92,7 +92,15 @@ export function GraphCanvas({
     return () => {
       sim.stop();
     };
-  }, [data, size.w, size.h]);
+  }, [data]);
+
+  // Re-center simulation on resize (no re-creation)
+  useEffect(() => {
+    const sim = simRef.current;
+    if (!sim) return;
+    sim.force('center', d3.forceCenter(size.w / 2, size.h / 2));
+    sim.alpha(0.3).restart();
+  }, [size.w, size.h]);
 
   // Zoom y pan
   useEffect(() => {

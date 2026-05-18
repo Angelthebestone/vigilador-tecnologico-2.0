@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Any, cast
 from uuid import UUID
 
 from vigilancia_multiagente.application.evaluation.causal_timeline import CausalTimelineBuilder
@@ -73,7 +74,7 @@ def _build_intelligence_sections(
     # Crítica adversarial: ataca lo ya ensamblado buscando afirmaciones sin
     # fuente, recomendaciones sin respaldo o disputas silenciadas.
     assembled = "\n".join(parts)
-    critique = AdversarialCritic().critique(all_findings, recommendations or [], assembled)
+    critique = AdversarialCritic().critique(all_findings, cast(list[object], recommendations or []), assembled)
     section = AdversarialCritic.render_section(critique)
     if section:
         parts.append(section)
@@ -115,7 +116,7 @@ class ReportSynthesizer:
             {"text": f"Investigate {item.topic}", "priority": "medium"}
             for item in linked_findings[:3]
         ]
-        intelligence = _build_intelligence_sections(branch_results, recommendations=recommendations)
+        intelligence = _build_intelligence_sections(branch_results, recommendations=cast(list[Any], recommendations))
 
         event_log[str(session_id)].append(
             format_sse(

@@ -1,12 +1,6 @@
-import { useEffect, useState } from 'react';
-import type {
-  AnalysisMetrics,
-  Recommendation,
-  BranchType,
-  ConfidenceBucket,
-} from '@/types';
-import { getMetrics, getReport } from '@/api';
+import { useEffect } from 'react';
 import { useStore } from '@/state/useStore';
+import { useAnalysisStore } from '@/state/analysisStore';
 import { AnalysisPanel } from './AnalysisPanel';
 import { MetricsTab } from './MetricsTab';
 import { RecommendationsTab } from './RecommendationsTab';
@@ -16,80 +10,33 @@ interface AnalysisViewProps {
   historyBar: React.ReactNode;
 }
 
-/**
- * El contenido se remonta vía `key={sessionId}` cuando cambia la sesión,
- * de modo que el estado arranca limpio sin reset síncrono en el efecto.
- */
 function AnalysisContent({ sessionId }: { sessionId: string | null }) {
-  const [metrics, setMetrics] = useState<AnalysisMetrics | null>(null);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [mLoading, setMLoading] = useState(Boolean(sessionId));
-  const [mError, setMError] = useState<string | null>(null);
-  const [rLoading, setRLoading] = useState(Boolean(sessionId));
-  const [rError, setRError] = useState<string | null>(null);
+  const metrics = useAnalysisStore((s) => s.metrics);
+  const recommendations = useAnalysisStore((s) => s.recommendations);
+  const metricsLoading = useAnalysisStore((s) => s.metricsLoading);
+  const recommendationsLoading = useAnalysisStore((s) => s.recommendationsLoading);
+  const metricsError = useAnalysisStore((s) => s.metricsError);
+  const recommendationsError = useAnalysisStore((s) => s.recommendationsError);
+  const fetchMetrics = useAnalysisStore((s) => s.fetchMetrics);
+  const fetchRecommendations = useAnalysisStore((s) => s.fetchRecommendations);
 
   useEffect(() => {
     if (!sessionId) return;
-
-    let active = true;
-
-    getMetrics(sessionId)
-      .then((res) => {
-        if (!active) return;
-        const raw = res as typeof res & {
-          branchKpis?: { branchType: BranchType; coverageKpi: number; precisionKpi: number; latencyMsKpi: number }[];
-          confidenceScore?: number;
-          totalSources?: number;
-          totalFindings?: number;
-          confidenceCalibration?: ConfidenceBucket[];
-        };
-        setMetrics({
-          branchKpis: raw.branchKpis ?? [],
-          providerMetrics: res.providers.map((p) => ({
-            providerName: p.name,
-            avgLatencyMs: p.avgLatencyMs,
-            errorRate: p.errorRate,
-            retryRate: p.retryRate,
-            latencyBuckets: {},
-          })),
-          confidenceScore: raw.confidenceScore ?? 0,
-          totalSources: raw.totalSources ?? 0,
-          totalFindings: raw.totalFindings ?? 0,
-          confidenceCalibration: raw.confidenceCalibration ?? [],
-        });
-      })
-      .catch((err: unknown) => {
-        if (active)
-          setMError(err instanceof Error ? err.message : 'Error desconocido');
-      })
-      .finally(() => active && setMLoading(false));
-
-    getReport(sessionId)
-      .then((report) => {
-        if (active) setRecommendations(report.recommendations ?? []);
-      })
-      .catch((err: unknown) => {
-        if (active)
-          setRError(err instanceof Error ? err.message : 'Error desconocido');
-      })
-      .finally(() => active && setRLoading(false));
-
-    return () => {
-      active = false;
-    };
-  }, [sessionId]);
+    fetchMetrics(sessionId);
+    fetchRecommendations(sessionId);
+  }, [sessionId, fetchMetrics, fetchRecommendations]);
 
   return (
     <AnalysisPanel
       graph={<GraphTab key={sessionId ?? 'none'} sessionId={sessionId} />}
       metrics={
-        <MetricsTab metrics={metrics} loading={mLoading} error={mError} />
+        <MetricsTab metrics={metrics} loading={metricsLoading} error={metricsError} />
       }
       recommendations={
         <RecommendationsTab
           recommendations={recommendations}
-          loading={rLoading}
-          error={rError}
+          loading={recommendationsLoading}
+          error={recommendationsError}
         />
       }
     />

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Icon, type IconName } from '@/components';
 
 interface IntelligenceSectionsProps {
-  markdown: string;
+  markdown?: string;
 }
 
 /**
@@ -83,7 +83,10 @@ function renderLine(line: string, key: number): React.ReactNode {
 }
 
 export function IntelligenceSections({ markdown }: IntelligenceSectionsProps) {
-  const sections = useMemo(() => parseSections(markdown), [markdown]);
+  const sections = useMemo(() => {
+    if (!markdown) return [];
+    return parseSections(markdown);
+  }, [markdown]);
 
   if (sections.length === 0) return null;
 

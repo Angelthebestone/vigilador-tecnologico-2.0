@@ -58,7 +58,7 @@ class PlaywrightProvider:
                 "data": result.payload,
                 "provider": result.provider,
             }
-            return self._handle_blocked_response(response, url)
+            return await self._handle_blocked_response(response, url)
         except Exception as exc:
             logger.warning("Playwright navigate failed for %s: %s", url, exc)
             return {"success": False, "error": str(exc), "blocked": False}

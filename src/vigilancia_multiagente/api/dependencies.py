@@ -36,6 +36,7 @@ from vigilancia_multiagente.application.reporting.report_generator import Report
 from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.models import BranchType
+from vigilancia_multiagente.domain.system_base import SystemBase
 from vigilancia_multiagente.infra.db.connection import database
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
@@ -140,6 +141,7 @@ graph_snapshot_repository = PostgresGraphSnapshotRepository(database)
 # Wired at startup; gated by VT_SYSTEM_BASE_ENABLED feature flag.
 # When disabled, system_base=None → agents fall back to old PromptContract path.
 system_base_loader = SystemBaseLoader(contracts_root)
+system_base: SystemBase | None = None
 if settings.system_base_enabled:
     try:
         system_base = system_base_loader.load()
@@ -147,9 +149,6 @@ if settings.system_base_enabled:
         import logging
 
         logging.getLogger(__name__).warning("Failed to load system base: %s", exc)
-        system_base = None
-else:
-    system_base = None
 
 prompt_composer = PromptComposer()
 

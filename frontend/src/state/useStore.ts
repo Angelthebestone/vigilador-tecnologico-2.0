@@ -116,6 +116,8 @@ export const useStore = create<AppStore>()(
       partialize: (state) => ({
         sessionId: state.sessionId,
         userQuery: state.userQuery,
+        sessionStatus: state.sessionStatus,
+        reportVariants: state.reportVariants,
       }),
     }
   )

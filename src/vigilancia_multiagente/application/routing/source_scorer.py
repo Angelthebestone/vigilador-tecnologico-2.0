@@ -12,6 +12,8 @@ class SourceScorerService:
         self.repository = repository
 
     async def record_confirmation(self, source_a: str, source_b: str) -> dict:
+        if self.repository is None:
+            return {}
         score_a = await self.repository.update_score(
             source_a, self.CONFIRMATION_BONUS, f"Confirmed by {source_b}"
         )
@@ -22,6 +24,8 @@ class SourceScorerService:
         return {"source_a_score": score_a, "source_b_score": score_b}
 
     async def record_contradiction(self, source_a: str, source_b: str) -> dict:
+        if self.repository is None:
+            return {}
         score_a = await self.repository.update_score(
             source_a, self.CONTRADICTION_PENALTY, f"Contradicted by {source_b}"
         )
@@ -32,6 +36,8 @@ class SourceScorerService:
         return {"source_a_score": score_a, "source_b_score": score_b}
 
     async def get_preferred_sources(self, limit: int = 5) -> list[dict]:
+        if self.repository is None:
+            return []
         all_sources = await self.repository.get_top_sources(limit * 2)
 
         high = [s for s in all_sources if s.get("current_score", 0) > 70]

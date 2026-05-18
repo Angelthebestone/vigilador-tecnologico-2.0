@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import AsyncIterator
+from typing import cast
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
@@ -231,7 +232,7 @@ async def get_node_sources(session_id: UUID, node_id: str) -> dict[str, object]:
 async def decision_analysis(session_id: UUID, question: str = Query(...)) -> dict:
     assistant = DecisionAssistant()
     branch_results = await branch_result_repository.list_by_session(session_id)
-    report = await assistant.analyze(question, branch_results)
+    report = await assistant.analyze(question, list(branch_results))
     return {"session_id": str(session_id), "report": report}
 
 
@@ -271,8 +272,8 @@ async def _graph_payload_for_session(session_id: UUID) -> dict[str, object]:
         analytics = snapshot.get("analytics")
         return {
             "session_id": str(session_id),
-            "nodes": list(snapshot.get("nodes", [])),
-            "edges": list(snapshot.get("edges", [])),
+            "nodes": list(cast(list, snapshot.get("nodes", []))),
+            "edges": list(cast(list, snapshot.get("edges", []))),
             "analytics": analytics if isinstance(analytics, dict) else {},
         }
     return _graph_payload(await _build_graph_for_session(session_id))
@@ -325,8 +326,8 @@ def _graph_from_snapshot(session_id: UUID, snapshot: dict[str, object]) -> Graph
     raw_session_id = snapshot.get("session_id", session_id)
     return GraphPayload(
         session_id=UUID(str(raw_session_id)),
-        nodes=list(snapshot.get("nodes", [])),
-        edges=list(snapshot.get("edges", [])),
+        nodes=list(cast(list, snapshot.get("nodes", []))),
+        edges=list(cast(list, snapshot.get("edges", []))),
     )
 
 
@@ -424,11 +425,14 @@ async def search_cross_session(
 ) -> dict[str, object]:
     """Search findings across ALL sessions (not just current)."""
     query_vector = await embedding_gateway.embed(query, task_type=TaskType.RETRIEVAL_QUERY)
-    vector_records = await vector_index.list_by_session(None, limit=limit * 20)
+    records = await vector_index.list_by_session(None, limit=limit * 20)
+    vector_dicts: list[dict[str, object]] = [
+        {"content_ref_id": r.content_ref_id, "vector": r.vector} for r in records
+    ]
     results = await graph_service.search_across_sessions(
         query,
         query_vector,
-        vector_records,
+        vector_dicts,
         limit=limit,
     )
     return {"session_id": str(session_id), "query": query, "limit": limit, "results": results}

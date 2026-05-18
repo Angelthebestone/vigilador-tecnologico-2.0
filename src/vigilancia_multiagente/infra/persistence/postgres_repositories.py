@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from datetime import datetime
+from typing import cast
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import text
@@ -55,7 +56,7 @@ class PostgresSessionRepository(SessionRepository):
                 _session_params(session),
             )
             await db.commit()
-            return _session_from_row(result.mappings().one())
+            return _session_from_row(cast(dict[str, object], result.mappings().one()))
 
     async def get_by_id(self, session_id: UUID) -> ResearchSession | None:
         async with self._database.session() as db:
@@ -64,7 +65,7 @@ class PostgresSessionRepository(SessionRepository):
                 {"session_id": str(session_id)},
             )
             row = result.mappings().one_or_none()
-            return None if row is None else _session_from_row(row)
+            return None if row is None else _session_from_row(cast(dict[str, object], row))
 
     async def update(self, session: ResearchSession) -> ResearchSession:
         async with self._database.session() as db:
@@ -93,7 +94,7 @@ class PostgresSessionRepository(SessionRepository):
             row = result.mappings().one_or_none()
             if row is None:
                 raise KeyError(f"Session not found: {session.id}")
-            return _session_from_row(row)
+            return _session_from_row(cast(dict[str, object], row))
 
     async def delete(self, session_id: UUID) -> None:
         async with self._database.session() as db:
@@ -141,7 +142,7 @@ class PostgresPlanRepository(PlanRepository):
                 {"session_id": str(session_id)},
             )
             row = result.mappings().one_or_none()
-            return None if row is None else _plan_from_row(row)
+            return None if row is None else _plan_from_row(cast(dict[str, object], row))
 
 
 class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRepository):
@@ -181,7 +182,7 @@ class PostgresBranchResultRepository(BranchResultRepository, SessionTelemetryRep
                 {"session_id": str(session_id)},
             )
             rows = result.mappings().all()
-            return tuple(_branch_result_from_row(row) for row in rows)
+            return tuple(_branch_result_from_row(cast(dict[str, object], row)) for row in rows)
 
     async def append_iteration_records(
         self, session_id: UUID, records: Sequence[dict[str, object]]
@@ -381,13 +382,13 @@ def _session_from_row(row: dict[str, object]) -> ResearchSession:
         updated_at=_ensure_datetime(row["updated_at"]),
         status=SessionStatus(str(row["status"])),
         user_query=str(row["user_query"]),
-        scope=_json_load_dict(row.get("scope")),
+        scope=cast(dict | None, _json_load_dict(row.get("scope"))),
         clarification_set_id=_ensure_uuid(row.get("clarification_set_id")),
         approved_plan_id=_ensure_uuid(row.get("approved_plan_id")),
         final_report_id=_ensure_uuid(row.get("final_report_id")),
         execution_time_seconds=_optional_float(row.get("execution_time_seconds")),
-        error_code=row.get("error_code"),
-        error_message=row.get("error_message"),
+        error_code=cast(str | None, row.get("error_code")),
+        error_message=cast(str | None, row.get("error_message")),
     )
 
 
@@ -408,9 +409,9 @@ def _plan_from_row(row: dict[str, object]) -> ResearchPlan:
     return ResearchPlan(
         id=UUID(str(row["id"])),
         session_id=UUID(str(row["session_id"])),
-        version=int(row["version"]),
-        branches=[_branch_from_dict(payload) for payload in branches_payload],
-        global_constraints=_json_load_dict(row.get("global_constraints")) or {},
+        version=cast(int, row["version"]),
+        branches=[_branch_from_dict(payload) for payload in cast(list[dict[str, object]], branches_payload)],
+        global_constraints=cast(dict, _json_load_dict(row.get("global_constraints")) or {}),
         requires_approval=bool(row["requires_approval"]),
         approved_at=_optional_datetime(row.get("approved_at")),
     )
@@ -438,8 +439,8 @@ def _branch_result_from_row(row: dict[str, object]) -> BranchResult:
         session_id=UUID(str(row["session_id"])),
         branch_type=BranchType(str(row["branch_type"])),
         queries_executed=[str(item) for item in _json_load_list(row["queries_executed"])],
-        findings=[_finding_from_dict(item) for item in _json_load_list(row["findings"])],
-        sources=[_source_from_dict(item) for item in _json_load_list(row["sources"])],
+        findings=[_finding_from_dict(item) for item in cast(list[dict[str, object]], _json_load_list(row["findings"]))],
+        sources=[_source_from_dict(item) for item in cast(list[dict[str, object]], _json_load_list(row["sources"]))],
         started_at=_optional_datetime(row.get("started_at")),
         completed_at=_optional_datetime(row.get("completed_at")),
         coverage_score=_optional_float(row.get("coverage_score")),
@@ -463,11 +464,11 @@ def _branch_from_dict(payload: dict[str, object]) -> BranchConfig:
     priority = payload.get("priority_weight")
     return BranchConfig(
         branch_type=BranchType(str(payload["branch_type"])),
-        focus_queries=list(payload.get("focus_queries", [])),
-        mcp_providers=list(payload.get("mcp_providers", [])),
-        mcp_tool_profile=payload.get("mcp_tool_profile"),
-        priority_weight=int(priority) if priority is not None else None,
-        status=BranchStatus(payload["status"]),
+        focus_queries=list(cast(list, payload.get("focus_queries", []))),
+        mcp_providers=list(cast(list, payload.get("mcp_providers", []))),
+        mcp_tool_profile=cast(str | None, payload.get("mcp_tool_profile")),
+        priority_weight=cast(int, priority) if priority is not None else None,
+        status=BranchStatus(str(payload["status"])),
     )
 
 
@@ -487,9 +488,9 @@ def _finding_from_dict(payload: dict[str, object]) -> Finding:
         id=UUID(str(payload["id"])),
         topic=str(payload["topic"]),
         statement=str(payload["statement"]),
-        confidence=float(payload["confidence"]),
-        source_ids=[UUID(str(source_id)) for source_id in payload.get("source_ids", [])],
-        tags=[str(tag) for tag in payload.get("tags", [])],
+        confidence=cast(float, payload["confidence"]),
+        source_ids=[UUID(str(source_id)) for source_id in cast(list, payload.get("source_ids", []))],
+        tags=[str(tag) for tag in cast(list, payload.get("tags", []))],
     )
 
 
@@ -514,8 +515,8 @@ def _source_from_dict(payload: dict[str, object]) -> SourceRef:
         provider=str(payload["provider"]),
         branch_type=BranchType(str(payload["branch_type"])),
         accessed_at=_ensure_datetime(payload["accessed_at"]),
-        title=payload.get("title"),
-        content_hash=payload.get("content_hash"),
+        title=cast(str | None, payload.get("title")),
+        content_hash=cast(str | None, payload.get("content_hash")),
     )
 
 
@@ -588,7 +589,7 @@ def _ensure_uuid(value: object | None) -> UUID | None:
 def _optional_float(value: object | None) -> float | None:
     if value is None:
         return None
-    return float(value)
+    return cast(float, value)
 
 
 def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
@@ -617,25 +618,25 @@ def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
 def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
     return FinalReport(
         session_id=UUID(str(data["session_id"])),
-        generated_at=_ensure_datetime(data["generated_at"])
+        generated_at=cast(datetime, _ensure_datetime(data["generated_at"])
         if isinstance(data.get("generated_at"), str)
-        else data.get("generated_at"),
-        markdown=data.get("markdown", ""),
-        executive_summary=data.get("executive_summary", ""),
-        technical_section=data.get("technical_section", ""),
-        commercial_section=data.get("commercial_section", ""),
-        risk_section=data.get("risk_section", ""),
-        cross_analysis=data.get("cross_analysis", ""),
+        else data.get("generated_at")),
+        markdown=cast(str, data.get("markdown", "")),
+        executive_summary=cast(str, data.get("executive_summary", "")),
+        technical_section=cast(str, data.get("technical_section", "")),
+        commercial_section=cast(str, data.get("commercial_section", "")),
+        risk_section=cast(str, data.get("risk_section", "")),
+        cross_analysis=cast(str, data.get("cross_analysis", "")),
         recommendations=[
             Recommendation(
                 text=str(r["text"]),
                 priority=str(r.get("priority", "medium")),
                 based_on=[str(b) for b in r.get("based_on", [])],
             )
-            for r in (data.get("recommendations") or [])
+            for r in cast(list, data.get("recommendations") or [])
         ],
-        all_sources=[_source_from_dict(s) for s in (data.get("all_sources") or [])],
-        total_sources_consulted=int(data.get("total_sources_consulted", 0)),
-        total_learnings=int(data.get("total_learnings", 0)),
-        confidence_score=float(data.get("confidence_score", 0.0)),
+        all_sources=[_source_from_dict(cast(dict[str, object], s)) for s in cast(list, data.get("all_sources") or [])],
+        total_sources_consulted=cast(int, data.get("total_sources_consulted", 0)),
+        total_learnings=cast(int, data.get("total_learnings", 0)),
+        confidence_score=cast(float, data.get("confidence_score", 0.0)),
     )

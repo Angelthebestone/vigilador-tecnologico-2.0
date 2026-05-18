@@ -109,6 +109,20 @@ Pydantic Settings with prefix `VT_`. Copy `.env.example` to `.env`. Key variable
 | `domain/session_state.py` | SessionStatus transitions |
 | `config/settings.py` | All env-backed settings |
 
+### Transform Layer (snake_case ↔ camelCase)
+- `frontend/src/api/transform.ts`: `toCamelCase()` / `toSnakeCase()` convert recursivamente keys de objetos anidados.
+- `frontend/src/api/client.ts`: interceptors en `request()` convierten request body → snake_case (antes de enviar), response → camelCase (después de recibir).
+- El backend real devuelve snake_case; el frontend espera camelCase. El transform layer cierra esa brecha.
+- Tests en `frontend/src/api/__tests__/transform.test.ts` y `frontend/src/api/__tests__/client.test.ts`.
+
+### API Contract Audit
+- `scripts/check-api-contract.py`: verifica que tipos TypeScript coincidan con endpoints reales.
+- `scripts/healthcheck.py`: verifica que todos los endpoints respondan con estructura esperada.
+- `docs/api-endpoints-reference.md`: documentación completa de endpoints, SSE events y mapeo de tipos.
+- `tests/test_contract_mock_vs_backend.py`: verifica que mock server y backend real tengan misma estructura.
+- `tests/test_sse_events.py`: verifica secuencia y payload de eventos SSE.
+- Tests E2E: `tests/test_e2e_full_flow.py` (flujo completo), `tests/test_contract_naming.py` (snake_case).
+
 ### Environment Constraints
 - **No leer `.env`**: el archivo `.env` real no está disponible en este repositorio. Usar solo `.env.example` como referencia de variables disponibles.
 - **`VT_MINIMAX_API_KEY` no está configurada**: el sistema no tiene clave MiniMax activa. Por eso muchos bloques relacionados con MiniMax en `infra/llm/minimax_client.py` y en la configuración tienen cuerpos vacíos (`pass`) o retornan valores por defecto. No intentar corregirlos como si fueran bugs — es comportamiento intencional dado que la integración está incompleta.
@@ -117,3 +131,14 @@ Pydantic Settings with prefix `VT_`. Copy `.env.example` to `.env`. Key variable
 - `tests/conftest.py` provides in-memory repositories (`MemorySessionRepository`) and a `FakeDatabase` stack — use these for unit tests that must not hit PostgreSQL.
 - MCP connectivity tests (`test_mcp_connectivity.py`) require real API keys and network; skip in offline environments.
 - Ruff line-length: 100 chars, target Python 3.11.
+
+## Basedpyright
+
+- **Comando**: `python -m basedpyright src/vigilancia_multiagente/`
+- **Estado**: 0 errores, 0 warnings, 0 notes (standard mode)
+- **Config**: typeCheckingMode = "standard", pythonVersion = "3.11", exclude = ["tests", "scripts", "mock_server.py", "specs", "docs"]
+- **Politica de type:ignore**: Usar solo en falsos positivos de SQLAlchemy (JSON columns), asyncio.gather(), y acceso a dicts dinamicos. Siempre anotar con el codigo de error especifico (ej: `# type: ignore[arg-type]`) y un comentario breve.
+
+## Scripts
+- `scripts/run-typecheck.sh` / `scripts/run-typecheck.ps1`: ejecuta basedpyright
+- `scripts/lint.sh`: ejecuta ruff + basedpyright

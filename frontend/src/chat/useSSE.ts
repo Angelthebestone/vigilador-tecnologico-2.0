@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { createSSEHandlers } from '@/state/sseHandlers';
 import { useStore } from '@/state/useStore';
 import { API_BASE } from '@/api';
+import { toCamelCase } from '@/api/transform';
 import type { SSEConnectionStatus } from '@/types';
 
 interface SseClientOptions {
@@ -9,7 +10,7 @@ interface SseClientOptions {
   onStatusChange: (status: SSEConnectionStatus) => void;
 }
 
-class SseClient {
+export class SseClient {
   private eventSource: EventSource | null = null;
   private options: SseClientOptions;
   private url: string;
@@ -31,7 +32,14 @@ class SseClient {
     for (const [event, handler] of Object.entries(this.options.handlers)) {
       this.eventSource.addEventListener(event, (e: MessageEvent) => {
         try {
-          handler(JSON.parse(e.data));
+          const raw = JSON.parse(e.data);
+          // Backend real envuelve datos en {"session_id","timestamp","payload"}
+          // Mock envía datos planos directamente
+          const data =
+            raw && typeof raw === 'object' && 'payload' in raw
+              ? toCamelCase(raw.payload)
+              : toCamelCase(raw);
+          handler(data);
         } catch {
           handler(e.data);
         }

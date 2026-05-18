@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException
@@ -107,7 +108,7 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     if trend_projections:
         artifact_service.write_json(
             session_root / "forecasting" / "trend-projections.json",
-            trend_projections,
+            trend_projections,  # type: ignore[arg-type]  # write_json accepts any JSON-serializable, not just dict
         )
 
     report = await report_synthesizer.synthesize(
@@ -395,7 +396,7 @@ async def modify_plan(session_id: UUID, payload: ModifyPlanRequest) -> dict[str,
         session_id=session_id,
         version=plan.version + 1,
         branches=updated_branches,
-        global_constraints={**plan.global_constraints, **(payload.global_constraints or {})},
+        global_constraints=cast("dict[str, str | int | float]", {**plan.global_constraints, **(payload.global_constraints or {})}),
         requires_approval=True,
         approved_at=None,
     )

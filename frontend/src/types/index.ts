@@ -68,6 +68,13 @@ export type GraphData = {
   sessionId: string;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  analytics?: {
+    centralNodes: string[];
+    clusters: Array<{ id: string; label: string; nodeIds: string[] }>;
+    density: number;
+    avgPathLength: number;
+    clusteringCoefficient: number;
+  };
 };
 
 export type Source = {
@@ -102,7 +109,7 @@ export type SessionSummary = {
 
 export type FinalReport = {
   sessionId: string;
-  markdown: string;
+  markdown?: string;
   executiveSummary: string;
   technicalSection: string;
   commercialSection: string;

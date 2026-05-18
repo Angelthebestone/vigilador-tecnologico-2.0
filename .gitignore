@@ -136,3 +136,6 @@ SPEC_V2.md
 
 PLAN_DE_AUDITORIA.md
 ARQUITECTURA.md
+
+# ---------- Heap snapshots (pueden contener secretos en memoria) ----------
+*.heapsnapshot

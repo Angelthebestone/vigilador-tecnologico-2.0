@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { SessionSummary } from '@/types';
+import type { SessionStatus, SessionSummary } from '@/types';
 import { deleteSession } from '@/api/endpoints';
 
 interface HistoryStore {
@@ -10,6 +10,7 @@ interface HistoryStore {
   selectSession: (id: string) => void;
   newSession: () => void;
   removeSession: (id: string) => Promise<void>;
+  addSession: (id: string, query: string, status: SessionStatus) => void;
 }
 
 export const useHistoryStore = create<HistoryStore>()(
@@ -21,6 +22,17 @@ export const useHistoryStore = create<HistoryStore>()(
       setSessions: (sessions) => set({ sessions }),
       selectSession: (id) => set({ activeSessionId: id }),
       newSession: () => set({ activeSessionId: null }),
+
+      addSession: (id, query, status) =>
+        set((state) => {
+          if (state.sessions.some((s) => s.id === id)) return state;
+          return {
+            sessions: [
+              ...state.sessions,
+              { id, query, date: new Date().toISOString(), status },
+            ],
+          };
+        }),
 
       removeSession: async (id) => {
         await deleteSession(id);

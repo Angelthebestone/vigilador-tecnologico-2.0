@@ -1,6 +1,9 @@
+import { getReport } from '@/api';
+import { useAnalysisStore } from './analysisStore';
 import { useStore } from './useStore';
 import { useChatStore } from './chatStore';
 import { useAgentsStore } from './agentsStore';
+import { useHistoryStore } from './historyStore';
 import type {
   ResearchPlan,
   FinalReport,
@@ -116,28 +119,68 @@ export function createSSEHandlers(): Record<string, (data: unknown) => void> {
       // no UI action required
     },
 
-    ReportGenerated: (data) => {
+    ReportGenerated: async (data) => {
       const d = data as ReportGeneratedData;
-      useStore.getState().setReport(d.report);
-      useStore.getState().setSessionStatus('COMPLETED');
-      useChatStore.getState().addMessage({
-        type: 'report',
-        role: 'assistant',
-        content: 'Informe final generado.',
-        metadata: { report: d.report, reportId: d.report.sessionId },
-      });
-      useChatStore.getState().addMessage({
-        type: 'event',
-        role: 'assistant',
-        content:
-          'Investigación completada. Puede continuar preguntando sobre los hallazgos sin lanzar una nueva investigación.',
-      });
+      const sessionId = useStore.getState().sessionId;
+      if (!sessionId) return;
+      try {
+        const report = await getReport(sessionId);
+        useStore.getState().setReport(report);
+        useStore.getState().setSessionStatus('COMPLETED');
+        const userQuery = useStore.getState().userQuery;
+        useHistoryStore.getState().addSession(sessionId, userQuery, 'COMPLETED');
+        useChatStore.getState().addMessage({
+          type: 'report',
+          role: 'assistant',
+          content: 'Informe final generado.',
+          metadata: { report, reportId: report.sessionId },
+        });
+        useChatStore.getState().addMessage({
+          type: 'event',
+          role: 'assistant',
+          content:
+            'Investigación completada. Puede continuar preguntando sobre los hallazgos sin lanzar una nueva investigación.',
+        });
+      } catch (err) {
+        // If getReport fails, fall back to event data
+        useStore.getState().setReport(d.report);
+        useStore.getState().setSessionStatus('COMPLETED');
+      }
     },
 
     ReportVariantsGenerated: (data) => {
       const d = data as { types?: string[] };
       if (Array.isArray(d.types) && d.types.length > 0) {
         useStore.getState().setReportVariants(d.types);
+      }
+    },
+
+    PlanApproved: (data) => {
+      useStore.getState().setSessionStatus('APPROVED');
+      useChatStore.getState().addMessage({
+        type: 'event',
+        role: 'assistant',
+        content: 'Plan de investigación aprobado.',
+      });
+    },
+
+    EvaluationComputed: (data) => {
+      const d = data as {
+        sessionId?: string;
+        evaluations?: Array<{ branchType: string; coverageKpi: number; precisionKpi: number; latencyMsKpi: number }>;
+        byBranch?: Array<{ branchType: string; coverageKpi: number; precisionKpi: number; latencyMsKpi: number }>;
+      };
+      const kpis = d.evaluations ?? d.byBranch;
+      if (kpis && kpis.length > 0) {
+        useAnalysisStore.getState().setBranchKpis(
+          d.sessionId ?? '',
+          kpis.map((e) => ({
+            branchType: e.branchType as import('@/types').BranchType,
+            coverageKpi: e.coverageKpi,
+            precisionKpi: e.precisionKpi,
+            latencyMsKpi: e.latencyMsKpi,
+          })),
+        );
       }
     },
 

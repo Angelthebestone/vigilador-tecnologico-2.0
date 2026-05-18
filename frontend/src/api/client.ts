@@ -1,5 +1,8 @@
+import { toCamelCase, toSnakeCase } from './transform';
+
 export const API_BASE: string =
-  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v2';
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.DEV ? '/api/v2' : 'http://localhost:8000/api/v2');
 
 function buildUrl(path: string): string {
   return `${API_BASE}${path}`;
@@ -32,17 +35,22 @@ async function request<T>(
   signal?.addEventListener('abort', () => controller.abort(), { once: true });
 
   try {
+    // Request interceptor: convert camelCase body to snake_case for backend
+    const snakeBody = body !== undefined ? toSnakeCase<unknown>(body) : undefined;
+
     const response = await fetch(buildUrl(path), {
       method,
       headers: baseHeaders(),
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: snakeBody !== undefined ? JSON.stringify(snakeBody) : undefined,
       signal: controller.signal,
     });
     if (!response.ok) {
       const errorBody = await response.json().catch(() => undefined);
       throw new ApiError(response.status, response.statusText, errorBody);
     }
-    return response.json() as Promise<T>;
+    // Response interceptor: convert snake_case response to camelCase
+    const raw = await response.json();
+    return toCamelCase<T>(raw);
   } finally {
     clearTimeout(timeout);
   }

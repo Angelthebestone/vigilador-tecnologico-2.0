@@ -14,5 +14,8 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 @router.get("/timeline")
 async def get_session_timeline():
     """Get a timeline of all research sessions showing how understanding evolved."""
-    timeline = await cross_session_service.repository.get_session_timeline()
+    repo = cross_session_service.repository
+    if repo is None:
+        return {"sessions": []}
+    timeline = await repo.get_session_timeline()
     return {"sessions": timeline}

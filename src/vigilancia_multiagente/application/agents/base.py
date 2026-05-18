@@ -6,6 +6,7 @@ import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any, cast
 from uuid import uuid4
 
 from vigilancia_multiagente.application.extraction.entity_extractor import extract_from_payloads
@@ -98,7 +99,7 @@ class BaseBranchAgent:
         self._preload_context: dict | None = None
         self._signal_callback = signal_callback or self._noop_signal
         self._cross_branch_hints: deque[str] = deque(maxlen=32)
-        self._reranker = None
+        self._reranker: Any = None
 
     def set_preload_context(self, context: dict | None) -> None:
         self._preload_context = context
@@ -295,7 +296,7 @@ class BaseBranchAgent:
             confidence_score=finding.confidence,
             errors=[],
         )
-        provider_usage = [
+        provider_usage: list[dict[str, str | int]] = [
             {
                 "provider": execution.provider,
                 "tool": execution.tool_name,
@@ -421,7 +422,7 @@ class BaseBranchAgent:
     @staticmethod
     def _optional_float(payload: dict[str, object], key: str) -> float | None:
         value = payload.get(key)
-        return float(value) if value is not None else None
+        return float(cast(float, value)) if value is not None else None
 
     @staticmethod
     def _require_text(payload: dict[str, object], key: str) -> str:

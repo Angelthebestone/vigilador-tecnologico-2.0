@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from uuid import uuid4
 
 from vigilancia_multiagente.application.governance.contract_loader import AgentSkillPolicy
@@ -271,7 +272,7 @@ def _fmt_list(header: str, items: tuple[str, ...]) -> str:
     return f"## {header}\n\n" + "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items))
 
 
-def _fmt_dict(header: str, mapping: dict[str, object]) -> str:
+def _fmt_dict(header: str, mapping: Mapping[str, object]) -> str:
     """Format a dict as a markdown section."""
     if not mapping:
         return f"## {header}\n\n_None_"

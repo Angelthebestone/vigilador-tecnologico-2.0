@@ -2,6 +2,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import BranchOverlay
@@ -261,7 +262,7 @@ class GovernanceContractLoader:
             from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
             overrides = _parse_prompt_overlay(load_prompt(f"branches/{branch_type.value.lower()}"))
-            branch_data = {**branch_data, **overrides}  # type: ignore[arg-type]
+            branch_data = {**branch_data, **overrides}
         except (FileNotFoundError, KeyError, TypeError):
             logger.debug("Using built-in branch overlay for %s", branch_type.value)
 
@@ -282,9 +283,9 @@ class GovernanceContractLoader:
                 "next_query": "string",
             },
             quality_criteria=("evidence_per_finding", "coverage_subtopics", "deduplicated_sources"),
-            do_rules=tuple(branch_data.get("do_rules", ("cite_sources", "declare_uncertainty"))),
+            do_rules=tuple(cast(tuple[str, ...], branch_data.get("do_rules", ("cite_sources", "declare_uncertainty")))),
             dont_rules=tuple(
-                branch_data.get("dont_rules", ("invent_data", "claim_causality_without_support"))
+                cast(tuple[str, ...], branch_data.get("dont_rules", ("invent_data", "claim_causality_without_support")))
             ),
             uncertainty_handling=str(
                 branch_data.get(

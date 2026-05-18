@@ -93,5 +93,5 @@ def _dataclass_to_dict(obj: object) -> dict[str, object]:
     if hasattr(obj, "__dataclass_fields__"):
         from dataclasses import fields
 
-        return {f.name: getattr(obj, f.name) for f in fields(obj)}
+        return {f.name: getattr(obj, f.name) for f in fields(obj)}  # type: ignore[arg-type]
     return {}

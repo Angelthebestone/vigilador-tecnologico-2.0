@@ -122,7 +122,7 @@ class GlobalKnowledgeRepository:
                 {"date": date},
             )
             await db.commit()
-        return result.rowcount
+        return result.rowcount  # pyright: ignore
 
 
 def _vector_literal(vector: list[float]) -> str:

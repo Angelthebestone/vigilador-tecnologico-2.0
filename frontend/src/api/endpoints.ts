@@ -41,7 +41,7 @@ export async function getPlan(
 export async function approvePlan(
   sessionId: string,
 ): Promise<{ sessionId: string; status: string; message: string }> {
-  return apiPost(`/research/${sessionId}/approve`);
+  return apiPost(`/research/${sessionId}/approve`, { approved: true });
 }
 
 export async function getReport(sessionId: string): Promise<FinalReport> {
@@ -81,6 +81,21 @@ export async function getGraphPath(
   return apiGet(
     `/research/${sessionId}/graph/path?sourceNodeId=${encodeURIComponent(sourceNodeId)}&targetNodeId=${encodeURIComponent(targetNodeId)}`,
   );
+}
+
+export async function getBranchEvaluation(
+  sessionId: string,
+): Promise<{
+  sessionId: string;
+  byBranch: Array<{
+    branchType: string;
+    coverageKpi: number;
+    precisionKpi: number;
+    latencyMsKpi: number;
+    costKpi: number;
+  }>;
+}> {
+  return apiGet(`/research/${sessionId}/evaluation`);
 }
 
 export async function getMetrics(

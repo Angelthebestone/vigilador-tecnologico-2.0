@@ -67,7 +67,7 @@ class BranchCoordinator:
             for branch in plan.branches
         ]
         consumer_task = asyncio.create_task(self._signal_consumer_loop(signal_queue, branch_tasks))
-        outputs = await asyncio.gather(*branch_tasks, consumer_task, return_exceptions=True)
+        outputs = await asyncio.gather(*branch_tasks, consumer_task, return_exceptions=True)  # pyright: ignore
         results: list[BranchResult] = []
         for idx, output in enumerate(outputs):
             if output is None:

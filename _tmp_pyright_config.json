@@ -1,0 +1,22 @@
+{
+    "typeCheckingMode": "all",
+    "pythonVersion": "3.11",
+    "reportMissingTypeStubs": true,
+    "reportUnknownParameterType": true,
+    "reportUnknownVariableType": true,
+    "reportUnknownMemberType": true,
+    "reportMissingTypeArguments": true,
+    "reportAny": true,
+    "reportIncompatibleMethodOverride": true,
+    "reportIncompatibleVariableOverride": true,
+    "reportUntypedBaseDecorator": true,
+    "reportUnusedImport": true,
+    "reportUnusedClass": true,
+    "reportUnusedFunction": true,
+    "reportUnusedVariable": true,
+    "reportShadowedImports": true,
+    "strictListInference": true,
+    "strictDictionaryInference": true,
+    "strictSetInference": true,
+    "strictParameterNoneValue": true
+}
