@@ -1,11 +1,13 @@
 import asyncio
 import json
 import os
-from asyncio.subprocess import PIPE
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 import httpx
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
 from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderConfig, MCPTransport
 
@@ -104,22 +106,61 @@ class MCPExecutionClient:
         tool_name: str,
         arguments: dict[str, Any],
     ) -> dict[str, Any]:
-        command = [provider.base_url_or_command, *list(provider.arguments)]
-        env = {**os.environ, **provider.environment}
-        process = await asyncio.create_subprocess_exec(
-            *command,
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE,
-            env=env,
+        """Ejecuta una tool en un servidor MCP STDIO vía el cliente oficial.
+
+        Usa el protocolo MCP real (handshake JSON-RPC + ``call_tool``) del
+        SDK, no un protocolo ad-hoc: por eso es compatible con cualquier
+        servidor MCP estándar (arxiv, fetch, brave, sandbox, etc.). La
+        respuesta MCP llega como ``content`` (lista de bloques); el texto se
+        parsea a dict si es JSON, o se envuelve en ``{"text": ...}``.
+        """
+        params = StdioServerParameters(
+            command=provider.base_url_or_command,
+            args=list(provider.arguments),
+            env={**os.environ, **provider.environment},
         )
-        request = json.dumps({"tool": tool_name, "arguments": arguments}).encode("utf-8")
-        stdout, stderr = await process.communicate(request)
-        if process.returncode != 0:
-            raise RuntimeError(
-                stderr.decode("utf-8") or f"STDIO MCP command failed: {provider.name}"
-            )
-        payload = json.loads(stdout.decode("utf-8"))
-        if not isinstance(payload, dict):
-            raise TypeError("MCP STDIO response must be a JSON object")
-        return payload
+        timeout_s = provider.timeout_ms / 1000
+
+        async def _call() -> Any:
+            async with (
+                stdio_client(params) as (read, write),
+                ClientSession(read, write) as session,
+            ):
+                await session.initialize()
+                return await session.call_tool(
+                    tool_name,
+                    arguments,
+                    read_timeout_seconds=timedelta(seconds=timeout_s),
+                )
+
+        # Cota dura sobre todo el ciclo (handshake + llamada + cierre del
+        # subproceso). En Windows el teardown de stdio_client puede colgarse
+        # si el server tardó; wait_for garantiza que no bloquee el backend.
+        result = await asyncio.wait_for(_call(), timeout=timeout_s + 15)
+        return _payload_from_call_result(result)
+
+
+def _payload_from_call_result(result: Any) -> dict[str, Any]:
+    """Normaliza un ``CallToolResult`` del SDK MCP a ``dict``.
+
+    Los servidores devuelven bloques de contenido; el caso normal es un
+    único ``TextContent``. Si su texto es un objeto JSON se devuelve tal
+    cual (contrato que el resto del sistema espera); si es texto plano se
+    envuelve en ``{"text": ...}``; sin contenido, se reporta el estado.
+    """
+    content = getattr(result, "content", None) or []
+    text_parts = [
+        block.text
+        for block in content
+        if getattr(block, "type", None) == "text" and getattr(block, "text", None)
+    ]
+    if not text_parts:
+        is_error = bool(getattr(result, "isError", False))
+        return {"status": "error" if is_error else "success", "content": []}
+
+    joined = "\n".join(text_parts).strip()
+    try:
+        parsed = json.loads(joined)
+    except (ValueError, TypeError):
+        return {"status": "success", "text": joined}
+    return parsed if isinstance(parsed, dict) else {"status": "success", "data": parsed}

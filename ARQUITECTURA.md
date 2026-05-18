@@ -167,3 +167,33 @@ flowchart TD
     REAL -.simula salida observable.-> MOCK
     MOCK --> FE[Frontend · misma UI para ambos]
 ```
+
+## Ejecución aislada de código (TrendForecaster)
+
+```mermaid
+flowchart TD
+    TF[TrendForecaster] --> P1{subproceso<br/>aislado}
+    P1 -->|ok| OUT[proyección polinómica]
+    P1 -->|falla| P2{numpy<br/>en proceso}
+    P2 -->|ok| OUT
+    P2 -->|falla| P3[regresión lineal<br/>sin numpy]
+    P3 --> OUT
+
+    subgraph NOTA ["Limitación conocida"]
+        direction TB
+        N1["MCP sandbox server: existe y es MCP válido"]
+        N2["execution_client: protocolo MCP real (JSON-RPC)"]
+        N3["stdio_client SDK cuelga en teardown<br/>en Windows con tareas lentas"]
+        N1 --- N2 --- N3
+    end
+
+    TF -.NO usa el server MCP.-> NOTA
+```
+
+> **Aislamiento de ejecución:** el TrendForecaster ejecuta numpy en
+> `subprocess.run` aislado (cwd/env acotado, en `asyncio.to_thread`), no vía
+> el servidor MCP sandbox. El protocolo MCP STDIO de `execution_client` se
+> reparó (JSON-RPC real, antes era ad-hoc roto), pero el `stdio_client` del
+> SDK MCP tiene un teardown que cuelga en Windows con servidores lentos
+> (`list_libraries` ✓, `execute_code` ✗). El subproceso directo logra el
+> mismo aislamiento, es portable, y degrada con 3 niveles.

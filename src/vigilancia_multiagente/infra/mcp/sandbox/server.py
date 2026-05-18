@@ -1,4 +1,10 @@
-"""Sandbox MCP server — executes user-submitted Python code in an isolated subprocess."""
+"""Sandbox MCP server — executes user-submitted Python code in-process.
+
+El servidor corre como proceso MCP separado del backend (ahí reside el
+aislamiento de proceso). El código del usuario se ejecuta con ``exec()`` en
+un hilo con timeout: anidar un subproceso bajo el loop JSON-RPC del SDK MCP
+cuelga en Windows, así que se evita el anidamiento.
+"""
 
 import asyncio
 import base64
@@ -7,16 +13,18 @@ import io
 import json
 import os
 import subprocess
-import sys
 import tempfile
 import time
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeout
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import aiofiles
 import mcp.types as types
-from mcp.server import Server
+from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
@@ -158,44 +166,59 @@ async def _execute_code(code: str, timeout: int) -> dict[str, Any]:
 
     try:
         with tempfile.TemporaryDirectory(prefix="sandbox_") as tmpdir:
-            file_path = os.path.join(tmpdir, "script.py")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(code)
-
-            clean_env = {
-                "PATH": os.environ.get("PATH", ""),
-                "HOME": tmpdir,
+            # Ejecución IN-PROCESS con exec() en un hilo, NO subprocess.
+            # Este servidor ya corre como proceso MCP separado del backend
+            # (ahí está el aislamiento de proceso); anidar un subproceso bajo
+            # el loop JSON-RPC del SDK cuelga en Windows. exec() en un thread
+            # con timeout evita el anidamiento y mantiene cwd aislado en un
+            # tempdir efímero. Globals acotados; stdout/stderr capturados.
+            out_buf = io.StringIO()
+            err_buf = io.StringIO()
+            exec_globals: dict[str, Any] = {
+                "__name__": "__sandbox__",
+                "__builtins__": __builtins__,
             }
 
-            proc = await asyncio.create_subprocess_exec(
-                sys.executable,
-                "-u",
-                file_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=clean_env,
-            )
+            def _run_code() -> None:
+                prev_cwd = os.getcwd()
+                try:
+                    os.chdir(tmpdir)
+                    with redirect_stdout(out_buf), redirect_stderr(err_buf):
+                        exec(compile(code, "<sandbox>", "exec"), exec_globals)
+                finally:
+                    os.chdir(prev_cwd)
 
-            try:
-                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-                returncode = proc.returncode
-                success = returncode == 0
-                if not success:
-                    error = (
-                        stderr.decode("utf-8", errors="replace")
-                        or f"Non-zero exit code: {returncode}"
-                    )
-                result = {
-                    "status": "success" if success else "error",
-                    "stdout": stdout.decode("utf-8", errors="replace"),
-                    "stderr": stderr.decode("utf-8", errors="replace"),
-                    "returncode": returncode,
-                }
-            except TimeoutError:
-                proc.kill()
-                await proc.wait()
+            timed_out = False
+            run_error: BaseException | None = None
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(_run_code)
+                try:
+                    future.result(timeout=timeout)
+                except FuturesTimeout:
+                    timed_out = True
+                except BaseException as exc:
+                    run_error = exc
+
+            if timed_out:
                 error = f"Execution timed out after {timeout}s"
                 result = {"status": "error", "error": error}
+            elif run_error is not None:
+                error = f"{type(run_error).__name__}: {run_error}"
+                result = {
+                    "status": "error",
+                    "error": error,
+                    "stdout": out_buf.getvalue(),
+                    "stderr": err_buf.getvalue() or error,
+                    "returncode": 1,
+                }
+            else:
+                success = True
+                result = {
+                    "status": "success",
+                    "stdout": out_buf.getvalue(),
+                    "stderr": err_buf.getvalue(),
+                    "returncode": 0,
+                }
 
             result["duration_ms"] = int((time.monotonic() - start) * 1000)
     except Exception as e:
@@ -363,6 +386,10 @@ async def main() -> None:
             InitializationOptions(
                 server_name="sandbox-mcp",
                 server_version="1.0.0",
+                capabilities=app.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={},
+                ),
             ),
         )
 
