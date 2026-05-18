@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { BranchAgent, ThinkingStep, BranchAgentStatus, BranchType } from '@/types';
+import type {
+  BranchAgent,
+  ThinkingStep,
+  BranchAgentStatus,
+  BranchType,
+  ReplanSignal,
+} from '@/types';
 
 const createAgent = (branchType: BranchType): BranchAgent => ({
   branchType,
@@ -13,9 +19,11 @@ const createAgent = (branchType: BranchType): BranchAgent => ({
 interface AgentsStore {
   agents: Record<string, BranchAgent>;
   selectedAgentIndex: number;
+  replanSignals: ReplanSignal[];
   setSelectedAgent: (index: number) => void;
   updateAgent: (branchType: string, updates: Partial<BranchAgent>) => void;
   addIteration: (branchType: string, step: ThinkingStep) => void;
+  addReplanSignal: (signal: ReplanSignal) => void;
   setAgentStatus: (branchType: string, status: BranchAgentStatus) => void;
   resetAgents: () => void;
   initializeAgents: (branchTypes: readonly BranchType[]) => void;
@@ -24,6 +32,7 @@ interface AgentsStore {
 export const useAgentsStore = create<AgentsStore>()((set) => ({
   agents: {},
   selectedAgentIndex: 0,
+  replanSignals: [],
 
   setSelectedAgent: (index) => set({ selectedAgentIndex: index }),
 
@@ -48,6 +57,9 @@ export const useAgentsStore = create<AgentsStore>()((set) => ({
       };
     }),
 
+  addReplanSignal: (signal) =>
+    set((state) => ({ replanSignals: [...state.replanSignals, signal] })),
+
   setAgentStatus: (branchType, status) =>
     set((state) => {
       const agent = state.agents[branchType];
@@ -55,7 +67,7 @@ export const useAgentsStore = create<AgentsStore>()((set) => ({
       return { agents: { ...state.agents, [branchType]: { ...agent, status } } };
     }),
 
-  resetAgents: () => set({ agents: {}, selectedAgentIndex: 0 }),
+  resetAgents: () => set({ agents: {}, selectedAgentIndex: 0, replanSignals: [] }),
 
   initializeAgents: (branchTypes) =>
     set((state) => {

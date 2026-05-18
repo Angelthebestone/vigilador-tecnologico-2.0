@@ -9,7 +9,10 @@ from typing import Any
 _QUERY_TYPES: dict[str, tuple[str, ...]] = {
     "academic": (
         "search_papers",
+        "download_paper",
+        "read_paper",
         "search_google_scholar_key_words",
+        "search_works",
         "convert_to_markdown",
         "read_url",
     ),
@@ -21,6 +24,8 @@ _QUERY_TYPES: dict[str, tuple[str, ...]] = {
     ),
     "people": (
         "web_search_advanced_exa",
+        "search_authors_by_expertise",
+        "get_author_info",
         "brave_web_search",
         "browser_navigate",
         "read_url",
@@ -28,10 +33,22 @@ _QUERY_TYPES: dict[str, tuple[str, ...]] = {
     "patent": (
         "search_google_scholar_advanced",
         "search_papers",
+        "download_paper",
+        "read_paper",
+        "search_works",
         "convert_to_markdown",
         "read_url",
     ),
     "news": ("brave_news_search", "browser_navigate", "tavily_search", "web_search_exa"),
+    "bibliometric": (
+        "search_works",
+        "get_citation_network",
+        "get_top_cited_works",
+        "analyze_topic_trends",
+        "get_trending_topics",
+        "compare_research_areas",
+        "analyze_geographic_distribution",
+    ),
     "deep_research": (
         "tavily_extract",
         "execute_code",
@@ -65,7 +82,54 @@ _KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "patent": ("patent", "ip", "intellectual property", "trademark", "copyright"),
     "news": ("news", "announce", "release", "latest", "update", "today"),
+    "bibliometric": (
+        "citation",
+        "citas",
+        "h-index",
+        "impact factor",
+        "bibliometric",
+        "bibliométrico",
+        "co-authorship",
+        "coautoría",
+        "research trend",
+        "tendencia de investigación",
+        "most cited",
+        "más citado",
+    ),
     "deep_research": ("analysis", "comparison", "review", "state of the art", "survey"),
+}
+
+# tool -> query type. Single source of truth, reusada por ToolSelector para
+# calcular afinidad query→tool sin duplicar la tabla. Toda tool registrada
+# que un selector pueda recibir debería tener entrada aquí.
+TOOL_QUERY_TYPES: dict[str, str] = {
+    "search_papers": "academic",
+    "download_paper": "academic",
+    "read_paper": "academic",
+    "search_google_scholar_key_words": "academic",
+    "search_google_scholar_advanced": "patent",
+    "get_author_info": "people",
+    "brave_web_search": "general",
+    "brave_news_search": "news",
+    "tavily_search": "general",
+    "tavily_extract": "deep_research",
+    "web_search_exa": "general",
+    "web_search_advanced_exa": "company",
+    "firecrawl_scrape": "deep_research",
+    "read_url": "general",
+    "fetch": "deep_research",
+    "convert_to_markdown": "deep_research",
+    "browser_navigate": "company",
+    "execute_code": "deep_research",
+    "search_works": "bibliometric",
+    "get_citation_network": "bibliometric",
+    "get_top_cited_works": "bibliometric",
+    "analyze_topic_trends": "bibliometric",
+    "get_trending_topics": "bibliometric",
+    "compare_research_areas": "bibliometric",
+    "analyze_geographic_distribution": "bibliometric",
+    "find_seminal_papers": "academic",
+    "search_authors_by_expertise": "people",
 }
 
 
@@ -84,22 +148,7 @@ class SmartToolRouter:
     source_scorer: Any = None
     strategy_memory: Any = None  # StrategyMemory opcional; sesga el tool-order
 
-    _TOOL_QUERY_TYPES: dict[str, str] = field(
-        default_factory=lambda: {
-            "search_papers": "academic",
-            "search_google_scholar_key_words": "academic",
-            "search_google_scholar_advanced": "academic",
-            "brave_web_search": "general",
-            "brave_news_search": "news",
-            "tavily_search": "general",
-            "tavily_extract": "deep_research",
-            "web_search_exa": "general",
-            "web_search_advanced_exa": "company",
-            "firecrawl_scrape": "deep_research",
-            "read_url": "general",
-            "fetch": "deep_research",
-        }
-    )
+    _TOOL_QUERY_TYPES: dict[str, str] = field(default_factory=lambda: dict(TOOL_QUERY_TYPES))
 
     def classify(self, query: str) -> str:
         """Classify *query* into a type based on keyword matching.

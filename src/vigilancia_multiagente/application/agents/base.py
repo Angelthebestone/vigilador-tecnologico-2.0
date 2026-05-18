@@ -11,6 +11,7 @@ from uuid import uuid4
 from vigilancia_multiagente.application.extraction.entity_extractor import extract_from_payloads
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
+from vigilancia_multiagente.application.governance.smart_router import TOOL_QUERY_TYPES
 from vigilancia_multiagente.application.governance.validators import PromptValidator
 from vigilancia_multiagente.application.research.followup_loop import (
     IterationResult,
@@ -27,6 +28,10 @@ from vigilancia_multiagente.application.research.semantic_relations import (
     build_relations,
 )
 from vigilancia_multiagente.application.research.temporal_window import resolve_temporal_window
+from vigilancia_multiagente.application.routing.tool_selector import (
+    SelectionContext,
+    ToolSelector,
+)
 from vigilancia_multiagente.domain.models import (
     BranchConfig,
     BranchResult,
@@ -108,17 +113,19 @@ class BaseBranchAgent:
         policy = self._governance_loader.load_skill_matrix()[self.branch_type]
         from vigilancia_multiagente.api.dependencies import smart_router
 
-        smart_order = (
-            smart_router.select(branch_config.focus_queries[0])
-            if branch_config.focus_queries
-            else ()
-        )
-        tool_order = smart_order or policy.tool_order
+        seed = branch_config.focus_queries[0] if branch_config.focus_queries else ""
+        smart_order = smart_router.select(seed) if seed else ()
+        # El conjunto disponible: lo que el router sugiere para esta query, o
+        # la policy de la rama. Ya no es un guion posicional — ToolSelector
+        # elige dentro de él por señal en cada iteración.
+        available_tools = tuple(smart_order or policy.tool_order)
+        query_type = smart_router.classify(seed) if seed else "general"
+        tool_selector = ToolSelector(available_tools, TOOL_QUERY_TYPES)
         branch_overlay = self._governance_loader.load_branch_overlay(self.branch_type)
         temporal = resolve_temporal_window(self.branch_type)
         seed_query = branch_config.focus_queries[0]
-        self._provider_registry.validate_ready(tuple(tool_order))
-        provider_names = branch_config.mcp_providers or list(tool_order)
+        self._provider_registry.validate_ready(available_tools)
+        provider_names = branch_config.mcp_providers or list(available_tools)
         providers = self._resolve_providers(provider_names, policy)
         if not providers:
             raise RuntimeError(f"No MCP providers configured for {self.branch_type.value}")
@@ -142,9 +149,23 @@ class BaseBranchAgent:
         query_payloads: list[dict[str, object]] = []
         strategist = FollowupStrategist()
         explored_terms: set[str] = {seed_query}
+        # Estado de selección entre iteraciones: la tool previa habilita la
+        # cadena forzada (MiniMax+PDF) y evita repeticiones; la sugerencia
+        # viene del next_query del payload anterior.
+        last_tool: str | None = None
+        suggested_tool: str | None = None
 
         async def execute(query: str, index: int) -> tuple[bool, str | None]:
-            tool_name = policy.tool_order[min(index - 1, len(policy.tool_order) - 1)]
+            nonlocal last_tool, suggested_tool
+            tool_name = tool_selector.select(
+                SelectionContext(
+                    iteration_index=index,
+                    query_type=query_type,
+                    last_tool=last_tool,
+                    suggested_tool=suggested_tool,
+                )
+            )
+            last_tool = tool_name
             provider = self._select_provider(providers, tool_name)
             started = time.perf_counter()
             execution = await self._execution_client.execute_tool(
@@ -169,6 +190,11 @@ class BaseBranchAgent:
             query_payloads.append(payload)
             confidence = float(payload.get("confidence", 0.0))
             mcp_suggestion = payload.get("next_query")
+            # Señal opcional del proveedor: qué tool conviene a continuación
+            # (p.ej. tras search_papers sugiere download_paper). El selector
+            # la respeta si está en el conjunto disponible.
+            nxt = payload.get("next_tool")
+            suggested_tool = nxt if isinstance(nxt, str) else None
             needs_follow_up = bool(
                 payload.get("needs_follow_up", index < depth_limit and confidence < 0.8)
             )

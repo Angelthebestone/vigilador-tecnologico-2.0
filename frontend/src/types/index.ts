@@ -147,12 +147,29 @@ export type BranchKPI = {
   latencyMsKpi: number;
 };
 
+export type ConfidenceBucket = {
+  bucket: string;
+  predicted: number;
+  observed: number;
+  samples: number;
+  factor: number;
+};
+
+export type ReplanSignal = {
+  signalType: string;
+  sourceBranch: BranchType;
+  targetBranch: BranchType;
+  description: string;
+  directive: string;
+};
+
 export type AnalysisMetrics = {
   branchKpis: BranchKPI[];
   providerMetrics: ProviderMetric[];
   confidenceScore: number;
   totalSources: number;
   totalFindings: number;
+  confidenceCalibration: ConfidenceBucket[];
 };
 
 /**

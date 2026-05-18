@@ -1,7 +1,13 @@
 import { useStore } from './useStore';
 import { useChatStore } from './chatStore';
 import { useAgentsStore } from './agentsStore';
-import type { ResearchPlan, FinalReport, ThinkingStep, BranchType } from '@/types';
+import type {
+  ResearchPlan,
+  FinalReport,
+  ThinkingStep,
+  BranchType,
+  ReplanSignal,
+} from '@/types';
 
 interface SessionStartedData {
   sessionId: string;
@@ -74,6 +80,10 @@ export function createSSEHandlers(): Record<string, (data: unknown) => void> {
     BranchProgress: (data) => {
       const d = data as BranchProgressData;
       agentsStore.addIteration(d.branch, d.iteration);
+    },
+
+    ReplanTriggered: (data) => {
+      agentsStore.addReplanSignal(data as ReplanSignal);
     },
 
     BranchCompleted: (data) => {

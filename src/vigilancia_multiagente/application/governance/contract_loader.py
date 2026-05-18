@@ -86,12 +86,17 @@ class GovernanceContractLoader:
         return {
             BranchType.AVANCES: AgentSkillPolicy(
                 branch_type=BranchType.AVANCES,
+                # Conjunto disponible (ToolSelector elige por señal). Tools
+                # bibliométricas OpenAlex añadidas: redes de citación y
+                # tendencias emergentes son señal central de vigilancia.
                 allowed_tools=(
                     "tavily_search",
                     "web_search_exa",
                     "read_url",
                     "search_works",
                     "analyze_topic_trends",
+                    "get_citation_network",
+                    "get_trending_topics",
                 ),
                 tool_order=(
                     "tavily_search",
@@ -99,6 +104,8 @@ class GovernanceContractLoader:
                     "read_url",
                     "search_works",
                     "analyze_topic_trends",
+                    "get_citation_network",
+                    "get_trending_topics",
                 ),
                 timeout_ms_per_tool={
                     "tavily_search": 20000,
@@ -106,6 +113,8 @@ class GovernanceContractLoader:
                     "read_url": 30000,
                     "search_works": 30000,
                     "analyze_topic_trends": 30000,
+                    "get_citation_network": 30000,
+                    "get_trending_topics": 30000,
                 },
                 retry_limit_per_tool={
                     "tavily_search": 2,
@@ -113,6 +122,8 @@ class GovernanceContractLoader:
                     "read_url": 1,
                     "search_works": 2,
                     "analyze_topic_trends": 2,
+                    "get_citation_network": 2,
+                    "get_trending_topics": 2,
                 },
             ),
             BranchType.COMERCIAL: AgentSkillPolicy(
@@ -147,9 +158,14 @@ class GovernanceContractLoader:
             ),
             BranchType.PI_NORMATIVA: AgentSkillPolicy(
                 branch_type=BranchType.PI_NORMATIVA,
+                # Conjunto disponible (ToolSelector elige por señal, no por
+                # orden). Cadena ArXiv completa: search→download→read; sin
+                # read_paper el agente encontraba papers pero no los leía.
                 allowed_tools=(
                     "search_google_scholar_key_words",
                     "search_papers",
+                    "download_paper",
+                    "read_paper",
                     "read_url",
                     "search_works",
                     "find_seminal_papers",
@@ -157,6 +173,8 @@ class GovernanceContractLoader:
                 tool_order=(
                     "search_google_scholar_key_words",
                     "search_papers",
+                    "download_paper",
+                    "read_paper",
                     "read_url",
                     "search_works",
                     "find_seminal_papers",
@@ -164,6 +182,8 @@ class GovernanceContractLoader:
                 timeout_ms_per_tool={
                     "search_google_scholar_key_words": 25000,
                     "search_papers": 25000,
+                    "download_paper": 30000,
+                    "read_paper": 25000,
                     "read_url": 30000,
                     "search_works": 30000,
                     "find_seminal_papers": 30000,
@@ -171,6 +191,8 @@ class GovernanceContractLoader:
                 retry_limit_per_tool={
                     "search_google_scholar_key_words": 2,
                     "search_papers": 2,
+                    "download_paper": 2,
+                    "read_paper": 1,
                     "read_url": 1,
                     "search_works": 2,
                     "find_seminal_papers": 2,
@@ -178,17 +200,36 @@ class GovernanceContractLoader:
             ),
             BranchType.COMPETITIVO: AgentSkillPolicy(
                 branch_type=BranchType.COMPETITIVO,
-                allowed_tools=("web_search_advanced_exa", "brave_news_search", "read_url"),
-                tool_order=("web_search_advanced_exa", "brave_news_search", "read_url"),
+                # search_authors_by_expertise + get_author_info: mapear
+                # líderes técnicos y expertos de competidores era capacidad
+                # registrada pero nunca invocada por ningún sistema.
+                allowed_tools=(
+                    "web_search_advanced_exa",
+                    "brave_news_search",
+                    "read_url",
+                    "search_authors_by_expertise",
+                    "get_author_info",
+                ),
+                tool_order=(
+                    "web_search_advanced_exa",
+                    "brave_news_search",
+                    "read_url",
+                    "search_authors_by_expertise",
+                    "get_author_info",
+                ),
                 timeout_ms_per_tool={
                     "web_search_advanced_exa": 25000,
                     "brave_news_search": 20000,
                     "read_url": 30000,
+                    "search_authors_by_expertise": 30000,
+                    "get_author_info": 25000,
                 },
                 retry_limit_per_tool={
                     "web_search_advanced_exa": 2,
                     "brave_news_search": 2,
                     "read_url": 1,
+                    "search_authors_by_expertise": 2,
+                    "get_author_info": 2,
                 },
             ),
             BranchType.OPORTUNIDADES: AgentSkillPolicy(

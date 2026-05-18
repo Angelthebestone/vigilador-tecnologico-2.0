@@ -31,6 +31,20 @@
   <fallback>If it fails, use search_google_scholar_key_words with year in the query</fallback>
 </tool>
 
+<tool name="get_author_info">
+  <function_signature>## get_author_info(author_name: str)</function_signature>
+  <best_for>profiling a specific researcher: affiliation, citation metrics, research areas</best_for>
+  <details>Returns author-level data (not papers). Use to map key players and expertise of competitors.</details>
+  <limits>Timeout: 25s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>You identified a relevant author and need their full profile / impact</use_when>
+    <use_when>Competitive intelligence: who leads research at a given organization</use_when>
+    <prefer_over>OpenAlex get_author_profile when the name comes from a Scholar result</prefer_over>
+    <avoid_when>You need a list of papers (use the search tools instead)</avoid_when>
+  </selection_heuristics>
+  <fallback>If it fails (scraping blocked), use OpenAlex search_authors_by_expertise with the topic</fallback>
+</tool>
+
 <rules>
   <rule>Combine with ArXiv for better coverage.</rule>
   <rule>ArXiv first (faster, direct download), then Scholar if coverage is lacking.</rule>

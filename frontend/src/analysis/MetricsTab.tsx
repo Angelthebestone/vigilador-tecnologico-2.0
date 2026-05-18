@@ -131,6 +131,47 @@ export function MetricsTab({ metrics, loading, error }: MetricsTabProps) {
           </tbody>
         </table>
       </div>
+
+      {metrics.confidenceCalibration.length > 0 && (
+        <div>
+          <h3 className="atlas-section-title">
+            Calibración de confianza{' '}
+            <small>// predicho · observado · factor de corrección</small>
+          </h3>
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th>Bucket</th>
+                <th>Predicho</th>
+                <th>Observado</th>
+                <th>Muestras</th>
+                <th>Factor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.confidenceCalibration.map((b) => (
+                <tr key={b.bucket}>
+                  <td>{b.bucket}</td>
+                  <td>{pct(b.predicted)}</td>
+                  <td>{pct(b.observed)}</td>
+                  <td>{b.samples}</td>
+                  <td>
+                    <span
+                      className={
+                        b.factor < 1
+                          ? 'dtable__delta dtable__delta--down'
+                          : 'dtable__delta dtable__delta--up'
+                      }
+                    >
+                      ×{b.factor.toFixed(2)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

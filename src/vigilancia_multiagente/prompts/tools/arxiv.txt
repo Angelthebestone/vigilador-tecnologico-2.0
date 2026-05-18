@@ -1,7 +1,12 @@
 <tool name="search_papers">
-  <function_signature>## search_papers(query: str, max_results: int, categories: ["cs.AI","cs.LG",...], sort_by: "date"|"relevance")</function_signature>
+  <function_signature>## search_papers(query: str, max_results: int, categories: ["cs.AI","cs.LG",...], date_from: "YYYY-MM-DD", date_to: "YYYY-MM-DD", sort_by: "date"|"relevance")</function_signature>
   <best_for>technical paper search on ArXiv</best_for>
   <details>categories filter by CS, physics, math, etc. sort_by="date" for latest papers.</details>
+  <parameters>
+    <param name="date_from" description="ISO date lower bound — use for precise temporal windows in trend analysis"/>
+    <param name="date_to" description="ISO date upper bound — pair with date_from to bound a period exactly"/>
+    <param name="categories" description="cs.AI, cs.LG, cs.CL, cs.CV, cs.NE, stat.ML, math.OC, quant-ph, eess.SP and more"/>
+  </parameters>
   <limits>Timeout: 25s, retries: 2</limits>
   <selection_heuristics>
     <prefer_over>Scholar for CS/ML/AI/Robotics papers — ArXiv is faster and more complete</prefer_over>
@@ -23,20 +28,23 @@
   <order>Must call BEFORE read_paper</order>
   <limits>Timeout: 25s, retries: 2</limits>
   <usage>Use the paper_id from search_papers results</usage>
+  <critical>download_paper returns a PDF/binary, NOT usable text. It is useless on its own — you MUST call read_paper next to get the markdown text. Never stop after download_paper.</critical>
   <fallback>If it fails, try Jina read_url with the ArXiv abstract URL</fallback>
 </tool>
 
 <tool name="read_paper">
   <function_signature>## read_paper(paper_id: str)</function_signature>
-  <best_for>reading downloaded paper content</best_for>
+  <best_for>reading downloaded paper content as markdown text</best_for>
   <order>Requires download_paper first</order>
   <limits>Timeout: 25s, retries: 2</limits>
+  <critical>This is the ONLY way to get readable text from a downloaded paper. The system cannot process the raw PDF — always finish the chain here.</critical>
   <fallback>If it fails because download_paper was not called, run it first</fallback>
 </tool>
 
 <rules>
-  <rule>search_papers first, then download_paper, then read_paper. Strict sequence.</rule>
+  <rule>search_papers first, then download_paper, then read_paper. Strict sequence — never break it.</rule>
+  <rule>download_paper without a following read_paper is wasted: the raw PDF is not readable text. The chain MUST end in read_paper.</rule>
   <rule>Categorize the search well to avoid noise (use specific categories).</rule>
-  <rule>Prioritize recent papers (last 2 years) for trends.</rule>
+  <rule>Use date_from/date_to for precise temporal windows; prioritize recent papers (last 2 years) for trends.</rule>
   <rule>Abstracts may suffice for initial findings — download+read for deep analysis.</rule>
 </rules>

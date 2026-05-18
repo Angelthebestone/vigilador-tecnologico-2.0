@@ -1,7 +1,9 @@
 import type { BranchAgent } from '@/types';
 import { Button, Icon, StateBlock } from '@/components';
+import { useAgentsStore } from '@/state/agentsStore';
 import { AgentStatusStrip } from './AgentStatusStrip';
 import { AgentDetailPanel } from './AgentDetailPanel';
+import { ReplanSignals } from './ReplanSignals';
 
 interface AgentSidebarProps {
   agents: BranchAgent[];
@@ -18,6 +20,7 @@ export function AgentSidebar({
 }: AgentSidebarProps) {
   const safeIndex = Math.max(0, Math.min(selectedIndex, agents.length - 1));
   const current = agents[safeIndex];
+  const replanSignals = useAgentsStore((s) => s.replanSignals);
 
   return (
     <aside className="agentbar" aria-label="Observatorio de agentes">
@@ -47,6 +50,7 @@ export function AgentSidebar({
             selectedIndex={safeIndex}
             onSelect={onSelect}
           />
+          <ReplanSignals signals={replanSignals} />
           {current && (
             <>
               <div className="agentdetail__nav" style={{ paddingBottom: 10 }}>

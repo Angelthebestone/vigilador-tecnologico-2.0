@@ -9,6 +9,7 @@ prompt assembly in the agent runtime.
 from __future__ import annotations
 
 import logging
+import re
 from uuid import uuid4
 
 from vigilancia_multiagente.application.governance.contract_loader import AgentSkillPolicy
@@ -33,6 +34,7 @@ _TOOL_PROMPT_NAMES = {
     "firecrawl_scrape": "firecrawl",
     "search_google_scholar_key_words": "scholar",
     "search_google_scholar_advanced": "scholar",
+    "get_author_info": "scholar",
     "search_papers": "arxiv",
     "download_paper": "arxiv",
     "read_paper": "arxiv",
@@ -145,17 +147,28 @@ class PromptComposer:
         # --- Skill Matrix + Tool Usage Guides: tools disponibles para esta rama ---
         if policy is not None:
             sections["skill_matrix"] = _render_skill_matrix(policy)
+            allowed = set(policy.allowed_tools) or set(policy.tool_order)
             tool_sections = []
+            seen_guides: set[str] = set()
             for tool in policy.tool_order:
                 prompt_name = _TOOL_PROMPT_NAMES.get(tool)
                 if prompt_name is None:
                     logger.debug("No tool prompt mapping for %s", tool)
                     continue
+                # Una guía documenta TODAS las tools de su proveedor; cargarla
+                # una sola vez y filtrar a las tools que esta rama puede usar
+                # evita ruido (tools no permitidas) y duplicados.
+                if prompt_name in seen_guides:
+                    continue
+                seen_guides.add(prompt_name)
                 try:
                     content = load_prompt(f"tools/{prompt_name}")
-                    tool_sections.append(f"### {tool}\n\n{content}")
                 except FileNotFoundError:
                     logger.debug("No tool usage guide found for %s", tool)
+                    continue
+                filtered = _filter_tool_guide(content, allowed)
+                if filtered:
+                    tool_sections.append(filtered)
             if tool_sections:
                 sections["tool_usage"] = "## Tool Usage Guides\n\n" + "\n\n".join(tool_sections)
 
@@ -223,6 +236,32 @@ class PromptComposer:
             full_text=full_text,
             prompt_composition_id=composed_id,
         )
+
+
+_TOOL_BLOCK_RE = re.compile(r'<tool name="([^"]+)">.*?</tool>', re.DOTALL)
+_RULES_BLOCK_RE = re.compile(r"<rules>.*?</rules>", re.DOTALL)
+
+
+def _filter_tool_guide(content: str, allowed: set[str]) -> str:
+    """Keep only ``<tool>`` blocks whose name is in *allowed*.
+
+    A guide file documents every tool of its provider (e.g. all 20 OpenAlex
+    tools). A branch may only use a few. Stripping the non-allowed blocks
+    removes prompt noise that would otherwise dilute tool-selection focus,
+    while the trailing ``<rules>`` block (compact selection guidance) is kept.
+
+    Falls back to the full content if no ``<tool>`` blocks are present (the
+    guide doesn't follow the convention) so behaviour never silently breaks.
+    """
+    blocks = [m.group(0) for m in _TOOL_BLOCK_RE.finditer(content) if m.group(1) in allowed]
+    if not blocks:
+        if _TOOL_BLOCK_RE.search(content) is None:
+            return content.strip()
+        return ""
+    rules = _RULES_BLOCK_RE.search(content)
+    if rules:
+        blocks.append(rules.group(0))
+    return "\n\n".join(blocks).strip()
 
 
 def _fmt_list(header: str, items: tuple[str, ...]) -> str:

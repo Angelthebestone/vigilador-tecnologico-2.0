@@ -122,7 +122,7 @@ RESEARCH_PLAN = {
                 "comparativa implementación IA automotriz competidores",
                 *_delta_focus("COMPETITIVO"),
             ],
-            "mcpProviders": ["exa", "brave", "jina"],
+            "mcpProviders": ["exa", "brave", "jina", "openalex", "google_scholar"],
             "priorityWeight": 1.0,
         },
         {
@@ -138,6 +138,26 @@ RESEARCH_PLAN = {
         },
     ],
 }
+
+# Planner reactivo: señales que el BranchCoordinator procesa mid-execution.
+# Una rama detecta un gap/entidad y se inyecta una directiva a otra rama
+# (espejo de ReplanAction: trigger_signal → target_branch → directive).
+REPLAN_SIGNALS: list[dict] = [
+    {
+        "signalType": "gap_detected",
+        "sourceBranch": "AVANCES",
+        "targetBranch": "PI_NORMATIVA",
+        "description": "Patente clave citada sin cobertura normativa",
+        "directive": "Investigar estado legal de US-2024-318xxx (prior art)",
+    },
+    {
+        "signalType": "entity_discovered",
+        "sourceBranch": "COMPETITIVO",
+        "targetBranch": "COMERCIAL",
+        "description": "Nuevo actor relevante detectado: Cognex Corp.",
+        "directive": "Ampliar análisis de mercado incluyendo Cognex",
+    },
+]
 
 # Iteraciones de razonamiento por rama (lo que muestra AgentDetailPanel)
 BRANCH_ITERATIONS: dict[str, list[dict]] = {
@@ -269,6 +289,28 @@ BRANCH_ITERATIONS: dict[str, list[dict]] = {
             "result": "Identificados 7 trabajos fundacionales que actúan como prior art clave; 3 patentes recientes de Bosch citan directamente a 2 de ellos.",
             "confidence": 0.91,
         },
+        {
+            "stepNumber": 4,
+            "reasoning": "Descargando el paper fundacional más citado para leer su contenido completo (la cadena search→download→read garantiza texto, no PDF crudo).",
+            "toolCall": {
+                "tool": "download_paper",
+                "query": "arxiv:2103.xxxxx foundational AI manufacturing",
+                "result": "Paper descargado localmente; pendiente de extracción a texto.",
+            },
+            "result": "Paper fundacional descargado. download_paper entrega binario — se encadena read_paper para obtener texto procesable.",
+            "confidence": 0.88,
+        },
+        {
+            "stepNumber": 5,
+            "reasoning": "Extrayendo el texto del paper descargado (read_paper cierra la cadena: el modelo solo procesa texto, no PDFs).",
+            "toolCall": {
+                "tool": "read_paper",
+                "query": "arxiv:2103.xxxxx full text",
+                "result": "Texto markdown del paper extraído (~14k palabras).",
+            },
+            "result": "Reivindicaciones técnicas del paper analizadas: 2 de las 5 patentes de Bosch solapan con el método descrito en la sección 4 — riesgo de prior art confirmado.",
+            "confidence": 0.92,
+        },
     ],
     "COMPETITIVO": [
         {
@@ -292,6 +334,17 @@ BRANCH_ITERATIONS: dict[str, list[dict]] = {
             },
             "result": "Tesla produce 1 vehículo cada 40 segundos con 65% menos personal de QC gracias a visión IA; 35% más eficiente que promedio industria.",
             "confidence": 0.88,
+        },
+        {
+            "stepNumber": 3,
+            "reasoning": "Mapeando los líderes técnicos de IA en manufactura de los competidores vía OpenAlex (señal: query de tipo 'people' activa search_authors_by_expertise).",
+            "toolCall": {
+                "tool": "search_authors_by_expertise",
+                "query": "AI manufacturing automotive process optimization experts",
+                "result": "Top 15 investigadores por h-index, con afiliación institucional/corporativa.",
+            },
+            "result": "3 de los 5 investigadores líderes en IA-manufactura están afiliados a Toyota Research y Bosch; señal de concentración de talento en 2 competidores.",
+            "confidence": 0.84,
         },
     ],
     "OPORTUNIDADES": [
@@ -1231,14 +1284,17 @@ async def research_stream(session_id: str):
             yield sse_event("BranchStarted", {"branch": branch})
         await asyncio.sleep(0.5)
 
-        # Emitir iteraciones escalonadas por rama
+        # Emitir iteraciones escalonadas por rama. Un delay por paso de
+        # BRANCH_ITERATIONS — debe tener al menos tantos elementos como
+        # pasos tenga la rama (si no, el paso cae al fallback 1.0s y el
+        # ritmo se aplana).
         delays = {
-            "AVANCES": [1.0, 1.8, 1.5],
-            "COMERCIAL": [1.2, 1.6, 0],
-            "RIESGO": [1.4, 1.5, 0],
-            "PI_NORMATIVA": [1.0, 1.7, 0],
-            "COMPETITIVO": [1.3, 1.4, 0],
-            "OPORTUNIDADES": [1.1, 1.3, 0],
+            "AVANCES": [1.0, 1.8, 1.5, 1.6],
+            "COMERCIAL": [1.2, 1.6],
+            "RIESGO": [1.4, 1.5],
+            "PI_NORMATIVA": [1.0, 1.7, 1.5, 1.4, 1.6],
+            "COMPETITIVO": [1.3, 1.4, 1.5],
+            "OPORTUNIDADES": [1.1, 1.3],
         }
 
         # Entrelazar iteraciones en orden temporal aproximado
@@ -1259,6 +1315,15 @@ async def research_stream(session_id: str):
                 await asyncio.sleep(delay - accumulated)
                 accumulated = delay
                 yield sse_event("BranchProgress", {"branch": branch, "iteration": iteration})
+
+            # Planner reactivo: tras el primer barrido, una rama detecta un
+            # gap y el BranchCoordinator inyecta una directiva a otra rama a
+            # mitad de ejecución (gap_detected → ReplanAction → directiva).
+            if step_idx == 0:
+                await asyncio.sleep(0.4)
+                for replan in REPLAN_SIGNALS:
+                    yield sse_event("ReplanTriggered", replan)
+                    await asyncio.sleep(0.5)
 
             await asyncio.sleep(0.3)
 
@@ -1428,6 +1493,14 @@ async def research_providers(session_id: str):
         "confidenceScore": 0.847,
         "totalSources": 12,
         "totalFindings": 28,
+        # ConfidenceCalibrator: por bucket [0-0.2..0.8-1.0], confianza media
+        # predicha por los prompts vs tasa real de acierto observada. factor
+        # = real/predicho aplicado para corregir el sesgo del modelo.
+        "confidenceCalibration": [
+            {"bucket": "0.6-0.8", "predicted": 0.71, "observed": 0.64, "samples": 23, "factor": 0.90},
+            {"bucket": "0.8-1.0", "predicted": 0.90, "observed": 0.86, "samples": 41, "factor": 0.96},
+            {"bucket": "0.4-0.6", "predicted": 0.52, "observed": 0.55, "samples": 12, "factor": 1.06},
+        ],
     }
 
 

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import type { AnalysisMetrics, Recommendation, BranchType } from '@/types';
+import type {
+  AnalysisMetrics,
+  Recommendation,
+  BranchType,
+  ConfidenceBucket,
+} from '@/types';
 import { getMetrics, getReport } from '@/api';
 import { useStore } from '@/state/useStore';
 import { AnalysisPanel } from './AnalysisPanel';
@@ -36,6 +41,7 @@ function AnalysisContent({ sessionId }: { sessionId: string | null }) {
           confidenceScore?: number;
           totalSources?: number;
           totalFindings?: number;
+          confidenceCalibration?: ConfidenceBucket[];
         };
         setMetrics({
           branchKpis: raw.branchKpis ?? [],
@@ -49,6 +55,7 @@ function AnalysisContent({ sessionId }: { sessionId: string | null }) {
           confidenceScore: raw.confidenceScore ?? 0,
           totalSources: raw.totalSources ?? 0,
           totalFindings: raw.totalFindings ?? 0,
+          confidenceCalibration: raw.confidenceCalibration ?? [],
         });
       })
       .catch((err: unknown) => {

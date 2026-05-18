@@ -1,9 +1,13 @@
 <tool name="brave_web_search">
-  <function_signature>## brave_web_search(query: str, count: 1-20, freshness: "pd"|"pw"|"pm"|"py")</function_signature>
+  <function_signature>## brave_web_search(query: str, count: 1-20, offset: 0-9, freshness: "pd"|"pw"|"pm"|"py"|"YYYY-MM-DDtoYYYY-MM-DD", country: str, search_lang: str, result_filter: str[])</function_signature>
   <best_for>general web search, privacy-focused</best_for>
-  <constraints>Max query length: 400 chars</constraints>
+  <constraints>Max query length: 400 chars, 50 words</constraints>
   <parameters>
-    <param name="freshness" values="pd|pw|pm|py" description="pd=past day, pw=past week, pm=past month"/>
+    <param name="freshness" values="pd|pw|pm|py|date-range" description="pd=past day, pw=week, pm=month, py=year; also accepts an explicit YYYY-MM-DD to YYYY-MM-DD range"/>
+    <param name="country" description="2-letter code (default US) — use for market-specific intelligence (e.g. MX, IN, DE)"/>
+    <param name="search_lang" description="search language (default en) — pair with country for localized results"/>
+    <param name="offset" description="pagination offset 0-9 — go beyond the first page for broader coverage"/>
+    <param name="result_filter" description="restrict result types, e.g. ['web','news']"/>
   </parameters>
   <limits>Timeout: 20s, retries: 2</limits>
   <selection_heuristics>
@@ -20,10 +24,12 @@
 </tool>
 
 <tool name="brave_news_search">
-  <function_signature>## brave_news_search(query: str, count: 1-50, freshness: "pd"|"pw"|"pm"|"py")</function_signature>
+  <function_signature>## brave_news_search(query: str, count: 1-50, offset: 0-9, freshness: "pd"|"pw"|"pm"|"py", country: str, search_lang: str)</function_signature>
   <best_for>real-time news search</best_for>
   <parameters>
-    <param name="freshness" default="pd" description="last 24 hours"/>
+    <param name="freshness" default="pd" description="last 24 hours; pw/pm/py to widen"/>
+    <param name="country" description="2-letter code — localize news to a target market"/>
+    <param name="offset" description="pagination 0-9 for deeper news coverage"/>
   </parameters>
   <limits>Timeout: 15s, retries: 2</limits>
   <selection_heuristics>
@@ -36,6 +42,8 @@
 
 <rules>
   <rule>Brave is best for real-time news. Use freshness="pd" by default.</rule>
+  <rule>For market-specific intelligence set country/search_lang (e.g. country="MX" for Mexican market signals).</rule>
+  <rule>Use a freshness date-range (YYYY-MM-DD to YYYY-MM-DD) when the analysis window is fixed; use offset to go past the first page.</rule>
   <rule>For deep technical content, prefer Exa or Tavily with search_depth="advanced".</rule>
   <rule>After finding URLs, extract content with Jina read_url or fetch.</rule>
 </rules>
