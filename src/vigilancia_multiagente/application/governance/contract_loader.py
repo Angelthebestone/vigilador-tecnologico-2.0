@@ -86,14 +86,34 @@ class GovernanceContractLoader:
         return {
             BranchType.AVANCES: AgentSkillPolicy(
                 branch_type=BranchType.AVANCES,
-                allowed_tools=("tavily_search", "web_search_exa", "read_url"),
-                tool_order=("tavily_search", "web_search_exa", "read_url"),
+                allowed_tools=(
+                    "tavily_search",
+                    "web_search_exa",
+                    "read_url",
+                    "search_works",
+                    "analyze_topic_trends",
+                ),
+                tool_order=(
+                    "tavily_search",
+                    "web_search_exa",
+                    "read_url",
+                    "search_works",
+                    "analyze_topic_trends",
+                ),
                 timeout_ms_per_tool={
                     "tavily_search": 20000,
                     "web_search_exa": 25000,
                     "read_url": 30000,
+                    "search_works": 30000,
+                    "analyze_topic_trends": 30000,
                 },
-                retry_limit_per_tool={"tavily_search": 2, "web_search_exa": 2, "read_url": 1},
+                retry_limit_per_tool={
+                    "tavily_search": 2,
+                    "web_search_exa": 2,
+                    "read_url": 1,
+                    "search_works": 2,
+                    "analyze_topic_trends": 2,
+                },
             ),
             BranchType.COMERCIAL: AgentSkillPolicy(
                 branch_type=BranchType.COMERCIAL,
@@ -127,17 +147,33 @@ class GovernanceContractLoader:
             ),
             BranchType.PI_NORMATIVA: AgentSkillPolicy(
                 branch_type=BranchType.PI_NORMATIVA,
-                allowed_tools=("search_google_scholar_key_words", "search_papers", "read_url"),
-                tool_order=("search_google_scholar_key_words", "search_papers", "read_url"),
+                allowed_tools=(
+                    "search_google_scholar_key_words",
+                    "search_papers",
+                    "read_url",
+                    "search_works",
+                    "find_seminal_papers",
+                ),
+                tool_order=(
+                    "search_google_scholar_key_words",
+                    "search_papers",
+                    "read_url",
+                    "search_works",
+                    "find_seminal_papers",
+                ),
                 timeout_ms_per_tool={
                     "search_google_scholar_key_words": 25000,
                     "search_papers": 25000,
                     "read_url": 30000,
+                    "search_works": 30000,
+                    "find_seminal_papers": 30000,
                 },
                 retry_limit_per_tool={
                     "search_google_scholar_key_words": 2,
                     "search_papers": 2,
                     "read_url": 1,
+                    "search_works": 2,
+                    "find_seminal_papers": 2,
                 },
             ),
             BranchType.COMPETITIVO: AgentSkillPolicy(

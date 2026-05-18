@@ -51,6 +51,18 @@
   <example>Bad: "more info about AI" → Good: "tinyML adoption rate manufacturing 2024"</example>
 </next_query_guidelines>
 
+<few_shot>
+  <good_finding>
+    statement: "NVIDIA's 2024 paper on FP8 training reduces LLM pretraining cost ~30% vs FP16, validated on 70B-param models (arxiv.org/abs/2310.18313)."
+    confidence: 0.85
+    why: Specific claim, named primary source with URL, quantified, recent, single authoritative source so capped <0.9.
+  </good_finding>
+  <bad_finding>
+    statement: "AI is becoming very important in many industries according to experts."
+    why: Vague, no source, no quantification, "according to experts" without naming them, not actionable. Reject or rewrite.
+  </bad_finding>
+</few_shot>
+
 <rules type="do">
   <rule>Cite sources with full URL</rule>
   <rule>Explicitly declare uncertainty when confidence < 0.7</rule>

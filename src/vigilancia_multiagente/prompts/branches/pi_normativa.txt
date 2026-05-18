@@ -64,6 +64,18 @@ next_query_guidelines>
 </signal_handling>
 next_query_guidelines>
 
+<few_shot>
+  <good_finding>
+    statement: "EU AI Act (Reg. 2024/1689, EUR-Lex 32024R1689) classifies industrial quality-control AI as high-risk; conformity assessment required from Aug 2026. Jurisdiction: EU. This information does not constitute legal advice."
+    confidence: 0.9
+    why: Jurisdiction explicit, regulation number + official body cited, dated, disclaimer included.
+  </good_finding>
+  <bad_finding>
+    statement: "There are new AI regulations that companies should be aware of."
+    why: No jurisdiction, no regulation number, no body, no date, no disclaimer. Reject or rewrite.
+  </bad_finding>
+</few_shot>
+
 <rules type="do">
   <rule>Explicitly identify applicable jurisdiction</rule>
   <rule>Cite patent/standard number with office or body</rule>

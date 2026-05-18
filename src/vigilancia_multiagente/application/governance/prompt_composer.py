@@ -46,10 +46,32 @@ _TOOL_PROMPT_NAMES = {
     "browser_screenshot": "playwright",
     "browser_click": "playwright",
     "browser_type": "playwright",
+    "browser_select_option": "playwright",
+    "browser_hover": "playwright",
     "browser_network_requests": "playwright",
     "browser_network_request": "playwright",
     "browser_tabs": "playwright",
     "understand_image": "minimax_image",
+    "search_works": "openalex",
+    "get_work": "openalex",
+    "get_related_works": "openalex",
+    "search_by_topic": "openalex",
+    "get_work_citations": "openalex",
+    "get_work_references": "openalex",
+    "get_citation_network": "openalex",
+    "get_top_cited_works": "openalex",
+    "search_authors": "openalex",
+    "search_authors_by_expertise": "openalex",
+    "get_author_profile": "openalex",
+    "get_author_collaborators": "openalex",
+    "search_institutions": "openalex",
+    "find_review_articles": "openalex",
+    "find_seminal_papers": "openalex",
+    "analyze_topic_trends": "openalex",
+    "compare_research_areas": "openalex",
+    "get_trending_topics": "openalex",
+    "analyze_geographic_distribution": "openalex",
+    "search_sources": "openalex",
 }
 
 
@@ -66,6 +88,7 @@ class PromptComposer:
         user_query: str,
         branch_config: BranchConfig | None = None,
         policy: AgentSkillPolicy | None = None,
+        cross_branch_context: list[str] | None = None,
     ) -> ComposedPrompt:
         """Build the final prompt by merging system base + overlay + user input.
 
@@ -136,6 +159,17 @@ class PromptComposer:
             if tool_sections:
                 sections["tool_usage"] = "## Tool Usage Guides\n\n" + "\n\n".join(tool_sections)
 
+        # Hallazgos relevantes que otras ramas ya emitieron: la rama investiga
+        # informada en vez de a ciegas, reduciendo redundancia y conectando
+        # hallazgos cross-branch.
+        if cross_branch_context:
+            hints = "\n".join(f"- {h}" for h in cross_branch_context[:10])
+            sections["cross_branch_context"] = (
+                "## Cross-Branch Context\n\n"
+                "Other branches already surfaced these signals — use them to "
+                "avoid redundant queries and to connect findings:\n\n" + hints
+            )
+
         # --- User input ---
         sections["user_query"] = f"## User Query\n\n{user_query}"
 
@@ -165,6 +199,7 @@ class PromptComposer:
             "uncertainty_handling",
             "skill_matrix",
             "tool_usage",
+            "cross_branch_context",
             "user_query",
             "branch_config",
         ]

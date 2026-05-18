@@ -93,6 +93,7 @@ class BaseBranchAgent:
         self._preload_context: dict | None = None
         self._signal_callback = signal_callback or self._noop_signal
         self._cross_branch_hints: deque[str] = deque(maxlen=32)
+        self._reranker = None
 
     def set_preload_context(self, context: dict | None) -> None:
         self._preload_context = context
@@ -131,6 +132,7 @@ class BaseBranchAgent:
                 user_query=session.user_query,
                 branch_config=branch_config,
                 policy=policy,
+                cross_branch_context=list(self._cross_branch_hints) or None,
             )
             self._validator.validate_composition(
                 self._system_base, branch_overlay, session.user_query
@@ -162,6 +164,7 @@ class BaseBranchAgent:
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             payload = execution.payload
             payload["latency_ms"] = elapsed_ms
+            await self._rerank_payload_results(payload, query)
             executions.append(execution)
             query_payloads.append(payload)
             confidence = float(payload.get("confidence", 0.0))
@@ -312,6 +315,37 @@ class BaseBranchAgent:
         )
         return execution.payload
 
+    # ── Datos estructurados (OpenAlex) ────────────────────────────────────
+
+    async def fetch_scholarly_works(self, query: str, limit: int = 10) -> list[dict]:
+        """Datos bibliométricos duros (citas, instituciones, año) vía OpenAlex.
+
+        Resiliente: si OpenAlex no responde devuelve [] (no rompe la rama).
+        """
+        from vigilancia_multiagente.infra.openalex.openalex_client import (
+            OpenAlexClient,
+            OpenAlexError,
+        )
+
+        client = OpenAlexClient()
+        try:
+            works = await client.search_works(query, per_page=limit)
+        except OpenAlexError:
+            return []
+        finally:
+            await client.close()
+        return [
+            {
+                "title": w.title,
+                "year": w.publication_year,
+                "citations": w.cited_by_count,
+                "doi": w.doi,
+                "institutions": w.institutions,
+                "concepts": w.concepts,
+            }
+            for w in works
+        ]
+
     # ── Signals ───────────────────────────────────────────────────────────
 
     async def signal_gap_detected(self, description: str, data: dict | None = None) -> None:
@@ -369,6 +403,58 @@ class BaseBranchAgent:
         if value is None:
             raise RuntimeError(f"Tool response missing required {key}")
         return str(value)
+
+    async def _rerank_payload_results(self, payload: dict, query: str) -> None:
+        """Filtra basura y reordena por relevancia los resultados crudos de un
+        MCP, si los trae como lista. In-place y resiliente: cualquier fallo
+        deja el payload intacto (no rompe el pipeline)."""
+        results = payload.get("results")
+        if not isinstance(results, list) or len(results) < 3:
+            return
+
+        # Descartar SEO-spam / paywalls vacíos ANTES de rerankear: no malgastar
+        # embeddings reordenando contenido sin señal.
+        try:
+            from vigilancia_multiagente.application.research.source_quality_gate import (
+                SourceQualityGate,
+            )
+
+            gate = SourceQualityGate()
+            filtered = [
+                r
+                for r in results
+                if not isinstance(r, dict)
+                or gate.accept(
+                    str(r.get("url", "")),
+                    str(r.get("content") or r.get("summary") or r.get("snippet") or ""),
+                )
+            ]
+            if filtered and len(filtered) < len(results):
+                results = filtered
+                payload["results"] = filtered
+        except Exception:
+            pass
+
+        if len(results) < 3:
+            return
+        texts = [
+            f"{r.get('title', '')} {r.get('summary') or r.get('snippet') or ''}".strip()
+            if isinstance(r, dict)
+            else str(r)
+            for r in results
+        ]
+        try:
+            if self._reranker is None:
+                from vigilancia_multiagente.infra.reranking.semantic_reranker import (
+                    SemanticReranker,
+                )
+
+                self._reranker = SemanticReranker(self._embedding_gateway)
+            ranked = await self._reranker.rerank(query, texts)
+        except Exception:
+            return
+        if ranked:
+            payload["results"] = [results[item.index] for item in ranked]
 
     @staticmethod
     async def _noop_signal(payload):

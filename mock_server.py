@@ -78,7 +78,7 @@ RESEARCH_PLAN = {
                 "visión computacional control calidad carrocería defectos",
                 *_delta_focus("AVANCES"),
             ],
-            "mcpProviders": ["tavily", "arxiv", "google_scholar"],
+            "mcpProviders": ["tavily", "exa", "jina", "openalex"],
             "priorityWeight": 1.2,
         },
         {
@@ -89,7 +89,7 @@ RESEARCH_PLAN = {
                 "costos implementación IA línea producción ROI",
                 *_delta_focus("COMERCIAL"),
             ],
-            "mcpProviders": ["tavily", "exa", "serper"],
+            "mcpProviders": ["exa", "brave", "tavily"],
             "priorityWeight": 1.0,
         },
         {
@@ -100,7 +100,7 @@ RESEARCH_PLAN = {
                 "dependencia proveedores IA automotriz concentración mercado",
                 *_delta_focus("RIESGO"),
             ],
-            "mcpProviders": ["tavily", "brave", "fetch"],
+            "mcpProviders": ["brave", "firecrawl", "jina"],
             "priorityWeight": 1.1,
         },
         {
@@ -111,7 +111,7 @@ RESEARCH_PLAN = {
                 "estándares ISO IA sistemas autónomos manufactura",
                 *_delta_focus("PI_NORMATIVA"),
             ],
-            "mcpProviders": ["google_scholar", "arxiv", "fetch"],
+            "mcpProviders": ["google_scholar", "arxiv", "jina", "openalex"],
             "priorityWeight": 0.9,
         },
         {
@@ -122,7 +122,7 @@ RESEARCH_PLAN = {
                 "comparativa implementación IA automotriz competidores",
                 *_delta_focus("COMPETITIVO"),
             ],
-            "mcpProviders": ["tavily", "exa", "serper"],
+            "mcpProviders": ["exa", "brave", "jina"],
             "priorityWeight": 1.0,
         },
         {
@@ -133,7 +133,7 @@ RESEARCH_PLAN = {
                 "colaboraciones universidad empresa IA automotriz",
                 *_delta_focus("OPORTUNIDADES"),
             ],
-            "mcpProviders": ["tavily", "brave", "exa"],
+            "mcpProviders": ["tavily", "exa", "brave"],
             "priorityWeight": 0.95,
         },
     ],
@@ -174,6 +174,17 @@ BRANCH_ITERATIONS: dict[str, list[dict]] = {
             },
             "result": "Los modelos Vision Transformer (ViT) superan a CNN clásicos en detección de microfisuras en soldadura.",
             "confidence": 0.91,
+        },
+        {
+            "stepNumber": 4,
+            "reasoning": "Cuantificando la evolución bibliométrica del campo con datos estructurados de OpenAlex (citas, año, instituciones) en vez de inferencia sobre texto.",
+            "toolCall": {
+                "tool": "analyze_topic_trends",
+                "query": "generative AI automotive manufacturing 2018-2024",
+                "result": "Crecimiento de publicaciones del 41% anual; pico de citas en 2023.",
+            },
+            "result": "OpenAlex confirma tendencia exponencial: 1.847 trabajos en 2024 vs 312 en 2019; NVIDIA, Siemens y MIT lideran por volumen de citas.",
+            "confidence": 0.89,
         },
     ],
     "COMERCIAL": [
@@ -246,6 +257,17 @@ BRANCH_ITERATIONS: dict[str, list[dict]] = {
             },
             "result": "El EU AI Act clasifica los sistemas IA de control de producción como 'Alto Riesgo', requiriendo auditorías obligatorias desde 2026.",
             "confidence": 0.93,
+        },
+        {
+            "stepNumber": 3,
+            "reasoning": "Localizando los papers fundacionales (must-cite) sobre IA en manufactura vía OpenAlex para sustentar el análisis de prior art y patentabilidad.",
+            "toolCall": {
+                "tool": "find_seminal_papers",
+                "query": "AI manufacturing process control foundational",
+                "result": "7 papers fundacionales con >500 citas, publicados 5+ años atrás.",
+            },
+            "result": "Identificados 7 trabajos fundacionales que actúan como prior art clave; 3 patentes recientes de Bosch citan directamente a 2 de ellos.",
+            "confidence": 0.91,
         },
     ],
     "COMPETITIVO": [
@@ -538,6 +560,13 @@ INTELLIGENCE_SECTIONS = "\n\n".join(
         "- **2021** (research) → **2023** (prototype): research → prototype\n"
         "- **2023** (prototype) → **2024** (funding): prototype → funding\n"
         "- **2024** (funding) → **2026** (market): funding → market",
+        "## Verificación adversarial\n\n"
+        "El control automático detectó 2 debilidad(es) que el lector debe "
+        "considerar:\n\n"
+        "- **[unsourced_finding]** Finding sin fuente: «La adopción de IA en "
+        "Tier-2 supera el 40% en 2025»\n"
+        "- **[unsupported_recommendation]** Recomendación sin respaldo en "
+        "hallazgos: «Priorizar alianzas con fabricantes de chips neuromórficos»",
     ]
 )
 

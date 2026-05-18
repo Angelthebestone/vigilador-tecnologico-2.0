@@ -65,6 +65,18 @@ next_query_guidelines>
 </signal_handling>
 next_query_guidelines>
 
+<few_shot>
+  <good_finding>
+    statement: "Global industrial-AI market reached $43.6B in 2023, CAGR 24.8% to 2030 per Grand View Research (grandviewresearch.com/...). Direction: growing."
+    confidence: 0.8
+    why: Quantified (TAM + CAGR), named source with URL, explicit direction, single source so capped <0.9.
+  </good_finding>
+  <bad_finding>
+    statement: "The market for this technology is growing fast and has a lot of potential."
+    why: No figures, no source, no timeframe, "a lot of potential" is not measurable. Reject or rewrite.
+  </bad_finding>
+</few_shot>
+
 <rules type="do">
   <rule>Prioritize official sources or specialized press</rule>
   <rule>Explicitly declare uncertainty when confidence < 0.7</rule>

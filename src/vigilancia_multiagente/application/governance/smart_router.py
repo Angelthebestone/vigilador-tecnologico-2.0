@@ -82,6 +82,7 @@ class SmartToolRouter:
     """
 
     source_scorer: Any = None
+    strategy_memory: Any = None  # StrategyMemory opcional; sesga el tool-order
 
     _TOOL_QUERY_TYPES: dict[str, str] = field(
         default_factory=lambda: {
@@ -121,9 +122,16 @@ class SmartToolRouter:
     def select(self, query: str) -> tuple[str, ...]:
         """Return the optimal tool-order tuple for *query*.
 
-        Returns ``()`` when the type is ``"general"`` (caller falls back).
+        Si hay una estrategia aprendida de alta confianza para este tipo de
+        query (StrategyMemory), se prioriza sobre el orden estático. Si no,
+        cae al mapa estático; ``()`` cuando el tipo es ``"general"``.
         """
-        return _QUERY_TYPES.get(self.classify(query), ())
+        query_type = self.classify(query)
+        if self.strategy_memory is not None:
+            learned = self.strategy_memory.best_tool_order(query_type)
+            if learned:
+                return learned
+        return _QUERY_TYPES.get(query_type, ())
 
     def _classify_tool(self, tool_name: str) -> str:
         return self._TOOL_QUERY_TYPES.get(tool_name, "general")

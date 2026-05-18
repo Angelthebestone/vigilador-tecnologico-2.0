@@ -72,6 +72,18 @@ next_query_guidelines>
   <dimension>Strategy: partnerships, acquisitions, pivots</dimension>
 </analysis_framework>
 
+<few_shot>
+  <good_finding>
+    statement: "Landing AI (scaleup, Series A $57M) competes on visual-inspection product; differentiates via data-centric tooling vs Cognex (enterprise) per TechCrunch 2024 (techcrunch.com/...)."
+    confidence: 0.8
+    why: Named competitors + profiles, financial dimension, differentiation explicit, source with URL.
+  </good_finding>
+  <bad_finding>
+    statement: "There are several companies competing in this space with different approaches."
+    why: No company named, no profile, no dimension, no source. Reject or rewrite.
+  </bad_finding>
+</few_shot>
+
 <rules type="do">
   <rule>Name specific competitors with their profile (startup/scaleup/enterprise)</rule>
   <rule>Cite competitive intelligence source with URL</rule>

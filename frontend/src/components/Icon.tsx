@@ -27,7 +27,8 @@ export type IconName =
   | 'check'
   | 'clock'
   | 'gauge'
-  | 'scale';
+  | 'scale'
+  | 'shield';
 
 interface IconProps {
   name: IconName;
@@ -129,6 +130,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M10 3v14M6 17h8" />
       <path d="M10 5 4 8m6-3 6 3" />
       <path d="M2 8a2.5 4 0 0 0 4 0M14 8a2.5 4 0 0 0 4 0" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M10 3 4 5v5c0 4 2.6 6.4 6 7.5 3.4-1.1 6-3.5 6-7.5V5l-6-2z" />
+      <path d="M7.5 10l2 2 3.5-4" />
     </>
   ),
 };

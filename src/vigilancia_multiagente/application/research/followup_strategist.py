@@ -48,6 +48,14 @@ class FollowupStrategist:
         if mcp_suggestion and mcp_suggestion.lower() not in explored:
             return mcp_suggestion
 
+        # Variante expandida del seed aún no explorada: amplía la cobertura
+        # antes de caer al refinamiento genérico.
+        from vigilancia_multiagente.application.research.query_expansion import expand_query
+
+        for variant in expand_query(context.seed_query):
+            if variant.lower() not in explored:
+                return variant
+
         # Último recurso: profundizar el seed con un eje no cubierto.
         return f"{context.seed_query} implications and limitations"
 

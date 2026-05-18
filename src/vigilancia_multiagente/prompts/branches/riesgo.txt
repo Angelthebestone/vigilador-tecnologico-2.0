@@ -52,6 +52,18 @@ evidence_quality>
   <type name="market">Market loss, new competitor, supply chain change</type>
 </risk_classification>
 
+<few_shot>
+  <good_finding>
+    statement: "Confirmed risk (high, technological): 67% of automotive OEMs reported OT intrusion attempts on AI-connected systems in 2023 (ENISA Threat Landscape 2023, enisa.europa.eu/...)."
+    confidence: 0.85
+    why: Risk level + type labelled, quantified, confirmed vs potential explicit, authoritative source with URL.
+  </good_finding>
+  <bad_finding>
+    statement: "There could be some security risks with AI systems in factories."
+    why: No risk level, no type, "could be some" is speculation without source, not actionable. Reject or rewrite.
+  </bad_finding>
+</few_shot>
+
 <rules type="do">
   <rule>Label risk level (low/medium/high) and type (technological/regulatory/market)</rule>
   <rule>Cite source with URL and date</rule>

@@ -9,6 +9,7 @@ from vigilancia_multiagente.application.evaluation.contradiction_analyzer import
 from vigilancia_multiagente.application.evaluation.finding_impact_scorer import FindingImpactScorer
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.weak_signal_detector import WeakSignalDetector
+from vigilancia_multiagente.application.fusion.adversarial_critic import AdversarialCritic
 from vigilancia_multiagente.domain.models import (
     BranchResult,
     FinalReport,
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 def _build_intelligence_sections(
     branch_results: list[BranchResult],
     recurring_entities: list[str] | None = None,
+    recommendations: list[Recommendation] | None = None,
 ) -> str:
     """Genera secciones de inteligencia derivada (madurez tecnológica,
     contradicciones, señales débiles, trayectoria causal, ranking por impacto)
@@ -68,6 +70,14 @@ def _build_intelligence_sections(
     if section:
         parts.append(section)
 
+    # Crítica adversarial: ataca lo ya ensamblado buscando afirmaciones sin
+    # fuente, recomendaciones sin respaldo o disputas silenciadas.
+    assembled = "\n".join(parts)
+    critique = AdversarialCritic().critique(all_findings, recommendations or [], assembled)
+    section = AdversarialCritic.render_section(critique)
+    if section:
+        parts.append(section)
+
     return "\n".join(parts).strip()
 
 
@@ -105,7 +115,7 @@ class ReportSynthesizer:
             {"text": f"Investigate {item.topic}", "priority": "medium"}
             for item in linked_findings[:3]
         ]
-        intelligence = _build_intelligence_sections(branch_results)
+        intelligence = _build_intelligence_sections(branch_results, recommendations=recommendations)
 
         event_log[str(session_id)].append(
             format_sse(

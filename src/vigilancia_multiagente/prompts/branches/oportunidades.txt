@@ -72,6 +72,18 @@ next_query_guidelines>
   <type name="white_space">Absence of solution for known problem — entry opportunity</type>
 </opportunity_classification>
 
+<few_shot>
+  <good_finding>
+    statement: "Mid-term opportunity: predictive-maintenance SaaS for Tier-2 suppliers, est. TAM $2.1B by 2027 (McKinsey, mckinsey.com/...). Entry barrier: requires OT data access + domain models."
+    confidence: 0.75
+    why: Timeframe explicit, quantified TAM, source with URL, entry barrier identified.
+  </good_finding>
+  <bad_finding>
+    statement: "There is a good opportunity to apply this technology in new markets."
+    why: No timeframe, no quantification, no source, no entry barrier, "good opportunity" not measurable. Reject or rewrite.
+  </bad_finding>
+</few_shot>
+
 <rules type="do">
   <rule>Quantify potential impact when possible (TAM, CAGR, estimated savings)</rule>
   <rule>Cite source with URL</rule>

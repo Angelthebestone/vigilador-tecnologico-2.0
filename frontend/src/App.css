@@ -956,6 +956,52 @@
   margin-bottom: 0;
 }
 
+.report__intel-body strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.report__intel-body code {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 1px 5px;
+  background: var(--lime-wash);
+  color: var(--uts-green);
+  border-radius: var(--r-sm);
+}
+
+.report__intel-sub {
+  margin: 10px 0 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.report__intel-sub:first-child {
+  margin-top: 0;
+}
+
+/* Tono: secciones de señal (madurez = ¿es real?) en verde marca;
+   verificación adversarial (debilidades) en rojo institucional UTS. */
+.report__intel-block--signal {
+  border-left: 3px solid var(--lime-deep);
+}
+
+.report__intel-block--signal .report__intel-title {
+  color: var(--uts-green);
+}
+
+.report__intel-block--warn {
+  border-left: 3px solid var(--st-fail);
+  background: var(--st-fail-wash);
+}
+
+.report__intel-block--warn .report__intel-title {
+  color: var(--st-fail);
+}
+
 .report__stats {
   display: flex;
   border-top: var(--hair-strong);
@@ -2094,7 +2140,8 @@
 }
 
 .btn--danger:hover:not(:disabled) {
-  background: #8b1510;
+  background: var(--st-fail-deep);
+  border-color: var(--st-fail-deep);
 }
 
 /* =================================================================

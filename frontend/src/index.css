@@ -44,6 +44,7 @@
   --st-run: #9aab1f;
   --st-done: #34531f; /* verde institucional = completado */
   --st-fail: #6d100a; /* Pantone 4975 C UTS = fallo */
+  --st-fail-deep: #4f0b07; /* hover/activo, derivado de Pantone 4975 C */
   --st-fail-wash: #f3ddd8;
 
   /* --- Tipografía oficial UTS --- */

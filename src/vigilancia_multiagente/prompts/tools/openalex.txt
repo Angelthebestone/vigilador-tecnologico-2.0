@@ -1,0 +1,178 @@
+<tool name="search_works">
+  <function_signature>## search_works(query: str, from_year: int, to_year: int, min_citations: int, is_oa: bool, sort: "relevance_score"|"cited_by_count:desc"|"publication_year:desc", per_page: 10-200)</function_signature>
+  <best_for>structured bibliometric search: hard data (citation counts, institutions, exact year, concepts) instead of scraped text</best_for>
+  <usage>Supports Boolean operators ("machine learning" AND (ethics OR fairness)). Use min_citations=50 for solid papers, 200 for highly influential. Filter by year range for trend windows.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>Scholar/ArXiv when you need citation counts, institutions or concepts as structured facts (not text)</prefer_over>
+    <prefer_over>Web search when mapping the academic landscape of a technology</prefer_over>
+    <avoid_when>You need the full paper text (OpenAlex gives metadata + abstract preview only)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">search_works(query, min_citations=50, sort="cited_by_count:desc") for high-impact works</step>
+    <step order="2">get_work(work_id) for full metadata of the most relevant ones</step>
+    <step order="3">get_citation_network or get_related_works to map the surrounding research</step>
+  </chaining>
+  <fallback>If no results, broaden the query or drop min_citations; then try search_papers (ArXiv) or Scholar</fallback>
+</tool>
+
+<tool name="get_work">
+  <function_signature>## get_work(work_id: str)</function_signature>
+  <best_for>complete metadata for one paper: all authors, full abstract, references, affiliations, funding</best_for>
+  <usage>Accepts OpenAlex IDs (W2741809807), DOIs (10.1371/...), or full URLs. Use after a search to deep-dive a key work.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>You need the full author list, corresponding author, or complete reference list</use_when>
+    <avoid_when>You only need summary fields already returned by search_works</avoid_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="get_related_works">
+  <function_signature>## get_related_works(work_id: str)</function_signature>
+  <best_for>finding similar papers based on shared citations and topics</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>You have a seminal paper and want adjacent literature</use_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="search_by_topic">
+  <function_signature>## search_by_topic(topic: str, from_year: int, to_year: int)</function_signature>
+  <best_for>exploring literature in a specific research domain</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <prefer_over>search_works when you want the whole domain rather than a keyword match</prefer_over>
+  </selection_heuristics>
+</tool>
+
+<tool name="get_work_citations">
+  <function_signature>## get_work_citations(work_id: str)</function_signature>
+  <best_for>forward citation analysis — who cites this work (downstream impact)</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>Assessing real-world impact and follow-up research of a technology</use_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="get_work_references">
+  <function_signature>## get_work_references(work_id: str)</function_signature>
+  <best_for>backward citation analysis — what this work cites (its foundations)</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="get_citation_network">
+  <function_signature>## get_citation_network(work_id: str)</function_signature>
+  <best_for>building a complete citation network for visualization and knowledge-graph enrichment</best_for>
+  <usage>Feeds the knowledge graph with citation edges (structured facts, not text inference).</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <chaining>
+    <step order="1">search_works to find the anchor paper</step>
+    <step order="2">get_citation_network(work_id) to build the graph</step>
+    <step order="3">Feed nodes/edges into the knowledge graph and causal timeline</step>
+  </chaining>
+</tool>
+
+<tool name="get_top_cited_works">
+  <function_signature>## get_top_cited_works(query: str, from_year: int, min_citations: int)</function_signature>
+  <best_for>finding the most influential papers in a field (default filter: 50+ citations)</best_for>
+  <usage>Set min_citations=200 for only the most impactful work.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="search_authors">
+  <function_signature>## search_authors(query: str)</function_signature>
+  <best_for>finding researchers with h-index, citation metrics and affiliations</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="search_authors_by_expertise">
+  <function_signature>## search_authors_by_expertise(topic: str)</function_signature>
+  <best_for>finding leading experts in a topic, ranked by h-index</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>Identifying key players / thought leaders in a technology area (competitive intelligence)</use_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="get_author_profile">
+  <function_signature>## get_author_profile(author_id: str)</function_signature>
+  <best_for>full research profile: h-index, i10-index, top works, recent works</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="get_author_collaborators">
+  <function_signature>## get_author_collaborators(author_id: str)</function_signature>
+  <best_for>mapping co-authorship networks</best_for>
+  <usage>Use to detect research alliances and institutional partnerships.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="search_institutions">
+  <function_signature>## search_institutions(query: str)</function_signature>
+  <best_for>finding leading academic institutions in a field</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="find_review_articles">
+  <function_signature>## find_review_articles(query: str)</function_signature>
+  <best_for>finding review papers and meta-analyses — high-value context for fast landscape understanding</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>Starting research on an unfamiliar technology — reviews summarize the state of the art</use_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="find_seminal_papers">
+  <function_signature>## find_seminal_papers(query: str, min_citations: int)</function_signature>
+  <best_for>finding foundational "must-cite" papers (high citations, published 5+ years ago)</best_for>
+  <usage>Use min_citations=500 for the absolute foundations of a field.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="analyze_topic_trends">
+  <function_signature>## analyze_topic_trends(topic: str, from_year: int, to_year: int)</function_signature>
+  <best_for>tracking research evolution over time (publications grouped by year)</best_for>
+  <usage>Feeds the trend forecaster with structured publication counts, not text inference.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>Quantifying whether a technology is emerging, growing or declining</use_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="compare_research_areas">
+  <function_signature>## compare_research_areas(areas: string[], from_year: int, to_year: int)</function_signature>
+  <best_for>comparing publication activity across multiple fields</best_for>
+  <usage>e.g. compare "deep learning" vs "reinforcement learning" vs "federated learning" 2018-2024.</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="get_trending_topics">
+  <function_signature>## get_trending_topics(field: str)</function_signature>
+  <best_for>discovering emerging research areas (early-signal detection)</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+  <selection_heuristics>
+    <use_when>Looking for opportunities / weak signals of upcoming technologies</use_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="analyze_geographic_distribution">
+  <function_signature>## analyze_geographic_distribution(topic: str)</function_signature>
+  <best_for>mapping global research activity by country</best_for>
+  <usage>Use to identify which countries/regions lead a technology (geopolitical / competitive view).</usage>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<tool name="search_sources">
+  <function_signature>## search_sources(query: str)</function_signature>
+  <best_for>finding journals, conferences and publication venues (sorted by h-index)</best_for>
+  <limits>Timeout: 30s, retries: 2</limits>
+</tool>
+
+<rules>
+  <rule>OpenAlex gives STRUCTURED facts (citations, institutions, year, concepts). Prefer it over scraped text when you need hard bibliometric data.</rule>
+  <rule>Workflow: search_works/get_top_cited_works to find anchors → get_work for detail → get_citation_network/get_related_works to map the field.</rule>
+  <rule>For trends use analyze_topic_trends / get_trending_topics — they feed the trend forecaster with real counts.</rule>
+  <rule>For competitive intelligence use search_authors_by_expertise + get_author_collaborators (key players and alliances).</rule>
+  <rule>Start a new technology with find_review_articles + find_seminal_papers to grasp the state of the art fast.</rule>
+  <rule>The public API works without credentials; data is reliable and free. Prefer it over Scholar when you need impact metrics.</rule>
+</rules>

@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     jina_api_key: SecretStr | None = None
     brave_api_key: SecretStr | None = None
     firecrawl_api_key: SecretStr | None = None
+    cohere_api_key: SecretStr | None = None  # reranker; opcional, fallback a embeddings
+
+    # OpenAlex: email para el "polite pool" (mejores rate limits) y API key
+    # premium opcional. Usados tanto por el cliente REST como por el MCP.
+    openalex_email: str | None = None
+    openalex_api_key: SecretStr | None = None
 
     model_config = SettingsConfigDict(
         env_prefix="VT_",
