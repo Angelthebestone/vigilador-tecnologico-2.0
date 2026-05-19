@@ -10,7 +10,7 @@ DEFAULT_PROVIDERS: dict[BranchType, list[str]] = {
     BranchType.AVANCES: ["tavily", "exa", "jina"],
     BranchType.COMERCIAL: ["exa", "brave", "tavily"],
     BranchType.RIESGO: ["brave", "firecrawl", "jina"],
-    BranchType.PI_NORMATIVA: ["google_scholar", "arxiv", "jina"],
+    BranchType.PI_NORMATIVA: ["google_scholar", "arxiv", "jina", "serper"],
     BranchType.COMPETITIVO: ["exa", "brave", "jina"],
     BranchType.OPORTUNIDADES: ["tavily", "exa", "brave"],
 }
@@ -123,7 +123,6 @@ def _parse_branches_from_llm(data: list[dict]) -> list[BranchConfig]:
         providers = [
             provider
             for provider in item.get("mcp_providers", DEFAULT_PROVIDERS[bt])
-            if provider != "serper"
         ] or DEFAULT_PROVIDERS[bt]
         branches.append(
             BranchConfig(

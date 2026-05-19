@@ -29,6 +29,7 @@ def _build_intelligence_sections(
     branch_results: list[BranchResult],
     recurring_entities: list[str] | None = None,
     recommendations: list[Recommendation] | None = None,
+    source_scorer: object | None = None,
 ) -> str:
     """Genera secciones de inteligencia derivada (madurez tecnológica,
     contradicciones, señales débiles, trayectoria causal, ranking por impacto)
@@ -36,13 +37,17 @@ def _build_intelligence_sections(
 
     Se calcula siempre, independientemente de si hay LLM, porque la evidencia
     para estas secciones ya está en los branch_results.
+
+    ``source_scorer`` (un :class:`SourceScorer` con el snapshot de
+    source_trust ya cargado) inyecta la reputación de dominio aprendida en el
+    ranking por impacto. Sin él, la autoridad es neutra.
     """
     all_findings = [f for result in branch_results for f in result.findings]
 
     contradiction_report = ContradictionAnalyzer().analyze(all_findings)
     weak_report = WeakSignalDetector().detect(branch_results, recurring_entities)
     timeline = CausalTimelineBuilder().build(branch_results)
-    scored = FindingImpactScorer().score(branch_results)
+    scored = FindingImpactScorer(cast(Any, source_scorer)).score(branch_results)
     maturity = HypeDetector.infer_from_branch_results(branch_results)
 
     parts: list[str] = []
@@ -91,7 +96,7 @@ class ReportSynthesizer:
         all_sources: list[SourceRef],
         llm: MiniMaxClient | None = None,
     ) -> FinalReport:
-        from vigilancia_multiagente.api.dependencies import event_log
+        from vigilancia_multiagente.api.dependencies import event_log, source_scorer
         from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 
         event_log[str(session_id)].append(
@@ -116,7 +121,11 @@ class ReportSynthesizer:
             {"text": f"Investigate {item.topic}", "priority": "medium"}
             for item in linked_findings[:3]
         ]
-        intelligence = _build_intelligence_sections(branch_results, recommendations=cast(list[Any], recommendations))
+        intelligence = _build_intelligence_sections(
+        branch_results,
+        recommendations=cast(list[Any], recommendations),
+        source_scorer=source_scorer,
+    )
 
         event_log[str(session_id)].append(
             format_sse(

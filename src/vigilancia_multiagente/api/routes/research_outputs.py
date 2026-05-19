@@ -19,7 +19,6 @@ from vigilancia_multiagente.api.dependencies import (
     metrics_service,
     provider_registry,
     report_repository,
-    serper_client,
     session_repository,
     vector_index,
 )
@@ -61,6 +60,7 @@ async def get_report(session_id: UUID) -> dict[str, object]:
 @router.get("/{session_id}/sources")
 async def get_sources(session_id: UUID) -> dict[str, object]:
     results = await branch_result_repository.list_by_session(session_id)
+    await evidence_linker.refresh_learned_scores()
     sources = evidence_linker.deduplicate_sources(list(results))
     return {
         "session_id": str(session_id),
@@ -246,6 +246,7 @@ async def _graph_for_session(session_id: UUID) -> GraphPayload:
 async def _build_graph_for_session(session_id: UUID) -> GraphPayload:
     results = await branch_result_repository.list_by_session(session_id)
     findings = [finding for result in results for finding in result.findings]
+    await evidence_linker.refresh_learned_scores()
     sources = evidence_linker.deduplicate_sources(list(results))
 
     topic: str | None = None
@@ -254,9 +255,9 @@ async def _build_graph_for_session(session_id: UUID) -> GraphPayload:
         session = await session_repository.get_by_id(session_id)
         if session is not None:
             topic = session.user_query
-        if serper_client is not None and topic:
-            patent_result = await serper_client.search_patents(topic)
-            patents = patent_result.items
+        if topic:
+            patent_result = await _tool_results("serper", "google_search_patents", {"query": topic})
+            patents = patent_result or []
     except Exception as exc:
         logger.warning("Failed for session %s: %s", session_id, exc)
 
@@ -371,12 +372,7 @@ async def hype_analysis(session_id: UUID, tech: str = Query(...)) -> dict:
         "exa", "web_search_advanced_exa", {"query": f"{tech} startups companies funding"}
     )
     firecrawl_results = await _tool_results("firecrawl", "firecrawl_scrape", {"url": tech})
-    serper_results = None
-    if serper_client is not None:
-        try:
-            serper_results = (await serper_client.search_patents(tech)).items
-        except Exception as exc:
-            logger.warning("Serper patents failed for session %s: %s", session_id, exc)
+    serper_results = await _tool_results("serper", "google_search_patents", {"query": tech})
 
     if all(
         result is None for result in (arxiv_results, exa_results, firecrawl_results, serper_results)

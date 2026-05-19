@@ -50,6 +50,9 @@ _QUERY_TYPES: dict[str, tuple[str, ...]] = {
         "analyze_geographic_distribution",
     ),
     "deep_research": (
+        "fetch",
+        "browser_navigate",
+        "browser_snapshot",
         "tavily_extract",
         "execute_code",
         "firecrawl_scrape",
@@ -80,7 +83,7 @@ _KEYWORDS: dict[str, tuple[str, ...]] = {
         "professor",
         "profesor",
     ),
-    "patent": ("patent", "ip", "intellectual property", "trademark", "copyright"),
+    "patent": ("patent", "ip", "intellectual property", "trademark", "copyright", "patente", "prior art", "invención", "asignatario"),
     "news": ("news", "announce", "release", "latest", "update", "today"),
     "bibliometric": (
         "citation",
@@ -119,7 +122,8 @@ TOOL_QUERY_TYPES: dict[str, str] = {
     "read_url": "general",
     "fetch": "deep_research",
     "convert_to_markdown": "deep_research",
-    "browser_navigate": "company",
+    "browser_navigate": "deep_research",
+    "browser_snapshot": "deep_research",
     "execute_code": "deep_research",
     "search_works": "bibliometric",
     "get_citation_network": "bibliometric",
@@ -130,6 +134,50 @@ TOOL_QUERY_TYPES: dict[str, str] = {
     "analyze_geographic_distribution": "bibliometric",
     "find_seminal_papers": "academic",
     "search_authors_by_expertise": "people",
+    "google_search": "general",
+    "google_search_patents": "patent",
+    "google_search_scholar": "academic",
+    "google_search_news": "news",
+    "webpage_scrape": "deep_research",
+    # ── Tools añadidas tras auditoría contra docs/repos oficiales ──
+    # Tavily map/crawl: descubrimiento estructurado de un sitio.
+    "tavily_map": "deep_research",
+    "tavily_crawl": "deep_research",
+    # Firecrawl: search → general; el resto, extracción profunda.
+    "firecrawl_search": "general",
+    "firecrawl_map": "deep_research",
+    "firecrawl_crawl": "deep_research",
+    "firecrawl_extract": "deep_research",
+    "firecrawl_batch_scrape": "deep_research",
+    "firecrawl_check_crawl_status": "deep_research",
+    # Jina: lectura paralela y captura — extracción.
+    "parallel_read_url": "deep_research",
+    "capture_screenshot_url": "deep_research",
+    # ArXiv: resumir/comparar papers — académico.
+    "list_papers": "academic",
+    "summarize_paper": "academic",
+    "compare_papers": "academic",
+    # OpenAlex autocomplete — bibliométrico.
+    "autocomplete_search": "bibliometric",
+    # Serper: vídeos/maps/places/reviews/shopping/lens/autocomplete.
+    "google_search_images": "general",
+    "google_search_videos": "news",
+    "google_search_maps": "company",
+    "google_search_places": "company",
+    "google_search_reviews": "company",
+    "google_search_shopping": "company",
+    "google_search_lens": "general",
+    "google_search_autocomplete": "general",
+    # Brave summarizer — extracción/síntesis.
+    "brave_summarizer": "deep_research",
+    # Playwright: scraping avanzado sobre páginas con JS.
+    "browser_navigate_back": "deep_research",
+    "browser_take_screenshot": "deep_research",
+    "browser_pdf_save": "deep_research",
+    "browser_press_key": "deep_research",
+    "browser_wait_for": "deep_research",
+    "browser_evaluate": "deep_research",
+    "browser_console_messages": "deep_research",
 }
 
 

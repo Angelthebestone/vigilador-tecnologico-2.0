@@ -139,3 +139,5 @@ ARQUITECTURA.md
 
 # ---------- Heap snapshots (pueden contener secretos en memoria) ----------
 *.heapsnapshot
+tasks-serper-mcp.md
+frontend/public/mock-chart.png

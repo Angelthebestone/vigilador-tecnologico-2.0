@@ -102,6 +102,7 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     }
     trend_projections = await orchestrator.analyze_trends(session_data)
 
+    await evidence_linker.refresh_learned_scores()
     all_sources = evidence_linker.deduplicate_sources(branch_results)
     linked_findings = evidence_linker.link_findings(branch_results, all_sources)
 

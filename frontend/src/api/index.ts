@@ -19,6 +19,7 @@ export {
   searchGraph,
   getGraphPath,
   getMetrics,
+  getBranchEvaluation,
   deleteSession,
   uploadDocument,
   askFollowUp,

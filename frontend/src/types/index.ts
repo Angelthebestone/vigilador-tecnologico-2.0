@@ -20,6 +20,10 @@ export type ThinkingStep = {
     tool: string;
     query: string;
     result: string;
+    code?: string;
+    stdout?: string;
+    /** URL o data URI de una imagen generada (p. ej. gráfico de `visualize`). */
+    image?: string;
   };
   result?: string;
   confidence: number;

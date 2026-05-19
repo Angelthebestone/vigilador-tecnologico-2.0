@@ -11,21 +11,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 from vigilancia_multiagente.domain.models import BranchResult, Finding, SourceRef
 
-# Autoridad relativa por proveedor: fuentes académicas/patentes pesan más que
-# scraping web genérico. Valores en [0,1], neutro = 0.6.
-_PROVIDER_AUTHORITY: dict[str, float] = {
-    "arxiv": 0.95,
-    "google_scholar": 0.95,
-    "serper": 0.8,
-    "exa": 0.75,
-    "tavily": 0.7,
-    "firecrawl": 0.65,
-    "brave": 0.6,
-    "jina": 0.6,
-}
-_DEFAULT_AUTHORITY = 0.6
+# Autoridad neutra cuando ninguna fuente del finding tiene reputación
+# aprendida todavía. No se penaliza a dominios nuevos: la autoridad sube/baja
+# con el aprendizaje cross-session, no con un valor fijo por motor de
+# búsqueda (dos motores distintos pueden devolver la misma URL — la autoridad
+# es del dominio, no del buscador).
+_NEUTRAL_AUTHORITY = 0.6
 
 
 @dataclass(slots=True)
@@ -40,6 +34,12 @@ class ScoredFinding:
 class FindingImpactScorer:
     """Calcula un impact score por finding combinando tres factores ya
     disponibles en el pipeline (no requiere LLM ni datos nuevos)."""
+
+    def __init__(self, source_scorer: SourceScorer | None = None) -> None:
+        # Scorer de dominio aprendido. Sin él (o sin reputación para el
+        # dominio) la autoridad es neutra: la calidad de fuente la define el
+        # dominio real citado, no el motor que lo encontró.
+        self._source_scorer = source_scorer or SourceScorer()
 
     def score(self, branch_results: list[BranchResult]) -> list[ScoredFinding]:
         sources_by_id: dict[UUID, SourceRef] = {
@@ -76,16 +76,22 @@ class FindingImpactScorer:
                 spread.setdefault(finding.topic, set()).add(result.branch_type.value)
         return spread
 
-    @staticmethod
-    def _authority(finding: Finding, sources_by_id: dict[UUID, SourceRef]) -> float:
-        authorities = [
-            _PROVIDER_AUTHORITY.get(sources_by_id[sid].provider, _DEFAULT_AUTHORITY)
+    def _authority(self, finding: Finding, sources_by_id: dict[UUID, SourceRef]) -> float:
+        """Autoridad = mejor reputación aprendida entre los dominios citados.
+
+        Las fuentes sin reputación aprendida no cuentan (no penalizan ni
+        inflan). Si ninguna fuente tiene score, autoridad neutra: el finding
+        no se prioriza ni se hunde por la calidad de fuente.
+        """
+        learned = [
+            score
             for sid in finding.source_ids
             if sid in sources_by_id
+            and (score := self._source_scorer.score(sources_by_id[sid].url)) is not None
         ]
-        if not authorities:
-            return _DEFAULT_AUTHORITY
-        return max(authorities)
+        if not learned:
+            return _NEUTRAL_AUTHORITY
+        return max(learned)
 
     @staticmethod
     def _convergence(topic: str, topic_branches: dict[str, set[str]]) -> float:

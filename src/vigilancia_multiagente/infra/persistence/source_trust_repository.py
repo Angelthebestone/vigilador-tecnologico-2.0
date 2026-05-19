@@ -103,6 +103,25 @@ class SourceTrustRepository:
                 for row in rows
             ]
 
+    async def get_score_map(self, source_type: str = "domain") -> dict[str, float]:
+        """Snapshot dominio→score aprendido, para inyectar en scorers síncronos.
+
+        EvidenceLinker / FindingImpactScorer son síncronos; cargan este mapa
+        async antes de puntuar para no abrir sesiones de BD por cada URL.
+        """
+        async with self._database.session() as db:
+            result = await db.execute(
+                text(
+                    "SELECT source_id, current_score FROM source_trust "
+                    "WHERE source_type = :source_type"
+                ),
+                {"source_type": source_type},
+            )
+            return {
+                str(row["source_id"]): float(row["current_score"])
+                for row in result.mappings().all()
+            }
+
     async def record_access(self, source_id: str) -> None:
         async with self._database.session() as db:
             await db.execute(

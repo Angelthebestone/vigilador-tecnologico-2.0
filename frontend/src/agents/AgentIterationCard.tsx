@@ -45,6 +45,33 @@ export function AgentIterationCard({ step }: AgentIterationCardProps) {
                     <code>{step.toolCall.query}</code>
                   </div>
                 </div>
+                {step.toolCall.code && (
+                  <div>
+                    <div className="iterrow__k">Código ejecutado</div>
+                    <pre className="iterrow__code">
+                      <code>{step.toolCall.code}</code>
+                    </pre>
+                  </div>
+                )}
+                {step.toolCall.stdout && (
+                  <div>
+                    <div className="iterrow__k">Salida (stdout)</div>
+                    <pre className="iterrow__code">
+                      <code>{step.toolCall.stdout}</code>
+                    </pre>
+                  </div>
+                )}
+                {step.toolCall.image && (
+                  <div>
+                    <div className="iterrow__k">Visualización</div>
+                    <img
+                      className="iterrow__img"
+                      src={step.toolCall.image}
+                      alt={`Gráfico generado: ${step.toolCall.query}`}
+                      loading="lazy"
+                    />
+                  </div>
+                )}
                 <div>
                   <div className="iterrow__k">Respuesta</div>
                   <div className="iterrow__v">{step.toolCall.result}</div>

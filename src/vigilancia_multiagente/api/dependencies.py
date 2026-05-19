@@ -57,8 +57,6 @@ from vigilancia_multiagente.infra.persistence.source_trust_repository import (
     SourceTrustRepository,
 )
 from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex
-from vigilancia_multiagente.infra.serper.serper_client import SerperClient
-
 settings = get_settings()
 
 session_repository = PostgresSessionRepository(database)
@@ -109,14 +107,16 @@ provider_registry.validate_ready(
     )
 )
 
-# Serper REST client (no MCP — direct REST API)
-serper_client = (
-    SerperClient(settings.serper_api_key.get_secret_value()) if settings.serper_api_key else None
-)
-
 clarification_service = ClarificationService()
 plan_builder = PlanBuilder()
-evidence_linker = EvidenceLinker()
+# source_trust_repository alimenta el scoring aprendido (cross-session). Se
+# crea aquí, antes del linker, para inyectarlo y que EvidenceLinker pueda
+# refrescar la reputación de dominio desde la tabla source_trust.
+source_trust_repository = SourceTrustRepository(database)
+source_scorer = SourceScorer()
+evidence_linker = EvidenceLinker(
+    source_scorer=source_scorer, trust_repository=source_trust_repository
+)
 report_synthesizer = ReportSynthesizer()
 graph_service = KnowledgeGraphService()
 metrics_service = MetricsService()
@@ -128,8 +128,8 @@ artifact_service = SessionArtifactService()
 conversation_service = ConversationService()
 
 # Backend Intelligence v3 services
-source_scorer = SourceScorer()
-source_trust_repository = SourceTrustRepository(database)
+# source_scorer / source_trust_repository ya se crearon arriba (antes del
+# evidence_linker) para poder inyectar el scoring aprendido en la fusión.
 source_scorer_service = SourceScorerService(repository=source_trust_repository)
 mcp_cache = MCPSmartCache()
 smart_router = SmartToolRouter(source_scorer=source_scorer_service)

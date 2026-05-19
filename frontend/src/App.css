@@ -1428,6 +1428,35 @@
   font-size: 12px;
 }
 
+.iterrow__code {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 2px 0 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.iterrow__code code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.iterrow__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2px 0 0;
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-radius: 4px;
+  background: #fff;
+}
+
 /* Cadena de pensamiento del planner */
 .thinking__step {
   display: grid;

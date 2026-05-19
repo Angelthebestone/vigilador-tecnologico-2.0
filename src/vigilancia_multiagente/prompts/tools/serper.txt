@@ -1,0 +1,100 @@
+<tool name="google_search">
+  <function_signature>## google_search(query: str, num: int)</function_signature>
+  <best_for>general web search using Google results, finding company pages, news articles, documentation</best_for>
+  <details>Returns up to 10 organic results with title, URL, snippet. Set num for more (max 20).</details>
+  <limits>Timeout: 30s, max results: 20 per call</limits>
+  <selection_heuristics>
+    <prefer_over>tavily_search, web_search_exa when Google-specific ranking is preferred</prefer_over>
+    <avoid_when>You need academic papers (use search_works, google_search_scholar instead)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Call google_search with a specific query</step>
+    <step order="2">Read promising URLs with read_url or webpage_scrape</step>
+    <step order="3">Use the extracted content in your findings</step>
+  </chaining>
+  <fallback>If result count is low, broaden the query with fewer constraints</fallback>
+</tool>
+
+<tool name="google_search_news">
+  <function_signature>## google_search_news(query: str, num: int)</function_signature>
+  <best_for>finding recent news articles from Google News, tracking press releases and announcements</best_for>
+  <details>Returns recent news results with title, source, date, URL. Time-sensitive queries rank freshest first.</details>
+  <limits>Timeout: 30s</limits>
+  <selection_heuristics>
+    <prefer_over>brave_news_search when Google News index coverage is needed</prefer_over>
+    <avoid_when>You need deep analysis (combine with read_url for full article)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Search news for the topic</step>
+    <step order="2">Select relevant articles and open them with read_url</step>
+    <step order="3">Extract key facts, quotes, and data points for findings</step>
+  </chaining>
+</tool>
+
+<tool name="google_search_scholar">
+  <function_signature>## google_search_scholar(query: str, num: int)</function_signature>
+  <best_for>finding academic papers, theses, books, and technical reports via Google Scholar</best_for>
+  <details>Returns scholarly results with title, authors, year, citation count, snippet, URL.</details>
+  <limits>Timeout: 30s, less comprehensive than OpenAlex for citation network analysis</limits>
+  <selection_heuristics>
+    <prefer_over>search_google_scholar_key_words when you need broader Scholar coverage</prefer_over>
+    <avoid_when>You need citation networks or author profiles (use OpenAlex tools)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Search scholar for relevant papers</step>
+    <step order="2">For key papers, use search_works or get_work for full metadata</step>
+    <step order="3">Use get_citation_network to explore related work</step>
+  </chaining>
+</tool>
+
+<tool name="google_search_patents">
+  <function_signature>## google_search_patents(query: str, num: int)</function_signature>
+  <best_for>searching patents on Google Patents — find patent filings, assignees, prior art</best_for>
+  <details>Returns patent results with title, assignee, filing date, publication date, abstract, patent number, status. Critical for IP landscape analysis and freedom-to-operate research.</details>
+  <limits>Timeout: 30s</limits>
+  <selection_heuristics>
+    <prefer_over>Any other search tool when the task requires patent literature</prefer_over>
+    <prefer_over>Manual patent database browsing — faster and structured</prefer_over>
+    <avoid_when>You need academic papers (use search_works, search_papers instead)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Search patents with technology keywords and assignee names</step>
+    <step order="2">Analyze patent abstracts and claims for technical details</step>
+    <step order="3">Cross-reference patent assignees with company findings from other branches</step>
+    <step order="4">Feed patent counts and trends into execute_code for quantitative analysis</step>
+  </chaining>
+  <fallback>If no results, try broader query or search by assignee name only</fallback>
+</tool>
+
+<tool name="google_search_images">
+  <function_signature>## google_search_images(query: str, num: int)</function_signature>
+  <best_for>finding product images, technical diagrams, logos, and visual references</best_for>
+  <details>Returns image results with URL, thumbnail, dimensions, source page.</details>
+  <limits>Timeout: 30s</limits>
+  <selection_heuristics>
+    <avoid_when>You need structured data or text content (use google_search instead)</avoid_when>
+  </selection_heuristics>
+</tool>
+
+<tool name="webpage_scrape">
+  <function_signature>## webpage_scrape(url: str)</function_signature>
+  <best_for>scraping and extracting readable content from a web page URL</best_for>
+  <details>Downloads a page and returns its text content. Handles most URL formats.</details>
+  <limits>Timeout: 30s</limits>
+  <selection_heuristics>
+    <prefer_over>read_url (jina) when Serper's extraction is sufficient</prefer_over>
+    <avoid_when>The page requires JavaScript rendering (use browser_navigate instead)</avoid_when>
+  </selection_heuristics>
+  <chaining>
+    <step order="1">Search with google_search to find relevant pages</step>
+    <step order="2">Extract detailed content with webpage_scrape</step>
+    <step order="3">Use extracted data in findings or pass to execute_code for analysis</step>
+  </chaining>
+</tool>
+
+<rules>
+  <rule>google_search_patents is the ONLY patent search tool — prefer it for any IP/patent related query.</rule>
+  <rule>For academic papers, prefer google_search_scholar or OpenAlex tools (search_works) over general search.</rule>
+  <rule>chain tools: search → scrape → analyze (execute_code) → visualize for quantitative findings.</rule>
+  <rule>The serper API key is configured as VT_SERPER_API_KEY — if no results, the key may not be set.</rule>
+</rules>

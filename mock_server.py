@@ -207,6 +207,76 @@ BRANCH_ITERATIONS: dict[str, list[dict]] = {
             "result": "OpenAlex confirma tendencia exponencial: 1.847 trabajos en 2024 vs 312 en 2019; NVIDIA, Siemens y MIT lideran por volumen de citas.",
             "confidence": 0.89,
         },
+        {
+            "stepNumber": 5,
+            "reasoning": "Ejecutando análisis estadístico vía sandbox: correlación entre año de publicación y número de citas, y proyección de crecimiento 2025-2027 usando scipy.",
+            "toolCall": {
+                "tool": "execute_code",
+                "query": "Analizar correlación año vs citas y proyectar tendencia con scipy",
+                "code": (
+                    "import numpy as np\n"
+                    "from scipy import stats\n"
+                    "\n"
+                    "# Datos bibliométricos recolectados de OpenAlex (paso 4)\n"
+                    "anios = np.array([2018, 2019, 2020, 2021, 2022, 2023, 2024])\n"
+                    "publicaciones = np.array([210, 312, 498, 760, 1180, 1530, 1847])\n"
+                    "\n"
+                    "# Regresión lineal sobre la serie histórica\n"
+                    "slope, intercept, r, p, se = stats.linregress(anios, publicaciones)\n"
+                    "\n"
+                    "# Proyección 2025-2027\n"
+                    "futuros = np.array([2025, 2026, 2027])\n"
+                    "proyeccion = slope * futuros + intercept\n"
+                    "\n"
+                    "print(f'slope={slope:.2f} r={r:.3f} p={p:.4f}')\n"
+                    "print('proyeccion:', proyeccion.round().astype(int).tolist())"
+                ),
+                "stdout": (
+                    "slope=283.93 r=0.987 p=0.0002\n"
+                    "proyeccion: [2456, 3098, 3740]"
+                ),
+                "result": "Coeficiente de correlación: 0.87 (p<0.01). Proyección: 2.450 publicaciones en 2025, 3.100 en 2026.",
+            },
+            "result": "Análisis numérico vía sandbox confirma correlación significativa (r=0.87, p=0.002) y proyecta crecimiento sostenido del 32% anual hasta 2027. La pendiente de la recta de regresión (3.87) duplica la del período 2018-2021.",
+            "confidence": 0.94,
+        },
+        {
+            "stepNumber": 6,
+            "reasoning": "Generando visualización publicable de la proyección de tendencia para incluir en el reporte final (formato PNG, estilo science).",
+            "toolCall": {
+                "tool": "visualize",
+                "query": "Publicaciones IA manufactura 2018-2027 (histórico + proyección)",
+                "code": (
+                    "import matplotlib.pyplot as plt\n"
+                    "import scienceplots  # noqa: F401\n"
+                    "\n"
+                    "plt.style.use(['science', 'no-latex'])\n"
+                    "\n"
+                    "anios_hist = [2018, 2019, 2020, 2021, 2022, 2023, 2024]\n"
+                    "pub_hist = [210, 312, 498, 760, 1180, 1530, 1847]\n"
+                    "anios_proy = [2024, 2025, 2026, 2027]\n"
+                    "pub_proy = [1847, 2456, 3098, 3740]\n"
+                    "\n"
+                    "fig, ax = plt.subplots(figsize=(6, 4))\n"
+                    "ax.plot(anios_hist, pub_hist, 'o-', label='Histórico')\n"
+                    "ax.plot(anios_proy, pub_proy, 's--', label='Proyección')\n"
+                    "ax.fill_between(anios_proy, [v * 0.9 for v in pub_proy],\n"
+                    "                [v * 1.1 for v in pub_proy], alpha=0.2)\n"
+                    "ax.set_xlabel('Año')\n"
+                    "ax.set_ylabel('Publicaciones')\n"
+                    "ax.legend()\n"
+                    "fig.savefig('trend.png', dpi=200, bbox_inches='tight')"
+                ),
+                "stdout": "Figura guardada: trend.png (1200x800 px, 320ms)",
+                # En producción el sandbox devuelve la imagen base64; el mock
+                # referencia un PNG estático servido por el frontend (Vite
+                # sirve frontend/public/ en la raíz).
+                "image": "/mock-chart.png",
+                "result": "Gráfico generado con matplotlib + scienceplots: línea de tendencia con banda de confianza al 80%.",
+            },
+            "result": "Gráfico de proyección generado en 320ms: muestra el crecimiento histórico (312→1.847) y la proyección hasta 3.900 en 2027, con intervalo de confianza. Listo para incrustar en el reporte markdown.",
+            "confidence": 0.92,
+        },
     ],
     "COMERCIAL": [
         {
@@ -370,6 +440,77 @@ BRANCH_ITERATIONS: dict[str, list[dict]] = {
             },
             "result": "México y la India emergen como hubs de manufactura inteligente: $1.2B en incentivos gubernamentales combinados para adopción de IA en plantas automotrices.",
             "confidence": 0.77,
+        },
+        {
+            "stepNumber": 3,
+            "reasoning": "Cuantificando el tamaño de oportunidad por segmento (Tier-1/2/3) y región mediante análisis pandas en el sandbox, usando datos recolectados en las búsquedas anteriores.",
+            "toolCall": {
+                "tool": "execute_code",
+                "query": "Analizar distribución de oportunidad $6.8B por segmento y región con pandas",
+                "code": (
+                    "import pandas as pd\n"
+                    "\n"
+                    "# Oportunidad estimada por segmento/región (miles de millones USD),\n"
+                    "# derivada de las búsquedas de mercado de los pasos 1-2\n"
+                    "df = pd.DataFrame({\n"
+                    "    'segmento': ['Tier-1', 'Tier-2', 'Tier-2', 'Tier-3', 'Tier-3'],\n"
+                    "    'region': ['Global', 'APAC', 'LatAm', 'LatAm', 'África'],\n"
+                    "    'oportunidad_bn': [1.22, 2.59, 1.08, 1.36, 0.55],\n"
+                    "})\n"
+                    "\n"
+                    "total = df['oportunidad_bn'].sum()\n"
+                    "por_segmento = df.groupby('segmento')['oportunidad_bn'].sum() / total\n"
+                    "por_region = df.groupby('region')['oportunidad_bn'].sum() / total\n"
+                    "\n"
+                    "print('total:', round(total, 2))\n"
+                    "print((por_segmento * 100).round(0).to_dict())\n"
+                    "print((por_region * 100).round(0).to_dict())"
+                ),
+                "stdout": (
+                    "total: 6.8\n"
+                    "{'Tier-1': 18.0, 'Tier-2': 54.0, 'Tier-3': 28.0}\n"
+                    "{'APAC': 38.0, 'África': 8.0, 'Global': 18.0, 'LatAm': 36.0}"
+                ),
+                "result": "DataFrame procesado: segmento Tier-2 concentra 54% de la oportunidad; Asia-Pacífico lidera con 38%.",
+            },
+            "result": "Análisis cuantitativo completado: la oportunidad de $6.8B se distribuye 54% en Tier-2 (principalmente Asia-Pacífico), 28% en Tier-3 (LatAm y África) y 18% en Tier-1 (pequeñas actualizaciones). El clúster más rentable es 'inspección visual para Tier-2 automotriz en India/México', con ROI estimado de 340%.",
+            "confidence": 0.84,
+        },
+        {
+            "stepNumber": 4,
+            "reasoning": "Ejecutando clustering con scikit-learn sobre los datos de oportunidad para identificar segmentos de mercado con características similares y priorizar los más atractivos.",
+            "toolCall": {
+                "tool": "execute_code",
+                "query": "KMeans clustering sobre segmentos de oportunidad por región, madurez y tamaño",
+                "code": (
+                    "import numpy as np\n"
+                    "from sklearn.cluster import KMeans\n"
+                    "from sklearn.metrics import silhouette_score\n"
+                    "\n"
+                    "# Features por segmento: [crecimiento_%, madurez_0a1, tamaño_bn]\n"
+                    "X = np.array([\n"
+                    "    [32, 0.3, 2.59], [31, 0.35, 1.08], [30, 0.28, 0.95],  # grupo A\n"
+                    "    [18, 0.6, 1.36], [16, 0.65, 0.55], [19, 0.58, 0.72],  # grupo B\n"
+                    "    [7, 0.9, 1.22], [6, 0.92, 0.41], [8, 0.88, 0.33],     # grupo C\n"
+                    "])\n"
+                    "\n"
+                    "km = KMeans(n_clusters=3, random_state=42, n_init=10).fit(X)\n"
+                    "sil = silhouette_score(X, km.labels_)\n"
+                    "\n"
+                    "print('labels:', km.labels_.tolist())\n"
+                    "print(f'silhouette: {sil:.2f}')\n"
+                    "uniq, counts = np.unique(km.labels_, return_counts=True)\n"
+                    "print('tamaños:', dict(zip(uniq.tolist(), counts.tolist())))"
+                ),
+                "stdout": (
+                    "labels: [0, 0, 0, 1, 1, 1, 2, 2, 2]\n"
+                    "silhouette: 0.67\n"
+                    "tamaños: {0: 42, 1: 35, 2: 23}"
+                ),
+                "result": "Tres clusters identificados con silhouette score de 0.67. Cluster A (alta prioridad): Tier-2, APAC, crecimiento >30%.",
+            },
+            "result": "Clustering revela 3 grupos estratégicos: (A) Prioridad alta: Tier-2 en Asia-Pacífico con crecimiento >30% anual y baja competencia — 42 segmentos. (B) Prioridad media: Tier-2/3 en LatAm con incentivos gubernamentales — 35 segmentos. (C) Prioridad baja: Tier-1 con alta saturación — 23 segmentos. Recomendación: atacar cluster A con solución SaaS de inspección visual.",
+            "confidence": 0.87,
         },
     ],
 }
@@ -1339,12 +1480,12 @@ async def research_stream(session_id: str):
         # pasos tenga la rama (si no, el paso cae al fallback 1.0s y el
         # ritmo se aplana).
         delays = {
-            "AVANCES": [1.0, 1.8, 1.5, 1.6],
+            "AVANCES": [1.0, 1.8, 1.5, 1.6, 2.0, 1.2],
             "COMERCIAL": [1.2, 1.6],
             "RIESGO": [1.4, 1.5],
             "PI_NORMATIVA": [1.0, 1.7, 1.5, 1.4, 1.6],
             "COMPETITIVO": [1.3, 1.4, 1.5],
-            "OPORTUNIDADES": [1.1, 1.3],
+            "OPORTUNIDADES": [1.1, 1.3, 2.0, 1.8],
         }
 
         # Entrelazar iteraciones en orden temporal aproximado
@@ -1782,6 +1923,124 @@ async def research_hype_analysis(session_id: str, body: dict):
                 {"name": "Edge AI / TinyML", "phase": "Innovation Trigger", "visibility": 0.40, "maturity": 0.15},
                 {"name": "Computer Vision QC", "phase": "Plateau of Productivity", "visibility": 0.60, "maturity": 0.88},
             ],
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Sandbox MCP mock (T016–T018)
+# ---------------------------------------------------------------------------
+# Simula las 3 herramientas del servidor sandbox MCP. El frontend no consume
+# estos endpoints directamente (sandbox corre como proceso STDIO separado),
+# pero son útiles para depurar el pipeline agente→sandbox sin levantar el
+# proceso MCP real.
+#
+# Herramientas:
+#   execute_code    → POST /api/v2/sandbox/execute
+#   list_libraries  → POST /api/v2/sandbox/list-libraries
+#   visualize       → POST /api/v2/sandbox/visualize
+
+
+@app.post("/api/v2/sandbox/execute")
+async def sandbox_execute(body: dict):
+    """T016: Simula execute_code del sandbox MCP.
+
+    Acepta código Python y timeout; devuelve stdout y stderr simulados
+    como si el sandbox hubiera procesado datos reales de la investigación.
+    """
+    code = body.get("code", "")
+    timeout = body.get("timeout", 120)
+    code_preview = code[:100].lower()
+
+    # Detectar el tipo de análisis por keywords en el código
+    resultado = {"status": "success", "stdout": "", "stderr": "", "returncode": 0, "duration_ms": 0}
+
+    if "numpy" in code_preview or "np." in code_preview:
+        resultado["stdout"] = json.dumps({
+            "mean": 42.5,
+            "std": 12.3,
+            "trend_slope": 3.87,
+            "projected_values": [156, 182, 211, 245],
+        })
+        resultado["duration_ms"] = random.randint(200, 800)
+    elif "pandas" in code_preview or "pd." in code_preview:
+        resultado["stdout"] = json.dumps({
+            "total_records": 1247,
+            "grouped_counts": {"Tier-1": 342, "Tier-2": 685, "Tier-3": 220},
+            "avg_confidence": 0.81,
+        })
+        resultado["duration_ms"] = random.randint(300, 1200)
+    elif "sklearn" in code_preview or "kmeans" in code_preview:
+        resultado["stdout"] = json.dumps({
+            "n_clusters": 3,
+            "silhouette_score": 0.67,
+            "cluster_sizes": [42, 35, 23],
+            "top_terms_per_cluster": [
+                ["vision", "defect", "quality"],
+                ["digital", "twin", "simulation"],
+                ["llm", "generative", "assembly"],
+            ],
+        })
+        resultado["duration_ms"] = random.randint(500, 2000)
+    elif "scipy" in code_preview or "stats." in code_preview:
+        resultado["stdout"] = json.dumps({
+            "test": "pearsonr",
+            "statistic": 0.87,
+            "pvalue": 0.0023,
+            "significant": True,
+        })
+        resultado["duration_ms"] = random.randint(100, 400)
+    elif "json" in code_preview or "print" in code_preview:
+        resultado["stdout"] = json.dumps({"result": "ok", "count": 100})
+        resultado["duration_ms"] = random.randint(50, 200)
+    else:
+        resultado["stdout"] = f"Ejecución completada sin errores.\nCódigo: {len(code)} caracteres, timeout: {timeout}s"
+        resultado["duration_ms"] = random.randint(50, 500)
+
+    return resultado
+
+
+@app.post("/api/v2/sandbox/list-libraries")
+async def sandbox_list_libraries():
+    """T017: Simula list_libraries del sandbox MCP."""
+    return {
+        "status": "success",
+        "libraries": {
+            "matplotlib": "3.10.3",
+            "numpy": "1.26.4",
+            "pandas": "2.2.3",
+            "scipy": "1.15.2",
+            "scikit-learn": "1.6.1",
+            "scienceplots": "2.1.0",
+        },
+    }
+
+
+@app.post("/api/v2/sandbox/visualize")
+async def sandbox_visualize(body: dict):
+    """T018: Simula visualize del sandbox MCP.
+
+    Devuelve un placeholder base64 (píxel gris 1x1) como imagen simulada.
+    En producción el sandbox genera el gráfico real.
+    """
+    plot_type = body.get("plot_type", "line")
+    data = body.get("data", {})
+    fmt = body.get("format", "png")
+
+    # Placeholder: píxel gris PNG en base64 (1x1 pixel, real)
+    PLACEHOLDER_PNG_B64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+        "+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    )
+
+    return {
+        "status": "success",
+        "image": PLACEHOLDER_PNG_B64,
+        "format": fmt,
+        "metadata": {
+            "plot_type": plot_type,
+            "data_keys": list(data.keys()),
+            "generated_at": datetime.now(UTC).isoformat(),
         },
     }
 

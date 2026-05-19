@@ -2,9 +2,13 @@
 
 Hoy se gasta tokens y embeddings extrayendo de todo lo que el MCP devuelve,
 incluido SEO-spam, contenido duplicado o paywalls sin cuerpo. Este gate
-descarta lo de baja señal a la entrada, no a la salida: el source_scorer ya
-mide reputación de dominio para filtrar al final — aquí se usa también como
-filtro de admisión.
+descarta lo de baja señal a la entrada por *contenido*: longitud mínima y
+marcadores de paywall/anti-bot.
+
+No filtra por reputación de dominio: ya no hay tabla hardcodeada y un dominio
+sin reputación aprendida no es "malo", solo desconocido. Penalizar a la
+entrada por falta de score impediría que dominios nuevos lleguen a acumular
+reputación. El scoring aprendido actúa en la fusión (EvidenceLinker), no aquí.
 """
 
 from __future__ import annotations
@@ -23,31 +27,27 @@ _LOW_SIGNAL_MARKERS: tuple[str, ...] = (
     "are you a robot",
     "accept all cookies to continue",
 )
-# Por debajo de esta reputación de dominio + contenido pobre => descartar.
-_MIN_DOMAIN_SCORE = 0.35
 _MIN_CONTENT_CHARS = 120
 
 
 class SourceQualityGate:
-    def __init__(self) -> None:
-        self._scorer = SourceScorer()
+    def __init__(self, source_scorer: SourceScorer | None = None) -> None:
+        # Scorer aceptado por compatibilidad de inyección; el gate ya no
+        # rechaza por score (dominio desconocido != dominio malo).
+        self._scorer = source_scorer or SourceScorer()
 
     def accept(self, url: str, content: str) -> bool:
         """True si vale la pena extraer de esta fuente.
 
-        Rechaza si: contenido demasiado corto, marcadores de paywall/anti-bot,
-        o dominio de baja reputación con contenido pobre.
+        Rechaza solo si: contenido demasiado corto o marcadores de
+        paywall/anti-bot. La reputación de dominio no filtra a la entrada.
         """
         text = (content or "").strip()
         if len(text) < _MIN_CONTENT_CHARS:
             return False
 
         lowered = text[:600].lower()
-        if any(marker in lowered for marker in _LOW_SIGNAL_MARKERS):
-            return False
-
-        domain_score = self._scorer.score(url)
-        return not (domain_score < _MIN_DOMAIN_SCORE and len(text) < 400)
+        return not any(marker in lowered for marker in _LOW_SIGNAL_MARKERS)
 
     def filter_records(
         self, records: list[dict], url_key: str = "url", text_key: str = "content"

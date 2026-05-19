@@ -147,19 +147,20 @@ print("=" * 60)
 
 from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 
-scorer = SourceScorer()
-scores = [
-    ("https://patents.google.com/patent/US123", 0.95),
-    ("https://arxiv.org/abs/2301.12345", 0.90),
-    ("https://scholar.google.com/citations", 0.85),
-    ("https://news.ycombinator.com/item?id=123", 0.55),
-    ("https://example.com/random-blog", 0.55),
+# Ya no hay tabla hardcodeada: sin scores aprendidos, todo dominio => None
+# (no override). Con snapshot inyectado (lo que harían las rutas desde
+# source_trust), el dominio devuelve su reputación aprendida normalizada.
+scorer = SourceScorer(learned_scores={"arxiv.org": 88.0, "reddit.com": 15.0})
+cases = [
+    ("https://arxiv.org/abs/2301.12345", "aprendido alto"),
+    ("https://reddit.com/r/foo", "aprendido bajo"),
+    ("https://example.com/random-blog", "sin reputación → None"),
 ]
 
-for url, expected_min in scores:
+for url, label in cases:
     s = scorer.score(url)
-    ok = s >= expected_min
-    print(f"  {url:55s} score={s:.2f} expected>={expected_min:.2f} {'OK' if ok else 'FAIL'}")
+    rendered = f"{s:.2f}" if s is not None else "None"
+    print(f"  {url:55s} score={rendered:>5s}  ({label})")
 
 print()
 print("=" * 60)

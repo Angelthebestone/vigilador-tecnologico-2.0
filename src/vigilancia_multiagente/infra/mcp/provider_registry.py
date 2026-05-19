@@ -98,8 +98,13 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(
                     max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
                 ),
-                enabled_tools=("tavily_search", "tavily_extract"),
-                capabilities=("search", "extract"),
+                enabled_tools=(
+                    "tavily_search",
+                    "tavily_extract",
+                    "tavily_map",
+                    "tavily_crawl",
+                ),
+                capabilities=("search", "extract", "map", "crawl"),
                 headers=_auth_headers(tavily_key, extra_name="X-API-Key"),
             ),
             "exa": MCPProviderConfig(
@@ -118,14 +123,24 @@ class MCPProviderRegistry:
             "jina": MCPProviderConfig(
                 name="jina",
                 transport=MCPTransport.HTTP,
-                base_url_or_command="https://mcp.jina.ai/v1?include_tools=read_url,search_web,guess_datetime_url",
+                base_url_or_command=(
+                    "https://mcp.jina.ai/v1?include_tools="
+                    "read_url,parallel_read_url,capture_screenshot_url,"
+                    "search_web,guess_datetime_url"
+                ),
                 auth_mode=MCPAuthMode.BEARER,
                 timeout_ms=settings.mcp_default_timeout_ms,
                 retry_policy=RetryPolicy(
                     max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
                 ),
-                enabled_tools=("read_url", "search_web", "guess_datetime_url"),
-                capabilities=("read", "search", "metadata"),
+                enabled_tools=(
+                    "read_url",
+                    "parallel_read_url",
+                    "capture_screenshot_url",
+                    "search_web",
+                    "guess_datetime_url",
+                ),
+                capabilities=("read", "search", "metadata", "screenshot"),
                 headers=_auth_headers(jina_key),
             ),
             "brave": MCPProviderConfig(
@@ -138,8 +153,12 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(
                     max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
                 ),
-                enabled_tools=("brave_web_search", "brave_news_search"),
-                capabilities=("search", "news"),
+                enabled_tools=(
+                    "brave_web_search",
+                    "brave_news_search",
+                    "brave_summarizer",
+                ),
+                capabilities=("search", "news", "summarization"),
                 environment=_env("BRAVE_API_KEY", brave_key),
             ),
             "firecrawl": MCPProviderConfig(
@@ -150,8 +169,16 @@ class MCPProviderRegistry:
                 auth_mode=MCPAuthMode.API_KEY,
                 timeout_ms=35000,
                 retry_policy=RetryPolicy(max_attempts=1, backoff_ms=500),
-                enabled_tools=("firecrawl_scrape",),
-                capabilities=("scrape",),
+                enabled_tools=(
+                    "firecrawl_scrape",
+                    "firecrawl_search",
+                    "firecrawl_map",
+                    "firecrawl_crawl",
+                    "firecrawl_extract",
+                    "firecrawl_batch_scrape",
+                    "firecrawl_check_crawl_status",
+                ),
+                capabilities=("scrape", "search", "map", "crawl", "extract"),
                 environment=_env("FIRECRAWL_API_KEY", firecrawl_key),
             ),
             "google_scholar": MCPProviderConfig(
@@ -187,8 +214,15 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(
                     max_attempts=settings.mcp_default_retry_limit, backoff_ms=500
                 ),
-                enabled_tools=("search_papers", "download_paper", "read_paper"),
-                capabilities=("papers",),
+                enabled_tools=(
+                    "search_papers",
+                    "download_paper",
+                    "read_paper",
+                    "list_papers",
+                    "summarize_paper",
+                    "compare_papers",
+                ),
+                capabilities=("papers", "summarization", "comparison"),
             ),
             "fetch": MCPProviderConfig(
                 name="fetch",
@@ -274,6 +308,7 @@ class MCPProviderRegistry:
                     "get_trending_topics",
                     "analyze_geographic_distribution",
                     "search_sources",
+                    "autocomplete_search",
                 ),
                 capabilities=("scholar", "papers", "citations", "trends", "authors"),
                 environment={
@@ -291,17 +326,70 @@ class MCPProviderRegistry:
                 retry_policy=RetryPolicy(max_attempts=2, backoff_ms=500),
                 enabled_tools=(
                     "browser_navigate",
+                    "browser_navigate_back",
                     "browser_snapshot",
-                    "browser_screenshot",
+                    # Nombre real del MCP oficial de Playwright. Antes estaba
+                    # como "browser_screenshot" (inexistente) — la tool nunca
+                    # se resolvía contra el servidor real.
+                    "browser_take_screenshot",
+                    "browser_pdf_save",
                     "browser_click",
                     "browser_type",
                     "browser_select_option",
                     "browser_hover",
+                    "browser_press_key",
+                    "browser_wait_for",
+                    "browser_evaluate",
+                    "browser_console_messages",
                     "browser_tabs",
                     "browser_network_requests",
                     "browser_network_request",
                 ),
-                capabilities=("browser", "navigation", "screenshot"),
+                capabilities=(
+                    "browser",
+                    "navigation",
+                    "screenshot",
+                    "pdf",
+                    "scraping",
+                ),
+            ),
+            "serper": MCPProviderConfig(
+                name="serper",
+                transport=MCPTransport.STDIO,
+                base_url_or_command="uvx",
+                arguments=["serper-mcp-server"],
+                auth_mode=MCPAuthMode.API_KEY,
+                timeout_ms=settings.mcp_default_timeout_ms,
+                retry_policy=RetryPolicy(
+                    max_attempts=settings.mcp_default_retry_limit,
+                    backoff_ms=500,
+                ),
+                enabled_tools=(
+                    "google_search",
+                    "google_search_news",
+                    "google_search_scholar",
+                    "google_search_patents",
+                    "google_search_images",
+                    "google_search_videos",
+                    "google_search_maps",
+                    "google_search_places",
+                    "google_search_reviews",
+                    "google_search_shopping",
+                    "google_search_lens",
+                    "google_search_autocomplete",
+                    "webpage_scrape",
+                ),
+                capabilities=(
+                    "search",
+                    "news",
+                    "scholar",
+                    "patents",
+                    "images",
+                    "videos",
+                    "maps",
+                    "shopping",
+                ),
+                environment=_env("SERPER_API_KEY", _secret(settings.serper_api_key)),
             ),
         }
         for name, provider in defaults.items():

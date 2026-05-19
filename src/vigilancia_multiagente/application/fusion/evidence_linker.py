@@ -8,8 +8,37 @@ _CONSENSUS_BOOST_CAP = 0.15
 
 
 class EvidenceLinker:
-    def __init__(self) -> None:
-        self._source_scorer = SourceScorer()
+    def __init__(
+        self,
+        source_scorer: SourceScorer | None = None,
+        trust_repository: object | None = None,
+    ) -> None:
+        # Sin scorer inyectado => scorer vacío: ningún dominio tiene
+        # reputación aprendida todavía, así que la confianza del agente no se
+        # toca. Si se pasa trust_repository, refresh_learned_scores() recarga
+        # el snapshot de source_trust antes de deduplicar.
+        self._source_scorer = source_scorer or SourceScorer()
+        self._trust_repository = trust_repository
+
+    async def refresh_learned_scores(self) -> None:
+        """Recarga el snapshot dominio→score desde source_trust.
+
+        Las rutas la llaman antes de ``deduplicate_sources`` para que la
+        reputación aprendida cross-session influya la confianza. No-op si no
+        hay repositorio inyectado (tests / arranque sin BD).
+        """
+        repo = self._trust_repository
+        if repo is None:
+            return
+        get_map = getattr(repo, "get_score_map", None)
+        if get_map is None:
+            return
+        try:
+            self._source_scorer.learned_scores = await get_map()
+        except Exception:
+            # El scoring aprendido es best-effort: si la BD falla, se sigue
+            # con lo que el agente reportó (no se bloquea la fusión).
+            pass
 
     def deduplicate_sources(
         self, branch_results: list[BranchResult], use_scoring: bool = True
@@ -26,10 +55,11 @@ class EvidenceLinker:
         for source in sources:
             normalized = _normalize_url(source.url)
             if use_scoring:
-                source.confidence = min(
-                    source.confidence,
-                    self._source_scorer.score(source.url),
-                )
+                learned = self._source_scorer.score(source.url)
+                # Sin reputación aprendida (dominio nuevo) NO se sobrescribe:
+                # la nota inicial la pone el agente, no una tabla fija.
+                if learned is not None:
+                    source.confidence = min(source.confidence, learned)
             # Consenso cross-branch: fuentes corroboradas por varias ramas
             # independientes son más fiables que las de una sola.
             independent_branches = len(branches_by_url.get(normalized, ()))

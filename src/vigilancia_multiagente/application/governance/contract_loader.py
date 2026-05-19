@@ -90,71 +90,229 @@ class GovernanceContractLoader:
                 # Conjunto disponible (ToolSelector elige por señal). Tools
                 # bibliométricas OpenAlex añadidas: redes de citación y
                 # tendencias emergentes son señal central de vigilancia.
+                # execute_code/list_libraries/visualize: análisis numérico
+                # y charting sobre datos recolectados.
+                # understand_image: analizar figuras técnicas, diagramas de
+                # patentes, gráficos de tendencias generados por visualize.
+                # google_search_patents: búsqueda de patentes vía Google
+                # Patents — única tool de patentes del sistema.
+                # tavily_map: mapear la estructura de un sitio fuente antes
+                # de extraer (descubrir páginas de releases/changelogs).
+                # firecrawl_search: búsqueda web con scraping integrado.
+                # summarize_paper: resumen estructurado de papers de avance.
                 allowed_tools=(
                     "tavily_search",
                     "web_search_exa",
+                    "firecrawl_search",
                     "read_url",
+                    "tavily_map",
                     "search_works",
                     "analyze_topic_trends",
                     "get_citation_network",
                     "get_trending_topics",
+                    "summarize_paper",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
                 ),
                 tool_order=(
                     "tavily_search",
                     "web_search_exa",
+                    "firecrawl_search",
                     "read_url",
+                    "tavily_map",
                     "search_works",
                     "analyze_topic_trends",
                     "get_citation_network",
                     "get_trending_topics",
+                    "summarize_paper",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
                 ),
                 timeout_ms_per_tool={
                     "tavily_search": 20000,
                     "web_search_exa": 25000,
+                    "firecrawl_search": 30000,
                     "read_url": 30000,
+                    "tavily_map": 30000,
                     "search_works": 30000,
                     "analyze_topic_trends": 30000,
                     "get_citation_network": 30000,
                     "get_trending_topics": 30000,
+                    "summarize_paper": 30000,
+                    "execute_code": 120000,
+                    "list_libraries": 10000,
+                    "visualize": 30000,
+                    "understand_image": 30000,
+                    "google_search_patents": 30000,
                 },
                 retry_limit_per_tool={
                     "tavily_search": 2,
                     "web_search_exa": 2,
+                    "firecrawl_search": 2,
                     "read_url": 1,
+                    "tavily_map": 1,
                     "search_works": 2,
                     "analyze_topic_trends": 2,
                     "get_citation_network": 2,
                     "get_trending_topics": 2,
+                    "summarize_paper": 1,
+                    "execute_code": 1,
+                    "list_libraries": 1,
+                    "visualize": 2,
+                    "understand_image": 2,
+                    "google_search_patents": 2,
                 },
             ),
             BranchType.COMERCIAL: AgentSkillPolicy(
                 branch_type=BranchType.COMERCIAL,
-                allowed_tools=("web_search_advanced_exa", "brave_news_search", "tavily_extract"),
-                tool_order=("web_search_advanced_exa", "brave_news_search", "tavily_extract"),
+                # Scraping/extracción: el agente dispone de fetch (MCP local,
+                # HTML estático) y browser_navigate/snapshot (Playwright MCP
+                # local, sitios con JS/anti-bot) ADEMÁS de tavily_extract
+                # (API). No hay orden obligatorio entre ellas — ToolSelector
+                # elige por señal; el agente puede preferir fetch primero.
+                # execute_code/list_libraries/visualize: cuantificar mercado,
+                # proyecciones financieras y charting de reportes.
+                # understand_image: analizar capturas de mercado, gráficos
+                # financieros y dashboards de competidores.
+                # firecrawl_search: búsqueda+scraping de mercado en un paso.
+                # tavily_map: descubrir páginas de pricing/producto de un
+                # competidor antes de extraer.
+                allowed_tools=(
+                    "web_search_advanced_exa",
+                    "brave_news_search",
+                    "firecrawl_search",
+                    "fetch",
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "tavily_map",
+                    "tavily_extract",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                ),
+                tool_order=(
+                    "web_search_advanced_exa",
+                    "brave_news_search",
+                    "firecrawl_search",
+                    "fetch",
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "tavily_map",
+                    "tavily_extract",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                ),
                 timeout_ms_per_tool={
                     "web_search_advanced_exa": 25000,
                     "brave_news_search": 20000,
+                    "firecrawl_search": 30000,
+                    "fetch": 25000,
+                    "browser_navigate": 60000,
+                    "browser_snapshot": 30000,
+                    "tavily_map": 30000,
                     "tavily_extract": 25000,
+                    "execute_code": 120000,
+                    "list_libraries": 10000,
+                    "visualize": 30000,
+                    "understand_image": 30000,
                 },
                 retry_limit_per_tool={
                     "web_search_advanced_exa": 2,
                     "brave_news_search": 2,
+                    "firecrawl_search": 2,
+                    "fetch": 2,
+                    "browser_navigate": 2,
+                    "browser_snapshot": 1,
+                    "tavily_map": 1,
                     "tavily_extract": 1,
+                    "execute_code": 1,
+                    "list_libraries": 1,
+                    "visualize": 2,
+                    "understand_image": 2,
                 },
             ),
             BranchType.RIESGO: AgentSkillPolicy(
                 branch_type=BranchType.RIESGO,
-                allowed_tools=("brave_web_search", "firecrawl_scrape", "guess_datetime_url"),
-                tool_order=("brave_web_search", "firecrawl_scrape", "guess_datetime_url"),
+                # Scraping/extracción: fetch (MCP local) y browser_navigate/
+                # snapshot (Playwright MCP local) disponibles ADEMÁS de
+                # firecrawl_scrape (API). Sin orden obligatorio — el agente
+                # puede ir a fetch primero y dejar firecrawl como último
+                # recurso si lo considera.
+                # execute_code: calcular probabilidades de riesgo, analizar
+                # frecuencias de incidentes, modelos de severidad.
+                # understand_image: analizar diagramas de vulnerabilidad,
+                # capturas de incidentes de seguridad.
+                # firecrawl_crawl: recorrer un sitio (avisos de seguridad,
+                # CVE feeds) más allá de una página. browser_take_screenshot
+                # /browser_pdf_save: capturar evidencia de incidentes.
+                allowed_tools=(
+                    "brave_web_search",
+                    "fetch",
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "browser_take_screenshot",
+                    "browser_pdf_save",
+                    "firecrawl_scrape",
+                    "firecrawl_crawl",
+                    "guess_datetime_url",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                ),
+                tool_order=(
+                    "brave_web_search",
+                    "fetch",
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "browser_take_screenshot",
+                    "browser_pdf_save",
+                    "firecrawl_scrape",
+                    "firecrawl_crawl",
+                    "guess_datetime_url",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                ),
                 timeout_ms_per_tool={
                     "brave_web_search": 20000,
+                    "fetch": 25000,
+                    "browser_navigate": 60000,
+                    "browser_snapshot": 30000,
+                    "browser_take_screenshot": 30000,
+                    "browser_pdf_save": 30000,
                     "firecrawl_scrape": 35000,
+                    "firecrawl_crawl": 90000,
                     "guess_datetime_url": 15000,
+                    "execute_code": 120000,
+                    "list_libraries": 10000,
+                    "visualize": 30000,
+                    "understand_image": 30000,
                 },
                 retry_limit_per_tool={
                     "brave_web_search": 2,
+                    "fetch": 2,
+                    "browser_navigate": 2,
+                    "browser_snapshot": 1,
+                    "browser_take_screenshot": 1,
+                    "browser_pdf_save": 1,
                     "firecrawl_scrape": 1,
+                    "firecrawl_crawl": 1,
                     "guess_datetime_url": 1,
+                    "execute_code": 1,
+                    "list_libraries": 1,
+                    "visualize": 2,
+                    "understand_image": 2,
                 },
             ),
             BranchType.PI_NORMATIVA: AgentSkillPolicy(
@@ -162,41 +320,88 @@ class GovernanceContractLoader:
                 # Conjunto disponible (ToolSelector elige por señal, no por
                 # orden). Cadena ArXiv completa: search→download→read; sin
                 # read_paper el agente encontraba papers pero no los leía.
+                # execute_code: análisis de redes de citación, métricas de
+                # patentabilidad, clusters de prior art.
+                # understand_image: analizar figuras de patentes, diagramas
+                # técnicos en papers, esquemas regulatorios.
+                # google_search_patents: búsqueda de patentes vía Google
+                # Patents (única tool de patentes del sistema).
+                # google_search_scholar: complemento a OpenAlex para
+                # cobertura académica vía Google Scholar.
+                # summarize_paper/compare_papers: resumir y comparar prior
+                # art y papers normativos sin leerlos enteros. list_papers:
+                # inventario de papers ya descargados en la sesión.
                 allowed_tools=(
                     "search_google_scholar_key_words",
                     "search_papers",
                     "download_paper",
                     "read_paper",
+                    "list_papers",
+                    "summarize_paper",
+                    "compare_papers",
                     "read_url",
                     "search_works",
                     "find_seminal_papers",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
+                    "google_search_scholar",
                 ),
                 tool_order=(
                     "search_google_scholar_key_words",
                     "search_papers",
                     "download_paper",
                     "read_paper",
+                    "list_papers",
+                    "summarize_paper",
+                    "compare_papers",
                     "read_url",
                     "search_works",
                     "find_seminal_papers",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
+                    "google_search_scholar",
                 ),
                 timeout_ms_per_tool={
                     "search_google_scholar_key_words": 25000,
                     "search_papers": 25000,
                     "download_paper": 30000,
                     "read_paper": 25000,
+                    "list_papers": 10000,
+                    "summarize_paper": 30000,
+                    "compare_papers": 35000,
                     "read_url": 30000,
                     "search_works": 30000,
                     "find_seminal_papers": 30000,
+                    "execute_code": 120000,
+                    "list_libraries": 10000,
+                    "visualize": 30000,
+                    "understand_image": 30000,
+                    "google_search_patents": 30000,
+                    "google_search_scholar": 30000,
                 },
                 retry_limit_per_tool={
                     "search_google_scholar_key_words": 2,
                     "search_papers": 2,
                     "download_paper": 2,
                     "read_paper": 1,
+                    "list_papers": 1,
+                    "summarize_paper": 1,
+                    "compare_papers": 1,
                     "read_url": 1,
                     "search_works": 2,
                     "find_seminal_papers": 2,
+                    "execute_code": 1,
+                    "list_libraries": 1,
+                    "visualize": 2,
+                    "understand_image": 2,
+                    "google_search_patents": 2,
+                    "google_search_scholar": 2,
                 },
             ),
             BranchType.COMPETITIVO: AgentSkillPolicy(
@@ -204,48 +409,156 @@ class GovernanceContractLoader:
                 # search_authors_by_expertise + get_author_info: mapear
                 # líderes técnicos y expertos de competidores era capacidad
                 # registrada pero nunca invocada por ningún sistema.
+                # execute_code: matrices de posicionamiento competitivo,
+                # análisis de市场份额, proyecciones de competitividad.
+                # understand_image: analizar capturas de productos
+                # competidores, dashboards públicos, infografías.
+                # google_search_patents: analizar carteras de patentes de
+                # competidores, identificar barreras de entrada por IP.
+                # Scraping/extracción: fetch + browser_navigate/snapshot (MCP
+                # locales) disponibles junto a read_url (API jina). Sin orden
+                # obligatorio — el agente elige la vía por señal.
+                # firecrawl_map: descubrir estructura del sitio de un
+                # competidor (líneas de producto, careers, prensa).
+                # browser_take_screenshot: capturar evidencia visual de
+                # productos/landing de competidores.
                 allowed_tools=(
                     "web_search_advanced_exa",
                     "brave_news_search",
+                    "firecrawl_search",
+                    "fetch",
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "browser_take_screenshot",
+                    "firecrawl_map",
                     "read_url",
                     "search_authors_by_expertise",
                     "get_author_info",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
                 ),
                 tool_order=(
                     "web_search_advanced_exa",
                     "brave_news_search",
+                    "firecrawl_search",
+                    "fetch",
+                    "browser_navigate",
+                    "browser_snapshot",
+                    "browser_take_screenshot",
+                    "firecrawl_map",
                     "read_url",
                     "search_authors_by_expertise",
                     "get_author_info",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
                 ),
                 timeout_ms_per_tool={
                     "web_search_advanced_exa": 25000,
                     "brave_news_search": 20000,
+                    "firecrawl_search": 30000,
+                    "fetch": 25000,
+                    "browser_navigate": 60000,
+                    "browser_snapshot": 30000,
+                    "browser_take_screenshot": 30000,
+                    "firecrawl_map": 30000,
                     "read_url": 30000,
                     "search_authors_by_expertise": 30000,
                     "get_author_info": 25000,
+                    "execute_code": 120000,
+                    "list_libraries": 10000,
+                    "visualize": 30000,
+                    "understand_image": 30000,
+                    "google_search_patents": 30000,
                 },
                 retry_limit_per_tool={
                     "web_search_advanced_exa": 2,
                     "brave_news_search": 2,
+                    "firecrawl_search": 2,
+                    "fetch": 2,
+                    "browser_navigate": 2,
+                    "browser_snapshot": 1,
+                    "browser_take_screenshot": 1,
+                    "firecrawl_map": 1,
                     "read_url": 1,
                     "search_authors_by_expertise": 2,
                     "get_author_info": 2,
+                    "execute_code": 1,
+                    "list_libraries": 1,
+                    "visualize": 2,
+                    "understand_image": 2,
+                    "google_search_patents": 2,
                 },
             ),
             BranchType.OPORTUNIDADES: AgentSkillPolicy(
                 branch_type=BranchType.OPORTUNIDADES,
-                allowed_tools=("tavily_search", "web_search_exa", "brave_web_search"),
-                tool_order=("tavily_search", "web_search_exa", "brave_web_search"),
+                # execute_code: análisis numérico y proyecciones sobre
+                # datos recolectados (cuantificar oportunidad potencial).
+                # visualize: charting para reportes.
+                # understand_image: analizar mapas de oportunidad, gráficos
+                # de mercado, infografías de tendencias emergentes.
+                # google_search_patents: identificar oportunidades de
+                # innovación en espacios no patentados.
+                # fetch (MCP local): extraer páginas de oportunidad detectadas
+                # sin gastar API. Sin orden obligatorio.
+                # firecrawl_search: búsqueda+scraping de señales de oportunidad.
+                # tavily_map: mapear un sitio/programa de innovación.
+                allowed_tools=(
+                    "tavily_search",
+                    "web_search_exa",
+                    "brave_web_search",
+                    "firecrawl_search",
+                    "fetch",
+                    "tavily_map",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
+                ),
+                tool_order=(
+                    "tavily_search",
+                    "web_search_exa",
+                    "brave_web_search",
+                    "firecrawl_search",
+                    "fetch",
+                    "tavily_map",
+                    "execute_code",
+                    "list_libraries",
+                    "visualize",
+                    "understand_image",
+                    "google_search_patents",
+                ),
                 timeout_ms_per_tool={
                     "tavily_search": 20000,
                     "web_search_exa": 25000,
                     "brave_web_search": 20000,
+                    "firecrawl_search": 30000,
+                    "fetch": 25000,
+                    "tavily_map": 30000,
+                    "execute_code": 120000,
+                    "list_libraries": 10000,
+                    "visualize": 30000,
+                    "understand_image": 30000,
+                    "google_search_patents": 30000,
                 },
                 retry_limit_per_tool={
                     "tavily_search": 2,
                     "web_search_exa": 2,
                     "brave_web_search": 2,
+                    "firecrawl_search": 2,
+                    "fetch": 2,
+                    "tavily_map": 1,
+                    "execute_code": 1,
+                    "list_libraries": 1,
+                    "visualize": 2,
+                    "understand_image": 2,
+                    "google_search_patents": 2,
                 },
             ),
         }
