@@ -19,6 +19,9 @@ from dataclasses import dataclass
 import httpx
 
 from vigilancia_multiagente.config.settings import get_settings
+from vigilancia_multiagente.domain.ports.scholarly_works_gateway import (
+    ScholarlyWork as ScholarlyWorkDTO,
+)
 
 _BASE_URL = "https://api.openalex.org/works"
 
@@ -72,6 +75,33 @@ class OpenAlexClient:
             raise OpenAlexError(f"OpenAlex search failed: {exc}") from exc
 
         return [_parse_work(item) for item in data.get("results", [])]
+
+
+class OpenAlexScholarlyWorksGateway:
+    """Adapter implementing :class:`ScholarlyWorksGateway` against OpenAlex.
+
+    Resilient: returns ``[]`` on OpenAlex errors so callers never break.
+    """
+
+    async def search(self, query: str, limit: int = 10) -> list[ScholarlyWorkDTO]:
+        client = OpenAlexClient()
+        try:
+            works = await client.search_works(query, per_page=limit)
+        except OpenAlexError:
+            return []
+        finally:
+            await client.close()
+        return [
+            ScholarlyWorkDTO(
+                title=w.title,
+                year=w.publication_year,
+                citations=w.cited_by_count,
+                doi=w.doi,
+                institutions=w.institutions,
+                concepts=w.concepts,
+            )
+            for w in works
+        ]
 
 
 def _parse_work(item: dict) -> ScholarlyWork:

@@ -27,6 +27,11 @@ from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGatew
 from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.provider_registry import ProviderConfig, ProviderRegistry
+from vigilancia_multiagente.domain.ports.reranker import Reranker
+from vigilancia_multiagente.domain.ports.scholarly_works_gateway import (
+    ScholarlyWork,
+    ScholarlyWorksGateway,
+)
 from vigilancia_multiagente.domain.ports.tool_executor import ToolExecutor
 from vigilancia_multiagente.domain.system_base import SystemBase
 
@@ -64,6 +69,8 @@ class BaseBranchAgent:
         signal_callback=None,
         tool_router: SmartToolRouter | None = None,
         event_publisher: EventPublisher | None = None,
+        scholarly_works_gateway: ScholarlyWorksGateway | None = None,
+        reranker: Reranker | None = None,
     ) -> None:
         self.branch_type = branch_type
         self._governance_loader = governance_loader
@@ -79,6 +86,8 @@ class BaseBranchAgent:
         self._signal_callback = signal_callback or self._noop_signal
         self._tool_router = tool_router
         self._event_publisher = event_publisher
+        self._scholarly_works_gateway = scholarly_works_gateway
+        self._reranker = reranker
         self._cross_branch_hints: deque[str] = deque(maxlen=32)
 
     def set_preload_context(self, context: dict | None) -> None:
@@ -121,6 +130,7 @@ class BaseBranchAgent:
                 event_publisher=self._event_publisher,
                 cross_branch_hints=self._cross_branch_hints,
                 branch_type=self.branch_type,
+                reranker=self._reranker,
             ),
             AssembleBranchResultStep(
                 embedding_gateway=self._embedding_gateway,
@@ -194,34 +204,17 @@ class BaseBranchAgent:
 
     # ── Datos estructurados (OpenAlex) ────────────────────────────────────
 
-    async def fetch_scholarly_works(self, query: str, limit: int = 10) -> list[dict]:
-        """Datos bibliométricos duros (citas, instituciones, año) vía OpenAlex.
+    async def fetch_scholarly_works(
+        self, query: str, limit: int = 10
+    ) -> list[ScholarlyWork]:
+        """Datos bibliométricos duros (citas, instituciones, año).
 
-        Resiliente: si OpenAlex no responde devuelve [] (no rompe la rama).
+        Si no se inyectó un :class:`ScholarlyWorksGateway`, devuelve [] —
+        la rama no debe romperse cuando no hay datos bibliométricos.
         """
-        from vigilancia_multiagente.infra.openalex.openalex_client import (
-            OpenAlexClient,
-            OpenAlexError,
-        )
-
-        client = OpenAlexClient()
-        try:
-            works = await client.search_works(query, per_page=limit)
-        except OpenAlexError:
+        if self._scholarly_works_gateway is None:
             return []
-        finally:
-            await client.close()
-        return [
-            {
-                "title": w.title,
-                "year": w.publication_year,
-                "citations": w.cited_by_count,
-                "doi": w.doi,
-                "institutions": w.institutions,
-                "concepts": w.concepts,
-            }
-            for w in works
-        ]
+        return await self._scholarly_works_gateway.search(query, limit=limit)
 
     # ── Signals ───────────────────────────────────────────────────────────
 

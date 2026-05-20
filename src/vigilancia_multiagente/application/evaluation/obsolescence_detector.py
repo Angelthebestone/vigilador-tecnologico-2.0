@@ -1,3 +1,7 @@
+
+# STATUS: ACTIVE
+# STATUS: ACTIVE — consumer: research_outputs (ObsolescenceDetector.analyze)
+
 from dataclasses import dataclass, field
 
 

@@ -1,3 +1,5 @@
+# STATUS: ACTIVE — consumers: report_synthesizer, research_outputs (HypeDetector.analyze, infer_from_branch_results, render_section)
+
 from dataclasses import dataclass, field
 
 # Technology Readiness Level bands inferred from the relative weight of
@@ -130,6 +132,8 @@ class HypeDetector:
         Cuenta señales por palabras clave en los statements: papers /
         prototipos / funding / patentes.
         """
+# STATUS: ACTIVE
+
         signal_keywords: dict[str, tuple[str, ...]] = {
             "academic_papers": ("paper", "study", "research", "arxiv", "preprint"),
             "working_prototypes": ("prototype", "demo", "beta", "pilot", "deployment"),

@@ -19,9 +19,9 @@ from vigilancia_multiagente.domain.models import (
     Recommendation,
     SourceRef,
 )
-from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
-from vigilancia_multiagente.infra.prompts.loader import load_prompt
+from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
+from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +93,11 @@ class ReportSynthesizer:
         self,
         event_publisher: EventPublisher | None = None,
         source_scorer: object | None = None,
+        prompt_loader: PromptLoader | None = None,
     ) -> None:
         self._event_publisher = event_publisher
         self._source_scorer = source_scorer
+        self._prompt_loader = prompt_loader
 
     async def synthesize(
         self,
@@ -158,7 +160,9 @@ class ReportSynthesizer:
                 sections_text = "\n\n".join(
                     f"=== {key} ===\n{val}" for key, val in branch_sections.items()
                 )
-                prompt = load_prompt("orchestration/synthesis").format(
+                if self._prompt_loader is None:
+                    raise RuntimeError("prompt_loader required for LLM synthesis")
+                prompt = self._prompt_loader.load("orchestration/synthesis").format(
                     avances=branch_sections.get("avances", ""),
                     comercial=branch_sections.get("comercial", ""),
                     riesgo=branch_sections.get("riesgo", ""),

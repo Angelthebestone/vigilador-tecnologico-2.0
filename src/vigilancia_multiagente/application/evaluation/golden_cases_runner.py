@@ -1,3 +1,9 @@
+
+# STATUS: MIGRATE -- migrar a spec 007
+# DEPRECATED: migrar a spec 007
+# STATUS: MIGRATE — migrar a spec 007 (runner de tests de regresión, pertenece a infraestructura de QA)
+# DEPRECATED: migrar a spec 007
+
 from dataclasses import dataclass
 
 

@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from uuid import UUID
 
-from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
-from vigilancia_multiagente.infra.prompts.loader import load_prompt
+from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
+from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 
 
 @dataclass(slots=True, frozen=True)
@@ -14,17 +14,20 @@ class ClarificationQuestion:
 
 
 class ClarificationService:
-    def __init__(self) -> None:
+    def __init__(self, prompt_loader: PromptLoader | None = None) -> None:
+        self._prompt_loader = prompt_loader
         self._answers: dict[UUID, dict[str, str]] = {}
 
     async def generate_questions(
         self, user_query: str, llm: LLMClient | None = None
     ) -> list[ClarificationQuestion]:
-        if llm is not None:
+        if llm is not None and self._prompt_loader is not None:
             import json
 
             try:
-                prompt = load_prompt("orchestration/clarify").format(user_query=user_query)
+                prompt = self._prompt_loader.load("orchestration/clarify").format(
+                    user_query=user_query
+                )
                 response = await llm.complete(
                     messages=[MiniMaxMessage(role="user", content=prompt)]
                 )

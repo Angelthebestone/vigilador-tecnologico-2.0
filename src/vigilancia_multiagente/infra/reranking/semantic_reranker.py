@@ -12,24 +12,19 @@ nueva, degradación elegante igual que el resto del proyecto).
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from vigilancia_multiagente.config.settings import get_settings
+from vigilancia_multiagente.domain.ports.reranker import RankedDocument
 
 logger = logging.getLogger(__name__)
 
 _COHERE_RERANK_URL = "https://api.cohere.com/v2/rerank"
 _COHERE_MODEL = "rerank-v3.5"
 
-
-@dataclass(slots=True)
-class RankedDocument:
-    index: int  # posición original en la lista de entrada
-    text: str
-    score: float  # relevancia [0,1], mayor = más relevante
+__all__ = ["RankedDocument", "SemanticReranker"]
 
 
 class SemanticReranker:

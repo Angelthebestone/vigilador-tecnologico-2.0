@@ -9,6 +9,8 @@ Aquí se registran observaciones (confidence_predicha, ¿se confirmó después?)
 agrupadas en buckets, se mide el desvío real por bucket y se expone un factor
 de corrección para recalibrar confidencias futuras.
 """
+# STATUS: LEGACY — sin consumidores activos fuera de evaluation/. Mantener por referencia, eliminar post-spec-007
+# DEPRECATED: sin consumidores activos
 
 from __future__ import annotations
 
@@ -64,6 +66,9 @@ class ConfidenceCalibrator:
         Si el bucket tiene suficientes muestras y el sistema acertó menos de
         lo que predijo, baja la confianza proporcionalmente (y viceversa).
         """
+# STATUS: LEGACY -- migrar a spec 007 o eliminar
+# DEPRECATED: migrar a spec 007 o eliminar
+
         bucket = self._buckets[self._bucket_index(raw_confidence)]
         if bucket.total < _MIN_SAMPLES:
             return raw_confidence

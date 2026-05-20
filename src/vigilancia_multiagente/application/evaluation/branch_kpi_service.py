@@ -1,6 +1,12 @@
+
+# STATUS: MIGRATE -- migrar a spec 007
+# DEPRECATED: migrar a spec 007
 from dataclasses import dataclass
 
 from vigilancia_multiagente.domain.models import BranchResult, BranchType
+
+# STATUS: MIGRATE — migrar a spec 007 (componente de observabilidad/monitoreo)
+# DEPRECATED: migrar a spec 007
 
 
 @dataclass(slots=True, frozen=True)

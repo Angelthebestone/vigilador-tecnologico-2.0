@@ -25,3 +25,10 @@ def load_prompt(path: str) -> str:
         FileNotFoundError: If the prompt file does not exist.
     """
     return (_PROMPTS_ROOT / f"{path}.txt").read_text(encoding="utf-8")
+
+
+class FilesystemPromptLoader:
+    """Adapter that implements :class:`PromptLoader` against the local filesystem."""
+
+    def load(self, path: str) -> str:
+        return load_prompt(path)

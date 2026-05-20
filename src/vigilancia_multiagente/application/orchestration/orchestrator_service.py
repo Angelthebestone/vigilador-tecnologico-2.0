@@ -1,12 +1,18 @@
 import logging
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID, uuid4
 
 from vigilancia_multiagente.application.evaluation.claim_polarity import (
     claims_overlap,
     polarity_conflict,
 )
-from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
+from vigilancia_multiagente.application.orchestration.null_services import (
+    NullCrossSessionService,
+    NullReportGenerator,
+    NullSourceScorer,
+    NullTrendForecaster,
+)
 from vigilancia_multiagente.domain.models import ResearchPlan, ResearchSession
 from vigilancia_multiagente.domain.repositories import SessionRepository
 from vigilancia_multiagente.domain.session_state import SessionStatus, ensure_transition
@@ -18,10 +24,10 @@ class OrchestratorService:
     def __init__(
         self,
         session_repository: SessionRepository,
-        cross_session_service=None,
-        trend_forecaster: TrendForecasterService | None = None,
-        source_scorer=None,
-        report_generator=None,
+        cross_session_service: Any = NullCrossSessionService(),
+        trend_forecaster: Any = NullTrendForecaster(),
+        source_scorer: Any = NullSourceScorer(),
+        report_generator: Any = NullReportGenerator(),
     ) -> None:
         self._session_repository = session_repository
         self._cross_session_service = cross_session_service
@@ -53,16 +59,12 @@ class OrchestratorService:
         return await self._session_repository.update(session)
 
     async def preload_for_session(self, query: str) -> dict:
-        if self._cross_session_service is None:
-            return {}
         preload_context = await self._cross_session_service.preload_session(query)
         if preload_context.get("related_sessions"):
             logger.info("Found %d related prior sessions", len(preload_context["related_sessions"]))
         return preload_context
 
     async def analyze_trends(self, session_data: dict) -> list[dict]:
-        if not self.trend_forecaster:
-            return []
         try:
             projections = await self.trend_forecaster.analyze(session_data)
             trending_data = [p for p in projections if p.data_quality != "insufficient"]
@@ -73,8 +75,6 @@ class OrchestratorService:
             return []
 
     async def cross_reference_findings(self, session_data: dict) -> None:
-        if not self.source_scorer:
-            return
         try:
             findings_list = session_data.get("findings", [])
             for i, a in enumerate(findings_list):
