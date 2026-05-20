@@ -1,24 +1,27 @@
+from typing import Any
+
 from vigilancia_multiagente.application.agents.base import BaseBranchAgent
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.governance.prompt_composer import PromptComposer
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import SystemBase
-from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
-from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
-from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient
-from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderRegistry
+from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
+from vigilancia_multiagente.domain.ports.llm_client import LLMClient
+from vigilancia_multiagente.domain.ports.tool_executor import ToolExecutor
+from vigilancia_multiagente.domain.ports.provider_registry import ProviderRegistry
 
 
 class PiNormativaAgent(BaseBranchAgent):
     def __init__(
         self,
         governance_loader: GovernanceContractLoader,
-        provider_registry: MCPProviderRegistry,
-        execution_client: MCPExecutionClient,
-        embedding_gateway: GeminiEmbeddingGateway,
-        minimax_client: MiniMaxClient | None = None,
+        provider_registry: ProviderRegistry,
+        execution_client: ToolExecutor,
+        embedding_gateway: EmbeddingGateway,
+        minimax_client: LLMClient | None = None,
         system_base: SystemBase | None = None,
         prompt_composer: PromptComposer | None = None,
+        **kwargs: Any,
     ) -> None:
         super().__init__(
             BranchType.PI_NORMATIVA,
@@ -29,4 +32,5 @@ class PiNormativaAgent(BaseBranchAgent):
             minimax_client,
             system_base,
             prompt_composer,
+            **kwargs,
         )

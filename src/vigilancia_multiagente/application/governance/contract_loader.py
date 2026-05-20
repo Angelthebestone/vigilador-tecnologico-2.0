@@ -2,12 +2,18 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
+
+import yaml
 
 from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.system_base import BranchOverlay
 
 logger = logging.getLogger(__name__)
+
+_SKILL_MATRIX_YAML = (
+    Path(__file__).resolve().parents[4] / "config" / "skills" / "skill_matrix_default.yaml"
+)
 
 
 @dataclass(slots=True)
@@ -18,6 +24,32 @@ class AgentSkillPolicy:
     timeout_ms_per_tool: dict[str, int]
     retry_limit_per_tool: dict[str, int]
     substitution_policy: str = "none"
+
+
+def _skill_matrix_from_yaml(path: Path) -> dict[BranchType, AgentSkillPolicy]:
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise TypeError("skill matrix YAML must be a mapping")
+    matrix: dict[BranchType, AgentSkillPolicy] = {}
+    for branch_key, entry in raw.items():
+        branch_type = BranchType(str(branch_key).upper())
+        if not isinstance(entry, dict):
+            raise TypeError(f"skill entry for {branch_key} must be a mapping")
+        matrix[branch_type] = AgentSkillPolicy(
+            branch_type=branch_type,
+            allowed_tools=tuple(cast(list[str], entry.get("allowed_tools", ()))),
+            tool_order=tuple(cast(list[str], entry.get("tool_order", ()))),
+            timeout_ms_per_tool={
+                str(k): int(v)
+                for k, v in cast(dict[str, Any], entry.get("timeout_ms_per_tool", {})).items()
+            },
+            retry_limit_per_tool={
+                str(k): int(v)
+                for k, v in cast(dict[str, Any], entry.get("retry_limit_per_tool", {})).items()
+            },
+            substitution_policy=str(entry.get("substitution_policy", "none")),
+        )
+    return matrix
 
 
 # Branch-specific overlay definitions aligned with agent-governance.md section 2.
@@ -84,6 +116,18 @@ class GovernanceContractLoader:
         self._contracts_root = contracts_root
 
     def load_skill_matrix(self) -> dict[BranchType, AgentSkillPolicy]:
+        if _SKILL_MATRIX_YAML.exists():
+            try:
+                return _skill_matrix_from_yaml(_SKILL_MATRIX_YAML)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to load skill matrix from %s, using embedded fallback: %s",
+                    _SKILL_MATRIX_YAML,
+                    exc,
+                )
+        return self._embedded_skill_matrix_fallback()
+
+    def _embedded_skill_matrix_fallback(self) -> dict[BranchType, AgentSkillPolicy]:
         return {
             BranchType.AVANCES: AgentSkillPolicy(
                 branch_type=BranchType.AVANCES,

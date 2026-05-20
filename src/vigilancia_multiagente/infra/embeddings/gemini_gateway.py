@@ -1,17 +1,12 @@
 import asyncio
 from collections.abc import Sequence
-from enum import StrEnum
 from math import sqrt
 from typing import Any
 
 import httpx
 
 from vigilancia_multiagente.config.settings import get_settings
-
-
-class TaskType(StrEnum):
-    RETRIEVAL_QUERY = "RETRIEVAL_QUERY"
-    RETRIEVAL_DOCUMENT = "RETRIEVAL_DOCUMENT"
+from vigilancia_multiagente.domain.ports.embedding_gateway import TaskType
 
 
 _TASK_PREFIXES: dict[str, str] = {

@@ -1,47 +1,46 @@
+"""Knowledge Graph Service — Facade over GraphBuilder + GraphAnalytics.
+
+Keeps the canonical public API so callers don't notice the split.
+New code should prefer GraphBuilder / GraphAnalytics directly.
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from dataclasses import dataclass
 from itertools import pairwise
-from math import sqrt
 from typing import cast
 from uuid import UUID
 
 import networkx as nx
-from networkx.algorithms.community import label_propagation_communities
 from scipy.spatial.distance import cosine as _cosine
 
+from vigilancia_multiagente.application.graph.graph_analytics import GraphAnalytics
+from vigilancia_multiagente.application.graph.graph_builder import GraphBuilder
 from vigilancia_multiagente.domain.models import (
-    EntityType,
     Finding,
-    GraphCentrality,
-    GraphCluster,
     GraphPathResult,
     GraphSearchHit,
     NamedEntity,
     SourceRef,
 )
-
-
-@dataclass(slots=True)
-class GraphPayload:
-    session_id: UUID
-    nodes: list[dict[str, object]]
-    edges: list[dict[str, object]]
-
-
-@dataclass(slots=True)
-class GraphAnalyticsPayload:
-    session_id: UUID
-    node_count: int
-    edge_count: int
-    centrality: list[GraphCentrality]
-    clusters: list[GraphCluster]
-    layout: list[dict[str, object]]
-    traversals: dict[str, list[str]]
+from vigilancia_multiagente.shared.graph_dto import GraphAnalyticsPayload, GraphPayload
 
 
 class KnowledgeGraphService:
+    """Facade that delegates build/analytics to dedicated classes.
+
+    Also owns graph-traversal / search / ecosystem-discovery methods
+    that don't belong in either builder or analytics.
+    """
+
+    def __init__(self) -> None:
+        self._builder = GraphBuilder()
+        self._analytics = GraphAnalytics()
+
+    # ------------------------------------------------------------------
+    # Delegated to GraphBuilder
+    # ------------------------------------------------------------------
+
     def build(
         self,
         session_id: UUID,
@@ -51,300 +50,16 @@ class KnowledgeGraphService:
         patents: list[dict] | None = None,
         entities: list[NamedEntity] | None = None,
     ) -> GraphPayload:
-        nodes: list[dict[str, object]] = []
-        edges: list[dict[str, object]] = []
-        source_nodes = {source.id: f"source:{source.id}" for source in sources}
-
-        # --- Technology node from session topic ---
-        if topic:
-            nodes.append(
-                {
-                    "id": "technology:main",
-                    "type": "TECHNOLOGY",
-                    "label": topic,
-                    "metadata": {"category": "emerging", "status": "active"},
-                }
-            )
-
-        # --- Patent nodes from Serper results ---
-        if patents:
-            for patent in patents:
-                patent_num = patent.get("patentNumber") or patent.get("title", "")
-                patent_id = f"patent:{patent_num}"
-                nodes.append(
-                    {
-                        "id": patent_id,
-                        "type": "PATENT",
-                        "label": patent.get("title", ""),
-                        "metadata": {
-                            "patent_number": patent.get("patentNumber", ""),
-                            "assignee": patent.get("assignee", ""),
-                            "filing_date": patent.get("filingDate", ""),
-                            "status": patent.get("status", ""),
-                            "snippet": patent.get("snippet", ""),
-                            "url": patent.get("link", ""),
-                        },
-                    }
-                )
-
-        for source in sources:
-            nodes.append(
-                {
-                    "id": source_nodes[source.id],
-                    "type": "SOURCE",
-                    "label": source.title or source.url,
-                    "metadata": {
-                        "provider": source.provider,
-                        "branch_type": source.branch_type.value,
-                        "url": source.url,
-                    },
-                }
-            )
-        for finding in findings:
-            finding_node = f"finding:{finding.id}"
-            nodes.append(
-                {
-                    "id": finding_node,
-                    "type": "FINDING",
-                    "label": finding.topic,
-                    "metadata": {
-                        "statement": finding.statement,
-                        "confidence": finding.confidence,
-                        "tags": list(finding.tags),
-                    },
-                }
-            )
-            for source_id in finding.source_ids:
-                source_node = source_nodes.get(source_id)
-                if source_node is None:
-                    continue
-                edges.append(
-                    {
-                        "id": f"{finding_node}->{source_node}",
-                        "source": finding_node,
-                        "target": source_node,
-                        "relation_type": "REFERENCES",
-                        "weight": round(finding.confidence, 4),
-                    }
-                )
-
-        # --- Concept nodes from unique tags ---
-        concept_data: dict[str, dict[str, object]] = {}
-        for finding in findings:
-            for tag in finding.tags:
-                if tag not in concept_data:
-                    concept_data[tag] = {"frequency": 0, "node_id": f"concept:{tag}"}
-                concept_data[tag]["frequency"] += 1  # type: ignore[operator]
-        for tag, data in concept_data.items():
-            nodes.append(
-                {
-                    "id": data["node_id"],
-                    "type": "CONCEPT",
-                    "label": tag,
-                    "metadata": {"frequency": data["frequency"]},
-                }
-            )
-
-        # --- related_to edges via bipartite projection ---
-        concept_names = {tag for f in findings for tag in f.tags}
-        if concept_names:
-            B = nx.Graph()
-            for finding in findings:
-                fid = str(finding.id)
-                B.add_node(fid, bipartite=0)
-                for tag in finding.tags:
-                    B.add_node(tag, bipartite=1)
-                    B.add_edge(fid, tag)
-            proj = nx.bipartite.weighted_projected_graph(B, concept_names, ratio=True)
-            for tag_a, tag_b, data in proj.edges(data=True):
-                edges.append(
-                    {
-                        "id": f"concept:{tag_a}->concept:{tag_b}",
-                        "source": f"concept:{tag_a}",
-                        "target": f"concept:{tag_b}",
-                        "relation_type": "related_to",
-                        "weight": round(data["weight"], 4),
-                    }
-                )
-
-        # --- references edges: SOURCE to CONCEPT ---
-        source_concepts: dict[str, set[str]] = {}
-        for finding in findings:
-            for source_id in finding.source_ids:
-                source_key = source_nodes.get(source_id)
-                if source_key is None:
-                    continue
-                if source_key not in source_concepts:
-                    source_concepts[source_key] = set()
-                for tag in finding.tags:
-                    source_concepts[source_key].add(tag)
-        for source_key, concept_tags in source_concepts.items():
-            for tag in sorted(concept_tags):
-                edges.append(
-                    {
-                        "id": f"{source_key}->concept:{tag}",
-                        "source": source_key,
-                        "target": f"concept:{tag}",
-                        "relation_type": "REFERENCES",
-                        "weight": 1.0,
-                    }
-                )
-
-        # --- PERSON / COMPANY nodes from entity extraction ---
-        if entities:
-            # Dedup por nombre normalizado
-            entity_by_name: dict[str, NamedEntity] = {}
-            for entity in entities:
-                key = entity.name.lower()
-                if key not in entity_by_name:
-                    entity_by_name[key] = entity
-
-            for entity in entity_by_name.values():
-                node_id = f"{'person' if entity.entity_type == EntityType.PERSON else 'company'}:{entity.name.lower().replace(' ', '_')}"
-                nodes.append(
-                    {
-                        "id": node_id,
-                        "type": entity.entity_type.value,
-                        "label": entity.name,
-                        "metadata": {
-                            "affiliation": entity.affiliation or "",
-                            "branch_type": entity.branch_type.value,
-                            "confidence": entity.confidence,
-                        },
-                    }
-                )
-                # FINDING -[mentions]-> PERSON/COMPANY
-                for finding in findings:
-                    if any(sid in entity.source_ids for sid in finding.source_ids):
-                        edges.append(
-                            {
-                                "id": f"finding:{finding.id}->{node_id}",
-                                "source": f"finding:{finding.id}",
-                                "target": node_id,
-                                "relation_type": "mentions",
-                                "weight": round(entity.confidence, 4),
-                            }
-                        )
-
-            # COMPANY -[employs]-> PERSON  (si comparte afiliación)
-            persons = [e for e in entity_by_name.values() if e.entity_type == EntityType.PERSON]
-            companies = [e for e in entity_by_name.values() if e.entity_type == EntityType.COMPANY]
-            for person in persons:
-                if not person.affiliation:
-                    continue
-                for company in companies:
-                    if (
-                        person.affiliation.lower() in company.name.lower()
-                        or company.name.lower() in person.affiliation.lower()
-                    ):
-                        pid = f"person:{person.name.lower().replace(' ', '_')}"
-                        cid = f"company:{company.name.lower().replace(' ', '_')}"
-                        edges.append(
-                            {
-                                "id": f"{cid}-employs->{pid}",
-                                "source": cid,
-                                "target": pid,
-                                "relation_type": "employs",
-                                "weight": 0.8,
-                            }
-                        )
-
-            # COMPANY -[assigned]-> PATENT  (por assignee en metadata)
-            for node in nodes:
-                if node.get("type") != "PATENT":
-                    continue
-                assignee = str(cast(dict, node.get("metadata", {})).get("assignee", "")).lower()
-                if not assignee:
-                    continue
-                for company in companies:
-                    if company.name.lower() in assignee or assignee in company.name.lower():
-                        cid = f"company:{company.name.lower().replace(' ', '_')}"
-                        edges.append(
-                            {
-                                "id": f"{cid}-assigned->{node['id']}",
-                                "source": cid,
-                                "target": str(node["id"]),
-                                "relation_type": "assigned",
-                                "weight": 0.9,
-                            }
-                        )
-
-        return GraphPayload(session_id=session_id, nodes=nodes, edges=edges)
+        return self._builder.build(
+            session_id, findings, sources, topic=topic, patents=patents, entities=entities
+        )
 
     # ------------------------------------------------------------------
-    # Internal: construir nx.Graph a partir del payload
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _to_nx(graph: GraphPayload) -> nx.Graph:
-        G = nx.Graph()
-        for node in graph.nodes:
-            G.add_node(str(node["id"]))
-        for edge in graph.edges:
-            G.add_edge(
-                str(edge["source"]),
-                str(edge["target"]),
-                id=str(edge["id"]),
-                weight=float(cast(float, edge.get("weight", 1.0))),
-            )
-        return G
-
-    # ------------------------------------------------------------------
-    # Analítica completa (centralidad, clusters, layout, recorridos)
+    # Delegated to GraphAnalytics
     # ------------------------------------------------------------------
 
     def analytics(self, graph: GraphPayload) -> GraphAnalyticsPayload:
-        if not graph.nodes:
-            return GraphAnalyticsPayload(
-                session_id=graph.session_id,
-                node_count=0,
-                edge_count=0,
-                centrality=[],
-                clusters=[],
-                layout=[],
-                traversals={"bfs": [], "dfs": []},
-            )
-
-        G = self._to_nx(graph)
-        node_ids = list(G.nodes())
-
-        # Centralidad
-        deg = nx.degree_centrality(G)
-        btw = nx.betweenness_centrality(G)
-        pr = nx.pagerank(G, weight="weight")
-        centrality = [
-            GraphCentrality(
-                node_id=nid,
-                degree=round(deg.get(nid, 0.0), 4),
-                betweenness=round(btw.get(nid, 0.0), 4),
-                pagerank=round(pr.get(nid, 0.0), 4),
-            )
-            for nid in node_ids
-        ]
-
-        # Clusters via Label Propagation
-        clusters = self._clusters(G, node_ids)
-
-        # Layout force-directed (Fruchterman-Reingold) → normalizado [-1, 1]
-        layout = self._layout(G, node_ids)
-
-        # Recorridos BFS/DFS desde el nodo con mayor grado
-        root = max(node_ids, key=lambda nid: G.degree(nid)) if node_ids else None
-        if root:
-            bfs = [root] + [v for _, v in nx.bfs_edges(G, source=root)]
-            dfs = [root] + [v for _, v in nx.dfs_edges(G, source=root)]
-        else:
-            bfs = dfs = []
-
-        return GraphAnalyticsPayload(
-            session_id=graph.session_id,
-            node_count=len(graph.nodes),
-            edge_count=len(graph.edges),
-            centrality=centrality,
-            clusters=clusters,
-            layout=layout,
-            traversals={"bfs": bfs, "dfs": dfs},
-        )
+        return self._analytics.analytics(graph)
 
     # ------------------------------------------------------------------
     # Recorridos y caminos
@@ -551,61 +266,22 @@ class KnowledgeGraphService:
         return sorted(related_source_ids)
 
     # ------------------------------------------------------------------
-    # Clusters con NetworkX + score de densidad interna
+    # Helpers
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _clusters(G: nx.Graph, node_ids: list[str]) -> list[GraphCluster]:
-        communities = list(label_propagation_communities(G))
-        clusters: list[GraphCluster] = []
-        for index, community in enumerate(communities, start=1):
-            members = sorted(community)
-            sub = G.subgraph(members)
-            internal = sub.number_of_edges()
-            possible = max(1, len(members) * (len(members) - 1) // 2)
-            score = internal / possible if len(members) > 1 else 0.0
-            clusters.append(
-                GraphCluster(cluster_id=f"cluster-{index}", node_ids=members, score=round(score, 4))
+    def _to_nx(graph: GraphPayload) -> nx.Graph:
+        G = nx.Graph()
+        for node in graph.nodes:
+            G.add_node(str(node["id"]))
+        for edge in graph.edges:
+            G.add_edge(
+                str(edge["source"]),
+                str(edge["target"]),
+                id=str(edge["id"]),
+                weight=float(cast(float, edge.get("weight", 1.0))),
             )
-        return clusters
-
-    # ------------------------------------------------------------------
-    # Layout force-directed (Fruchterman-Reingold vía NetworkX)
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _layout(G: nx.Graph, node_ids: list[str]) -> list[dict[str, object]]:
-        if not node_ids:
-            return []
-        k = 2.0 / max(sqrt(len(node_ids)), 1.0)
-        pos = nx.spring_layout(G, k=k, iterations=100, seed=42)
-        xs = [pos[n][0] for n in node_ids]
-        ys = [pos[n][1] for n in node_ids]
-        min_x, max_x = min(xs), max(xs)
-        min_y, max_y = min(ys), max(ys)
-        range_x = max(max_x - min_x, 1.0)
-        range_y = max(max_y - min_y, 1.0)
-        max_deg = max(G.degree(n) for n in node_ids) or 1
-        layout = []
-        for nid in node_ids:
-            nx_pos = pos[nid]
-            nx_norm = ((nx_pos[0] - min_x) / range_x) * 2.0 - 1.0
-            ny_norm = ((nx_pos[1] - min_y) / range_y) * 2.0 - 1.0
-            deg = G.degree(nid)
-            size = 0.8 + (deg / max_deg) * 2.2
-            layout.append(
-                {
-                    "node_id": nid,
-                    "x": round(nx_norm, 4),
-                    "y": round(ny_norm, 4),
-                    "size": round(size, 4),
-                }
-            )
-        return layout
-
-    # ------------------------------------------------------------------
-    # Helpers de búsqueda vectorial y textual
-    # ------------------------------------------------------------------
+        return G
 
     @staticmethod
     def _vector_lookup(vector_records: list[dict[str, object]]) -> dict[str, list[float]]:

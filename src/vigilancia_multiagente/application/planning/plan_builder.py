@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.models import BranchConfig, BranchType, ResearchPlan
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
-from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
+from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 DEFAULT_PROVIDERS: dict[BranchType, list[str]] = {
@@ -28,7 +28,7 @@ class PlanBuilder:
         session_id: UUID,
         answers: dict[str, str],
         user_query: str = "",
-        llm: MiniMaxClient | None = None,
+        llm: LLMClient | None = None,
         preload_context: dict | None = None,
     ) -> ResearchPlan:
         settings = get_settings()

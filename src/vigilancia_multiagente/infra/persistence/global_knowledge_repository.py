@@ -19,6 +19,29 @@ class GlobalKnowledgeRepository:
     def __init__(self, database: Database) -> None:
         self._database = database
 
+    async def get_snapshot(self, session_id: UUID) -> GlobalKnowledgeSnapshot | None:
+        async with self._database.session() as db:
+            result = await db.execute(
+                text("""
+                    SELECT session_id, query_summary, findings_graph,
+                           entities, source_scores, created_at, expires_at
+                    FROM global_knowledge
+                    WHERE session_id = :session_id
+                """),
+                {"session_id": str(session_id)},
+            )
+            row = result.mappings().one_or_none()
+        if row is None:
+            return None
+        return GlobalKnowledgeSnapshot(
+            session_id=UUID(str(row["session_id"])),
+            query_summary=str(row["query_summary"]),
+            embeddings=None,
+            findings_graph=row.get("findings_graph"),
+            entities=row.get("entities"),
+            source_scores=row.get("source_scores"),
+        )
+
     async def save_snapshot(self, snapshot: GlobalKnowledgeSnapshot) -> None:
         embedding_literal = _vector_literal(snapshot.embeddings) if snapshot.embeddings else None
         async with self._database.session() as db:

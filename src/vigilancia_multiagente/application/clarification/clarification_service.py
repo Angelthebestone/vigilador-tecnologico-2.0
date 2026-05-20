@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
-from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
+from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 
@@ -18,7 +18,7 @@ class ClarificationService:
         self._answers: dict[UUID, dict[str, str]] = {}
 
     async def generate_questions(
-        self, user_query: str, llm: MiniMaxClient | None = None
+        self, user_query: str, llm: LLMClient | None = None
     ) -> list[ClarificationQuestion]:
         if llm is not None:
             import json

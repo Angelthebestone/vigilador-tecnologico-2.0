@@ -3,10 +3,8 @@
 import logging
 from difflib import SequenceMatcher
 
-from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
-from vigilancia_multiagente.infra.persistence.global_knowledge_repository import (
-    GlobalKnowledgeRepository,
-)
+from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
+from vigilancia_multiagente.domain.ports.global_knowledge_store import GlobalKnowledgeStore
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +15,8 @@ class CrossSessionService:
 
     def __init__(
         self,
-        repository: GlobalKnowledgeRepository | None = None,
-        embedding_gateway: GeminiEmbeddingGateway | None = None,
+        repository: GlobalKnowledgeStore | None = None,
+        embedding_gateway: EmbeddingGateway | None = None,
     ) -> None:
         self.repository = repository
         self.embedding_gateway = embedding_gateway

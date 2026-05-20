@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 from vigilancia_multiagente.application.agents.base import BaseBranchAgent, SignalPayload
+from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 from vigilancia_multiagente.application.planning.plan_builder import (
     DEFAULT_PROVIDERS as _DEFAULT_PROVIDERS,
 )
@@ -16,6 +17,7 @@ from vigilancia_multiagente.domain.models import (
     ResearchPlan,
     ResearchSession,
 )
+from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.repositories import SessionTelemetryRepository
 
 logger = logging.getLogger(__name__)
@@ -47,15 +49,17 @@ class BranchCoordinator:
         self,
         agents: dict[BranchType, BaseBranchAgent],
         telemetry_repository: SessionTelemetryRepository | None = None,
+        event_publisher: EventPublisher | None = None,
     ) -> None:
         self._agents = agents
         self._telemetry_repository = telemetry_repository
+        self._event_publisher = event_publisher
         self._iterations_by_session: dict[UUID, list[dict[str, str | int | bool | None]]] = {}
         self._relations_by_session: dict[UUID, list[dict[str, str | float]]] = {}
         self._provider_usage_by_session: dict[UUID, list[dict[str, str | int]]] = {}
         self._signal_queue: list[SignalPayload] = []
         self._signals_by_session: dict[UUID, list[dict[str, str | float]]] = {}
-        self._sub_results: list[BranchResult] = []
+        self._sub_results_by_session: dict[UUID, list[BranchResult]] = {}
         self._signal_async_queue: asyncio.Queue | None = None
 
     async def execute(self, session: ResearchSession, plan: ResearchPlan) -> list[BranchResult]:
@@ -152,8 +156,7 @@ class BranchCoordinator:
                     session.id, output.provider_usage
                 )
         await self._process_cross_signals(session, plan)
-        results.extend(self._sub_results)
-        self._sub_results.clear()
+        results.extend(self._sub_results_by_session.pop(session.id, []))
         return results
 
     async def _run_branch(
@@ -162,51 +165,55 @@ class BranchCoordinator:
         branch: BranchConfig,
         depth_limit: int,
     ):
-        from vigilancia_multiagente.api.dependencies import event_log
-        from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
-
         agent = self._agents[branch.branch_type]
-        event_log[str(session.id)].append(
-            format_sse(
-                SessionEvent.now(
-                    "BranchStarted",
-                    session.id,
-                    {
-                        "branch": branch.branch_type.value,
-                        "started_at": datetime.now().isoformat(),
-                    },
-                )
+        session_key = str(session.id)
+        if self._event_publisher is not None:
+            await self._event_publisher.publish(
+                session.id,
+                format_sse(
+                    SessionEvent.now(
+                        "BranchStarted",
+                        session.id,
+                        {
+                            "branch": branch.branch_type.value,
+                            "started_at": datetime.now().isoformat(),
+                        },
+                    )
+                ),
             )
-        )
         try:
             result = await agent.run(session, branch, depth_limit)
-            event_log[str(session.id)].append(
-                format_sse(
-                    SessionEvent.now(
-                        "BranchCompleted",
-                        session.id,
-                        {
-                            "branch": branch.branch_type.value,
-                            "findings_count": len(result.branch_result.findings),
-                            "sources_count": len(result.branch_result.sources),
-                        },
-                    )
+            if self._event_publisher is not None:
+                await self._event_publisher.publish(
+                    session.id,
+                    format_sse(
+                        SessionEvent.now(
+                            "BranchCompleted",
+                            session.id,
+                            {
+                                "branch": branch.branch_type.value,
+                                "findings_count": len(result.branch_result.findings),
+                                "sources_count": len(result.branch_result.sources),
+                            },
+                        )
+                    ),
                 )
-            )
             return result
         except Exception as e:
-            event_log[str(session.id)].append(
-                format_sse(
-                    SessionEvent.now(
-                        "BranchFailed",
-                        session.id,
-                        {
-                            "branch": branch.branch_type.value,
-                            "error": str(e),
-                        },
-                    )
+            if self._event_publisher is not None:
+                await self._event_publisher.publish(
+                    session.id,
+                    format_sse(
+                        SessionEvent.now(
+                            "BranchFailed",
+                            session.id,
+                            {
+                                "branch": branch.branch_type.value,
+                                "error": str(e),
+                            },
+                        )
+                    ),
                 )
-            )
             raise
 
     def queue_signal(self, signal: SignalPayload) -> None:
@@ -238,7 +245,9 @@ class BranchCoordinator:
             }
             try:
                 output = await agent.run(session, sub_branch, depth_limit=2)
-                self._sub_results.append(output.branch_result)
+                self._sub_results_by_session.setdefault(session.id, []).append(
+                    output.branch_result
+                )
                 signal_record["sub_executed"] = True
             except Exception as exc:
                 logger.warning("Cross-signal sub-execution failed: %s", exc)

@@ -141,3 +141,13 @@ ARQUITECTURA.md
 *.heapsnapshot
 tasks-serper-mcp.md
 frontend/public/mock-chart.png
+.cursor/rules/specify-rules.mdc
+.cursor/skills/speckit-analyze/SKILL.md
+.cursor/skills/speckit-checklist/SKILL.md
+.cursor/skills/speckit-clarify/SKILL.md
+.cursor/skills/speckit-constitution/SKILL.md
+.cursor/skills/speckit-implement/SKILL.md
+.cursor/skills/speckit-plan/SKILL.md
+.cursor/skills/speckit-specify/SKILL.md
+.cursor/skills/speckit-tasks/SKILL.md
+.cursor/skills/speckit-taskstoissues/SKILL.md

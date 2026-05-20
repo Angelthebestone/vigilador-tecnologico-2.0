@@ -6,11 +6,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
 
-from vigilancia_multiagente.api.dependencies import (
-    markitdown_execution_client,
-    provider_registry,
-)
-from vigilancia_multiagente.infra.mcp.markitdown_mcp import MarkitdownProvider
+from vigilancia_multiagente.api.dependencies import document_conversion_service
 
 logger = logging.getLogger(__name__)
 
@@ -59,21 +55,17 @@ async def upload_document(file: UploadFile):
         tmp_path.write_bytes(content)
         file_uri = tmp_path.as_uri()
 
-        markitdown = MarkitdownProvider(
-            execution_client=markitdown_execution_client,
-            provider_registry=provider_registry,
-        )
-        result = await markitdown.convert_to_markdown(file_uri)
+        result = await document_conversion_service.convert(file_uri, file.filename, ext)
 
-        if not result.get("success"):
+        if not result.success:
             raise HTTPException(
                 status_code=502,
-                detail=result.get("error", "Markitdown conversion failed"),
+                detail=result.error or "Markitdown conversion failed",
             )
 
         return {
-            "markdown": result["content"],
-            "format": result.get("format", ext),
+            "markdown": result.content,
+            "format": result.format,
             "filename": file.filename,
         }
     finally:

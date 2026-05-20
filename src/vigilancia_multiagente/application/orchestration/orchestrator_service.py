@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -52,34 +51,6 @@ class OrchestratorService:
         session.status = target
         session.updated_at = datetime.now(UTC)
         return await self._session_repository.update(session)
-
-    async def execute_research(
-        self, session: ResearchSession, plan: ResearchPlan, branch_coordinator
-    ) -> list:
-        signal_queue: asyncio.Queue = asyncio.Queue()
-        depth_limit = int(plan.global_constraints.get("depth_limit", 3))
-
-        branch_tasks = [
-            asyncio.create_task(branch_coordinator._run_branch(session, branch, depth_limit))
-            for branch in plan.branches
-        ]
-
-        branch_coordinator._signal_async_queue = signal_queue
-
-        consumer_task = asyncio.create_task(
-            branch_coordinator._signal_consumer_loop(signal_queue, branch_tasks)
-        )
-
-        outputs = await asyncio.gather(*branch_tasks, consumer_task, return_exceptions=True)
-
-        results = []
-        for output in outputs[: len(plan.branches)]:
-            if isinstance(output, BaseException):
-                continue
-            if hasattr(output, "branch_result"):
-                results.append(output.branch_result)
-
-        return results
 
     async def preload_for_session(self, query: str) -> dict:
         if self._cross_session_service is None:

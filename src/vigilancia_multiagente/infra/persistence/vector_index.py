@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
 from math import sqrt
 from uuid import UUID, uuid4
 
@@ -7,14 +6,7 @@ from sqlalchemy import text
 
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.infra.db.connection import Database
-
-
-@dataclass(slots=True, frozen=True)
-class VectorRecord:
-    session_id: UUID
-    content_type: str
-    content_ref_id: str
-    vector: list[float]
+from vigilancia_multiagente.shared.vector_record import VectorRecord
 
 
 class PostgresVectorIndex:

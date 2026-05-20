@@ -11,6 +11,7 @@ from vigilancia_multiagente.application.evaluation.finding_impact_scorer import 
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.weak_signal_detector import WeakSignalDetector
 from vigilancia_multiagente.application.fusion.adversarial_critic import AdversarialCritic
+from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.models import (
     BranchResult,
     FinalReport,
@@ -19,7 +20,7 @@ from vigilancia_multiagente.domain.models import (
     SourceRef,
 )
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
-from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
+from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 logger = logging.getLogger(__name__)
@@ -88,28 +89,36 @@ def _build_intelligence_sections(
 
 
 class ReportSynthesizer:
+    def __init__(
+        self,
+        event_publisher: EventPublisher | None = None,
+        source_scorer: object | None = None,
+    ) -> None:
+        self._event_publisher = event_publisher
+        self._source_scorer = source_scorer
+
     async def synthesize(
         self,
         session_id: UUID,
         branch_results: list[BranchResult],
         linked_findings: list[Finding],
         all_sources: list[SourceRef],
-        llm: MiniMaxClient | None = None,
+        llm: LLMClient | None = None,
     ) -> FinalReport:
-        from vigilancia_multiagente.api.dependencies import event_log, source_scorer
         from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 
-        event_log[str(session_id)].append(
-            format_sse(
-                SessionEvent.now(
-                    "FusionStarted",
-                    session_id,
-                    {
-                        "message": "Synthesizing cross-branch results...",
-                    },
-                )
+        if self._event_publisher is not None:
+            await self._event_publisher.publish(
+                session_id,
+                format_sse(
+                    SessionEvent.now(
+                        "FusionStarted",
+                        session_id,
+                        {"message": "Synthesizing cross-branch results..."},
+                    )
+                ),
             )
-        )
+        source_scorer = self._source_scorer
         branch_sections = {
             result.branch_type.value.lower(): "\n".join(
                 f"- {item.statement}" for item in result.findings
@@ -127,18 +136,20 @@ class ReportSynthesizer:
         source_scorer=source_scorer,
     )
 
-        event_log[str(session_id)].append(
-            format_sse(
-                SessionEvent.now(
-                    "FusionProgress",
-                    session_id,
-                    {
-                        "progress": 50,
-                        "current_analysis": "cross-branch correlations",
-                    },
-                )
+        if self._event_publisher is not None:
+            await self._event_publisher.publish(
+                session_id,
+                format_sse(
+                    SessionEvent.now(
+                        "FusionProgress",
+                        session_id,
+                        {
+                            "progress": 50,
+                            "current_analysis": "cross-branch correlations",
+                        },
+                    )
+                ),
             )
-        )
 
         if llm is not None:
             import json

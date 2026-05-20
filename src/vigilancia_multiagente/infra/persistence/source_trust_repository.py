@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import text
 
@@ -21,6 +22,19 @@ class SourceTrustRepository:
             )
             row = result.one_or_none()
             return row[0] if row else None
+
+    async def record_outcome(self, source_key: str, outcome: Any) -> None:
+        """Protocol conformance: maps generic outcome to score update."""
+        if isinstance(outcome, dict):
+            delta = outcome.get("delta", 0)
+            reason = outcome.get("reason", "record_outcome")
+        elif isinstance(outcome, int):
+            delta = outcome
+            reason = "record_outcome"
+        else:
+            delta = 0
+            reason = str(outcome) if outcome else "record_outcome"
+        await self.update_score(source_key, delta, reason)
 
     async def update_score(self, source_id: str, delta: int, reason: str) -> int | None:
         history_entry = json.dumps(

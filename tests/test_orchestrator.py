@@ -45,6 +45,7 @@ async def test_branch_coordinator_preserves_successful_agent_output():
     from vigilancia_multiagente.api.dependencies import event_log
     from vigilancia_multiagente.application.agents.base import AgentRunOutput
     from vigilancia_multiagente.application.execution.branch_coordinator import BranchCoordinator
+    from vigilancia_multiagente.infra.events.in_memory_event_publisher import InMemoryEventPublisher
 
     class DummyAgent:
         async def run(self, session, branch_config, depth_limit):
@@ -85,7 +86,10 @@ async def test_branch_coordinator_preserves_successful_agent_output():
         ],
     )
     event_log[str(session_id)] = []
-    coordinator = BranchCoordinator({BranchType.AVANCES: DummyAgent()})
+    coordinator = BranchCoordinator(
+        {BranchType.AVANCES: DummyAgent()},
+        event_publisher=InMemoryEventPublisher(event_log),
+    )
 
     results = await coordinator.execute(session, plan)
 

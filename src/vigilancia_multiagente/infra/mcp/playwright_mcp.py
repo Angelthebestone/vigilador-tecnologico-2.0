@@ -5,6 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from vigilancia_multiagente.shared.mcp_dto import NavigationResult, ScreenshotResult
+
 logger = logging.getLogger(__name__)
 
 _BLOCKED_PATTERNS = (
@@ -20,6 +22,46 @@ _BLOCKED_PATTERNS = (
     "503",
     "403",
 )
+
+
+def _navigation_from_response(url: str, response: dict[str, Any]) -> NavigationResult:
+    if not response.get("success"):
+        return NavigationResult(
+            url=url,
+            blocked=bool(response.get("blocked")),
+            block_reason=str(response.get("block_reason") or response.get("error") or ""),
+        )
+    data = response.get("data") or {}
+    if not isinstance(data, dict):
+        data = {}
+    content = str(data.get("snapshot") or data.get("content") or data.get("text") or "")
+    return NavigationResult(
+        url=url,
+        title=str(data.get("title", "")),
+        content=content,
+        screenshot_path=data.get("screenshot_path"),
+        blocked=bool(response.get("blocked")),
+        block_reason=response.get("block_reason"),
+    )
+
+
+def _screenshot_from_response(url: str, response: dict[str, Any]) -> ScreenshotResult:
+    if not response.get("success"):
+        return ScreenshotResult(
+            url=url,
+            blocked=bool(response.get("blocked")),
+            block_reason=str(response.get("error") or ""),
+        )
+    data = response.get("data") or {}
+    image_path = None
+    if isinstance(data, dict):
+        image_path = data.get("path") or data.get("image_path")
+    return ScreenshotResult(
+        url=url,
+        image_path=str(image_path) if image_path else None,
+        blocked=bool(response.get("blocked")),
+        block_reason=response.get("block_reason"),
+    )
 
 
 class PlaywrightProvider:
@@ -41,11 +83,15 @@ class PlaywrightProvider:
             self._provider = self.provider_registry.get("playwright")
         return self._provider
 
-    async def navigate(self, url: str) -> dict[str, Any]:
+    async def navigate(self, url: str) -> NavigationResult:
         """Navigate to a URL and return the page snapshot."""
         provider = self._get_provider()
         if provider is None or self.execution_client is None:
-            return {"success": False, "error": "Playwright provider not configured"}
+            return NavigationResult(
+                url=url,
+                blocked=False,
+                block_reason="Playwright provider not configured",
+            )
 
         try:
             result = await self.execution_client.execute_tool(
@@ -58,16 +104,20 @@ class PlaywrightProvider:
                 "data": result.payload,
                 "provider": result.provider,
             }
-            return await self._handle_blocked_response(response, url)
+            handled = await self._handle_blocked_response(response, url)
+            return _navigation_from_response(url, handled)
         except Exception as exc:
             logger.warning("Playwright navigate failed for %s: %s", url, exc)
-            return {"success": False, "error": str(exc), "blocked": False}
+            return NavigationResult(url=url, block_reason=str(exc))
 
-    async def snapshot(self, target: str | None = None) -> dict[str, Any]:
+    async def snapshot(self, target: str | None = None) -> NavigationResult:
         """Capture accessibility snapshot of current page."""
         provider = self._get_provider()
         if provider is None or self.execution_client is None:
-            return {"success": False, "error": "Playwright provider not configured"}
+            return NavigationResult(
+                url=target or "",
+                block_reason="Playwright provider not configured",
+            )
 
         try:
             args = {"target": target} if target else {}
@@ -76,20 +126,24 @@ class PlaywrightProvider:
                 "browser_snapshot",
                 args,
             )
-            return {
+            response = {
                 "success": True,
                 "data": result.payload,
                 "provider": result.provider,
             }
+            return _navigation_from_response(target or "", response)
         except Exception as exc:
             logger.warning("Playwright snapshot failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            return NavigationResult(url=target or "", block_reason=str(exc))
 
-    async def screenshot(self, full_page: bool = False) -> dict[str, Any]:
-        """Take a screenshot of the current page. Returns base64-encoded image."""
+    async def screenshot(self, full_page: bool = False) -> ScreenshotResult:
+        """Take a screenshot of the current page."""
         provider = self._get_provider()
         if provider is None or self.execution_client is None:
-            return {"success": False, "error": "Playwright provider not configured"}
+            return ScreenshotResult(
+                url="",
+                block_reason="Playwright provider not configured",
+            )
 
         try:
             result = await self.execution_client.execute_tool(
@@ -97,14 +151,15 @@ class PlaywrightProvider:
                 "browser_screenshot",
                 {"full_page": full_page},
             )
-            return {
+            response = {
                 "success": True,
                 "data": result.payload,
                 "provider": result.provider,
             }
+            return _screenshot_from_response("", response)
         except Exception as exc:
             logger.warning("Playwright screenshot failed: %s", exc)
-            return {"success": False, "error": str(exc)}
+            return ScreenshotResult(url="", block_reason=str(exc))
 
     async def click(self, target: str, element: str | None = None) -> dict[str, Any]:
         """Click on an element identified by target selector."""

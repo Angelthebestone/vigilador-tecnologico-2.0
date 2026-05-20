@@ -1,5 +1,7 @@
 import json
 from dataclasses import dataclass, field
+
+import yaml
 from enum import StrEnum
 from pathlib import Path
 from typing import cast
@@ -73,7 +75,13 @@ class MCPProviderRegistry:
     def load_manifest(self, manifest_path: Path) -> None:
         if not manifest_path.exists():
             return
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        raw = manifest_path.read_text(encoding="utf-8")
+        if manifest_path.suffix.lower() in {".yaml", ".yml"}:
+            payload = yaml.safe_load(raw)
+        else:
+            payload = json.loads(raw)
+        if not isinstance(payload, dict):
+            raise TypeError("MCP provider manifest must be a mapping at the top level")
         providers = payload.get("providers", payload)
         if not isinstance(providers, list):
             raise TypeError("MCP provider manifest must contain a provider list")

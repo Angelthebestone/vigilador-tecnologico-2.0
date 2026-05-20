@@ -30,9 +30,19 @@ from vigilancia_multiagente.application.clarification.clarification_service impo
 from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
     PromptRegressionService,
 )
+from vigilancia_multiagente.application.conversation.conversation_service import ConversationService
+from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
+from vigilancia_multiagente.application.fusion.report_synthesizer import ReportSynthesizer
 from vigilancia_multiagente.application.governance.contract_loader import GovernanceContractLoader
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
+from vigilancia_multiagente.application.observability.metrics_service import MetricsService
+from vigilancia_multiagente.application.orchestration.approve_research_usecase import (
+    ApproveResearchUseCase,
+)
+from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
+from vigilancia_multiagente.api.routes.reports import store_report
+from vigilancia_multiagente.infra.events.in_memory_event_publisher import InMemoryEventPublisher
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
 from vigilancia_multiagente.application.orchestration.orchestrator_service import (
     OrchestratorService,
@@ -318,19 +328,34 @@ def memory_repositories(monkeypatch, tmp_path: Path):
 
     monkeypatch.setattr(research_approve, "session_repository", session_repo)
     monkeypatch.setattr(research_approve, "plan_repository", plan_repo)
-    monkeypatch.setattr(research_approve, "orchestrator", orchestrator)
-    monkeypatch.setattr(research_approve, "branch_coordinator", branch_coordinator)
-    monkeypatch.setattr(research_approve, "branch_result_repository", branch_repo)
-    monkeypatch.setattr(research_approve, "report_repository", report_repo)
-    monkeypatch.setattr(research_approve, "artifact_service", artifact_service)
-    monkeypatch.setattr(research_approve, "embedding_gateway", FakeEmbeddingGateway())
-    monkeypatch.setattr(research_approve, "vector_index", vector_index)
-    monkeypatch.setattr(research_approve, "graph_snapshot_repository", graph_snapshot_repo)
-    monkeypatch.setattr(
-        research_approve, "global_knowledge_repository", MemoryGlobalKnowledgeRepository()
+    fake_approve_usecase = ApproveResearchUseCase(
+        session_repository=session_repo,
+        plan_repository=plan_repo,
+        branch_result_repository=branch_repo,
+        report_repository=report_repo,
+        orchestrator=orchestrator,
+        branch_coordinator=branch_coordinator,
+        agents={},
+        artifact_service=artifact_service,
+        evidence_linker=EvidenceLinker(),
+        report_synthesizer=ReportSynthesizer(
+            event_publisher=InMemoryEventPublisher(api_dependencies.event_log)
+        ),
+        embedding_gateway=FakeEmbeddingGateway(),
+        vector_index=vector_index,
+        global_knowledge_repository=MemoryGlobalKnowledgeRepository(),
+        graph_service=KnowledgeGraphService(),
+        graph_snapshot_repository=graph_snapshot_repo,
+        conversation_service=ConversationService(),
+        report_generator=ReportGenerator(),
+        metrics_service=MetricsService(),
+        branch_kpi_service=BranchKPIService(),
+        event_log=api_dependencies.event_log,
+        llm_client=None,
+        store_report=store_report,
     )
-    monkeypatch.setattr(research_approve, "agents", {})
-    monkeypatch.setattr(research_approve, "event_log", api_dependencies.event_log)
+    monkeypatch.setattr(api_dependencies, "approve_research_usecase", fake_approve_usecase)
+    monkeypatch.setattr(research_approve, "approve_research_usecase", fake_approve_usecase)
 
     monkeypatch.setattr(research_outputs, "session_repository", session_repo)
     monkeypatch.setattr(research_outputs, "branch_coordinator", branch_coordinator)
@@ -343,6 +368,11 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_outputs, "vector_index", vector_index)
     monkeypatch.setattr(research_outputs, "graph_snapshot_repository", graph_snapshot_repo)
     monkeypatch.setattr(research_outputs, "event_log", api_dependencies.event_log)
+    monkeypatch.setattr(
+        research_outputs,
+        "ad_hoc_research_tools",
+        api_dependencies.ad_hoc_research_tools,
+    )
 
     monkeypatch.setattr(research_delete, "session_repository", session_repo)
 

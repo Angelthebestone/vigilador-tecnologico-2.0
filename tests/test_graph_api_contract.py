@@ -66,7 +66,7 @@ async def test_knowledge_graph_search_across_sessions():
 
 def test_discover_ecosystem_returns_dict():
     """discover_ecosystem returns a dict with expected structure."""
-    from vigilancia_multiagente.application.graph.knowledge_graph_service import GraphPayload
+    from vigilancia_multiagente.shared.graph_dto import GraphPayload
 
     service = KnowledgeGraphService()
     result = service.discover_ecosystem(

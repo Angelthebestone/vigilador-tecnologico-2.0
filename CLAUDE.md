@@ -142,3 +142,9 @@ Pydantic Settings with prefix `VT_`. Copy `.env.example` to `.env`. Key variable
 ## Scripts
 - `scripts/run-typecheck.sh` / `scripts/run-typecheck.ps1`: ejecuta basedpyright
 - `scripts/lint.sh`: ejecuta ruff + basedpyright
+- `scripts/check-layer-imports.py`: valida imports entre capas (creado en spec 006)
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

@@ -28,8 +28,11 @@ Orden de prioridad (la primera que aplica gana):
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 # download_tool -> tool que materializa su salida binaria a texto. MiniMax
 # solo procesa texto; tras descargar un PDF hay que extraerlo antes de
@@ -70,9 +73,20 @@ class ToolSelector:
         self._tool_set = frozenset(self._tools)
         self._tool_query_types = tool_query_types
 
+    def force_chain(self, origin_tool: str) -> str | None:
+        """Return forced follow-up tool after a binary-producing step, with logging."""
+        forced = self._forced_chain_tool(origin_tool)
+        if forced is not None:
+            logger.info(
+                "ToolSelector forced chain: origin=%s destination=%s reason=binary_to_text_invariant",
+                origin_tool,
+                forced,
+            )
+        return forced
+
     def select(self, ctx: SelectionContext) -> str:
         """Tool para esta iteración. Garantiza devolver una del conjunto."""
-        forced = self._forced_chain_tool(ctx.last_tool)
+        forced = self.force_chain(ctx.last_tool) if ctx.last_tool else None
         if forced is not None:
             return forced
 

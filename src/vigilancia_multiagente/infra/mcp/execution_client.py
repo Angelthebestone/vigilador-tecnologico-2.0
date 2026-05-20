@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
@@ -9,21 +8,15 @@ import httpx
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
 from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderConfig, MCPTransport
-
-
-@dataclass(slots=True)
-class ToolExecutionResult:
-    provider: str
-    tool_name: str
-    payload: dict[str, Any]
-    attempt_count: int
-    result_status: str = "SUCCESS"
+from vigilancia_multiagente.shared.mcp_dto import ToolExecutionResult
 
 
 class MCPExecutionClient:
-    def __init__(self) -> None:
+    def __init__(self, mcp_cache: MCPSmartCache | None = None) -> None:
         self._http_client = httpx.AsyncClient()
+        self._mcp_cache = mcp_cache or MCPSmartCache()
 
     async def close(self) -> None:
         await self._http_client.aclose()
@@ -34,11 +27,8 @@ class MCPExecutionClient:
         tool_name: str,
         arguments: dict[str, Any],
     ) -> ToolExecutionResult:
-        # Cache-first check (lazy import avoids circular dependency)
-        from vigilancia_multiagente.api.dependencies import mcp_cache as _mcp_cache
-
         cache_key = json.dumps(arguments, sort_keys=True, default=str)
-        cached = _mcp_cache.get(tool_name, cache_key)
+        cached = self._mcp_cache.get(tool_name, cache_key)
         if cached is not None:
             return ToolExecutionResult(
                 provider=provider.name,
@@ -51,7 +41,7 @@ class MCPExecutionClient:
         if provider.transport == MCPTransport.STDIO:
             payload = await self._execute_stdio_tool(provider, tool_name, arguments)
             if payload:
-                _mcp_cache.set(tool_name, cache_key, payload)
+                self._mcp_cache.set(tool_name, cache_key, payload)
             return ToolExecutionResult(
                 provider=provider.name,
                 tool_name=tool_name,
@@ -64,7 +54,7 @@ class MCPExecutionClient:
             try:
                 payload = await self._execute_http_tool(provider, tool_name, arguments)
                 if payload:
-                    _mcp_cache.set(tool_name, cache_key, payload)
+                    self._mcp_cache.set(tool_name, cache_key, payload)
                 return ToolExecutionResult(
                     provider=provider.name,
                     tool_name=tool_name,

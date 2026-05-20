@@ -96,9 +96,7 @@ class SemanticReranker:
     async def _rerank_embeddings(
         self, query: str, documents: list[str], top_n: int | None
     ) -> list[RankedDocument]:
-        from vigilancia_multiagente.application.research.semantic_relations import (
-            cosine_similarity,
-        )
+        from vigilancia_multiagente.shared.math_utils import cosine_similarity
 
         query_vec = await self._embedding_gateway.embed_document(query)  # pyright: ignore
         doc_vecs = await self._embedding_gateway.embed_documents(documents)

@@ -8,16 +8,15 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from vigilancia_multiagente.api.dependencies import (
+    ad_hoc_research_tools,
     branch_coordinator,
     branch_result_repository,
     embedding_gateway,
     event_log,
     evidence_linker,
-    execution_client,
     graph_service,
     graph_snapshot_repository,
     metrics_service,
-    provider_registry,
     report_repository,
     session_repository,
     vector_index,
@@ -25,9 +24,9 @@ from vigilancia_multiagente.api.dependencies import (
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
 from vigilancia_multiagente.application.fusion.decision_assistant import DecisionAssistant
-from vigilancia_multiagente.application.graph.knowledge_graph_service import GraphPayload
+from vigilancia_multiagente.shared.graph_dto import GraphPayload
+from vigilancia_multiagente.domain.ports.embedding_gateway import TaskType
 from vigilancia_multiagente.domain.session_state import SessionStatus
-from vigilancia_multiagente.infra.embeddings.gemini_gateway import TaskType
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +255,9 @@ async def _build_graph_for_session(session_id: UUID) -> GraphPayload:
         if session is not None:
             topic = session.user_query
         if topic:
-            patent_result = await _tool_results("serper", "google_search_patents", {"query": topic})
+            patent_result = await ad_hoc_research_tools.tool_results(
+                "serper", "google_search_patents", {"query": topic}
+            )
             patents = patent_result or []
     except Exception as exc:
         logger.warning("Failed for session %s: %s", session_id, exc)
@@ -336,28 +337,9 @@ def _graph_from_snapshot(session_id: UUID, snapshot: dict[str, object]) -> Graph
 async def analyze_obsolescence(session_id: UUID, tech: str = Query(...)) -> dict:
     detector = ObsolescenceDetector()
 
-    brave_results: list | None = None
-    exa_results: list | None = None
-
-    try:
-        brave_provider = provider_registry.get("brave")
-        brave_resp = await execution_client.execute_tool(
-            brave_provider, "brave_news_search", {"query": tech}
-        )
-        brave_results = brave_resp.payload.get("results", [])
-    except Exception as exc:
-        logger.warning("Failed for session %s: %s", session_id, exc)
-        brave_results = None
-
-    try:
-        exa_provider = provider_registry.get("exa")
-        exa_resp = await execution_client.execute_tool(
-            exa_provider, "web_search_advanced_exa", {"query": tech}
-        )
-        exa_results = exa_resp.payload.get("results", [])
-    except Exception as exc:
-        logger.warning("Failed for session %s: %s", session_id, exc)
-        exa_results = None
+    brave_results, exa_results = await ad_hoc_research_tools.fetch_obsolescence_signals(
+        session_id, tech
+    )
 
     result = await detector.analyze(
         tech, brave_news_results=brave_results, exa_company_results=exa_results
@@ -367,12 +349,18 @@ async def analyze_obsolescence(session_id: UUID, tech: str = Query(...)) -> dict
 
 @router.post("/{session_id}/hype-analysis")
 async def hype_analysis(session_id: UUID, tech: str = Query(...)) -> dict:
-    arxiv_results = await _tool_results("arxiv", "search_papers", {"query": tech})
-    exa_results = await _tool_results(
+    arxiv_results = await ad_hoc_research_tools.tool_results(
+        "arxiv", "search_papers", {"query": tech}
+    )
+    exa_results = await ad_hoc_research_tools.tool_results(
         "exa", "web_search_advanced_exa", {"query": f"{tech} startups companies funding"}
     )
-    firecrawl_results = await _tool_results("firecrawl", "firecrawl_scrape", {"url": tech})
-    serper_results = await _tool_results("serper", "google_search_patents", {"query": tech})
+    firecrawl_results = await ad_hoc_research_tools.tool_results(
+        "firecrawl", "firecrawl_scrape", {"url": tech}
+    )
+    serper_results = await ad_hoc_research_tools.tool_results(
+        "serper", "google_search_patents", {"query": tech}
+    )
 
     if all(
         result is None for result in (arxiv_results, exa_results, firecrawl_results, serper_results)
@@ -433,19 +421,3 @@ async def search_cross_session(
     )
     return {"session_id": str(session_id), "query": query, "limit": limit, "results": results}
 
-
-async def _tool_results(
-    provider_name: str, tool_name: str, arguments: dict[str, object]
-) -> list | None:
-    try:
-        provider = provider_registry.get(provider_name)
-        response = await execution_client.execute_tool(provider, tool_name, arguments)
-    except Exception as exc:
-        logger.warning("%s:%s failed: %s", provider_name, tool_name, exc)
-        return None
-    payload = response.payload
-    for key in ("results", "items", "organic", "papers", "data"):
-        value = payload.get(key)
-        if isinstance(value, list):
-            return value
-    return []
