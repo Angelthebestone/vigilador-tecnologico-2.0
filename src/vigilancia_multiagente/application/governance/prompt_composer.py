@@ -16,8 +16,8 @@ from uuid import uuid4
 from vigilancia_multiagente.application.governance.contract_loader import AgentSkillPolicy
 from vigilancia_multiagente.application.governance.validators import PromptValidator
 from vigilancia_multiagente.domain.models import BranchConfig
+from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
 from vigilancia_multiagente.domain.system_base import BranchOverlay, ComposedPrompt, SystemBase
-from vigilancia_multiagente.infra.prompts.loader import load_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -87,8 +87,13 @@ _TOOL_PROMPT_NAMES = {
 class PromptComposer:
     """Composes prompts from system base, branch overlay, and user input."""
 
-    def __init__(self, validator: PromptValidator | None = None) -> None:
+    def __init__(
+        self,
+        validator: PromptValidator | None = None,
+        prompt_loader: PromptLoader | None = None,
+    ) -> None:
         self._validator = validator or PromptValidator()
+        self._prompt_loader = prompt_loader
 
     def compose(
         self,
@@ -168,8 +173,10 @@ class PromptComposer:
                 if prompt_name in seen_guides:
                     continue
                 seen_guides.add(prompt_name)
+                if self._prompt_loader is None:
+                    continue
                 try:
-                    content = load_prompt(f"tools/{prompt_name}")
+                    content = self._prompt_loader.load(f"tools/{prompt_name}")
                 except FileNotFoundError:
                     logger.debug("No tool usage guide found for %s", tool)
                     continue

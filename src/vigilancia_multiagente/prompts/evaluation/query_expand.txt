@@ -1,0 +1,6 @@
+PLACEHOLDER - Spec 007 WS-B (FR-B02).
+
+Dado un seed query y entidades/terminos detectados en iteraciones previas,
+genera N expansiones contextuales priorizando terminos no explorados aun.
+
+Plantilla pendiente de redaccion en Phase 5 US3 (T070).

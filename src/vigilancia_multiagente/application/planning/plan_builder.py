@@ -2,9 +2,9 @@ from uuid import UUID, uuid4
 
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.models import BranchConfig, BranchType, ResearchPlan
-from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
-from vigilancia_multiagente.infra.prompts.loader import load_prompt
+from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
+from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 
 DEFAULT_PROVIDERS: dict[BranchType, list[str]] = {
     BranchType.AVANCES: ["tavily", "exa", "jina"],
@@ -23,6 +23,9 @@ class PlanBuilder:
     Global agent rules are sourced from the canonical system base (system-base.md).
     """
 
+    def __init__(self, prompt_loader: PromptLoader | None = None) -> None:
+        self._prompt_loader = prompt_loader
+
     async def build(
         self,
         session_id: UUID,
@@ -39,11 +42,11 @@ class PlanBuilder:
         # "delta": en vez de re-investigarlas, se busca lo nuevo sobre ellas.
         delta_focus = [str(term) for term in recurring[:3] if str(term).strip()]
 
-        if llm is not None and user_query:
+        if llm is not None and user_query and self._prompt_loader is not None:
             import json
 
             try:
-                prompt = load_prompt("orchestration/planning").format(
+                prompt = self._prompt_loader.load("orchestration/planning").format(
                     user_query=user_query, clarification_answers=json.dumps(answers)
                 )
                 response = await llm.complete(

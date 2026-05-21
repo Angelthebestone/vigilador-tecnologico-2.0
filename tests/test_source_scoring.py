@@ -22,7 +22,7 @@ class MemorySourceTrustRepository:
 
 async def test_confirmation_increases_score():
     """Test that recording a confirmation increases source scores."""
-    from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
+    from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorerService
 
     repo = MemorySourceTrustRepository()
     scorer = SourceScorerService(repository=repo)
@@ -34,7 +34,7 @@ async def test_confirmation_increases_score():
 
 async def test_contradiction_decreases_score():
     """Test that contradiction decreases the contradicted source's score."""
-    from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
+    from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorerService
 
     repo = MemorySourceTrustRepository()
     repo.scores["source_a"] = 70
@@ -48,7 +48,7 @@ async def test_contradiction_decreases_score():
 
 async def test_preferred_sources_prioritization():
     """Test that get_preferred_sources returns high-scored sources first."""
-    from vigilancia_multiagente.application.routing.source_scorer import SourceScorerService
+    from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorerService
 
     repo = MemorySourceTrustRepository()
     repo.scores["src_low"] = 30

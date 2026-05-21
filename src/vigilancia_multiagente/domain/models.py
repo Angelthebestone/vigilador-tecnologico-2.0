@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
+from vigilancia_multiagente.domain.evaluation_entities import ReportAssurance
+from vigilancia_multiagente.domain.pipeline_errors import StepError
 from vigilancia_multiagente.domain.session_state import SessionStatus
 
 
@@ -139,6 +141,13 @@ class FinalReport:
     total_sources_consulted: int = 0
     total_learnings: int = 0
     confidence_score: float = 0.0
+    # Spec 007: errores trazables de los pipeline steps de evaluacion. Vacio
+    # cuando no hay flags WS-* activas. Expuesto para auditoria sin alterar
+    # el flujo cuando la lista esta vacia (POLA + Cero cambio funcional).
+    errors: list[StepError] = field(default_factory=list)
+    # Spec 007 T028: output del ReportQualityGate (WS-E). None cuando el flag
+    # esta off — el reporte serializa igual que antes.
+    assurance: ReportAssurance | None = None
 
 
 class EntityType(StrEnum):

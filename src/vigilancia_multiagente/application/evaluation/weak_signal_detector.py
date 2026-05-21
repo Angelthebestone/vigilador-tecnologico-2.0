@@ -4,6 +4,7 @@ Un tema es señal débil si aparece poco en la sesión actual, estaba ausente en
 sesiones previas y no es ruido aislado (aparece en >1 fuente o rama). Detecta
 tecnologías antes de que sean tendencia.
 """
+# STATUS: ACTIVE — consumer: report_synthesizer (WeakSignalDetector.detect, render_section)
 
 from __future__ import annotations
 
@@ -128,6 +129,8 @@ class WeakSignalReport:
 class WeakSignalDetector:
     """No requiere LLM: opera sobre los statements de findings ya recolectados
     y la memoria recurrente que CrossSessionService ya expone."""
+# STATUS: ACTIVE
+
 
     def detect(
         self,

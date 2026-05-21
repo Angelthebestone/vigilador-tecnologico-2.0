@@ -1,3 +1,11 @@
+"""KPIs por rama (cobertura, precision, latencia, costo).
+
+Sub-componente de observabilidad que `ReportQualityGate` (WS-E) usa para
+poblar `FinalReport.assurance.kpis`. Mantiene el API estable del spec 006.
+"""
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from vigilancia_multiagente.domain.models import BranchResult, BranchType
@@ -13,7 +21,9 @@ class BranchKPI:
 
 
 class BranchKPIService:
-    def compute(self, branch_result: BranchResult, latency_ms: int, cost_kpi: float) -> BranchKPI:
+    def compute(
+        self, branch_result: BranchResult, latency_ms: int, cost_kpi: float
+    ) -> BranchKPI:
         coverage = branch_result.coverage_score or 0.0
         precision = branch_result.confidence_score or 0.0
         return BranchKPI(

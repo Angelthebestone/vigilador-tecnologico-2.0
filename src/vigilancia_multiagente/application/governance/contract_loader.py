@@ -7,6 +7,7 @@ from typing import Any, cast
 import yaml
 
 from vigilancia_multiagente.domain.models import BranchType
+from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
 from vigilancia_multiagente.domain.system_base import BranchOverlay
 
 logger = logging.getLogger(__name__)
@@ -112,8 +113,13 @@ _BRANCH_OVERLAYS: dict[BranchType, dict[str, object]] = {
 
 
 class GovernanceContractLoader:
-    def __init__(self, contracts_root: Path) -> None:
+    def __init__(
+        self,
+        contracts_root: Path,
+        prompt_loader: PromptLoader | None = None,
+    ) -> None:
         self._contracts_root = contracts_root
+        self._prompt_loader = prompt_loader
 
     def load_skill_matrix(self) -> dict[BranchType, AgentSkillPolicy]:
         if _SKILL_MATRIX_YAML.exists():
@@ -615,13 +621,14 @@ class GovernanceContractLoader:
         """
         branch_data = dict(_BRANCH_OVERLAYS[branch_type])
 
-        try:
-            from vigilancia_multiagente.infra.prompts.loader import load_prompt
-
-            overrides = _parse_prompt_overlay(load_prompt(f"branches/{branch_type.value.lower()}"))
-            branch_data = {**branch_data, **overrides}
-        except (FileNotFoundError, KeyError, TypeError):
-            logger.debug("Using built-in branch overlay for %s", branch_type.value)
+        if self._prompt_loader is not None:
+            try:
+                overrides = _parse_prompt_overlay(
+                    self._prompt_loader.load(f"branches/{branch_type.value.lower()}")
+                )
+                branch_data = {**branch_data, **overrides}
+            except (FileNotFoundError, KeyError, TypeError):
+                logger.debug("Using built-in branch overlay for %s", branch_type.value)
 
         return BranchOverlay(
             branch_type=branch_type,

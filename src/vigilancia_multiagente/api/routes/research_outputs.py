@@ -21,6 +21,7 @@ from vigilancia_multiagente.api.dependencies import (
     session_repository,
     vector_index,
 )
+from vigilancia_multiagente.application.evaluation.report_quality_gate import QualityGateBlocked
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
 from vigilancia_multiagente.application.fusion.decision_assistant import DecisionAssistant
@@ -38,6 +39,20 @@ async def get_report(session_id: UUID) -> dict[str, object]:
     report = await report_repository.get(session_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
+    assurance = getattr(report, "assurance", None)
+    bias_audit = getattr(assurance, "bias_audit", None)
+    if bias_audit is not None and getattr(bias_audit, "critical_bias_detected", False):
+        blocked = QualityGateBlocked(bias_audit)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "session_id": str(session_id),
+                "reason": "critical_bias_detected",
+                "categories": blocked.audit.bias_categories,
+                "geographic": blocked.audit.geographic_distribution,
+                "institutional": blocked.audit.institutional_distribution,
+            },
+        ) from blocked
     return {
         "session_id": str(session_id),
         "executive_summary": report.executive_summary,

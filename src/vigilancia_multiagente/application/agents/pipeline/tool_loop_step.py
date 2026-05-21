@@ -3,12 +3,12 @@ from __future__ import annotations
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any
 
 from vigilancia_multiagente.application.agents.pipeline.base_step import PipelineStep
 from vigilancia_multiagente.application.agents.pipeline.compose_prompt_step import (
     ComposePromptContext,
 )
+from vigilancia_multiagente.domain.pipeline_errors import StepError
 from vigilancia_multiagente.application.mcp.types import ToolExecutionResult
 from vigilancia_multiagente.application.research.followup_loop import (
     run_followup_loop,
@@ -31,6 +31,7 @@ from vigilancia_multiagente.domain.models import BranchType
 from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
 from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.ports.provider_registry import ProviderConfig
+from vigilancia_multiagente.domain.ports.reranker import Reranker
 from vigilancia_multiagente.domain.ports.tool_executor import ToolExecutor
 
 
@@ -48,6 +49,10 @@ class ToolLoopContext(ComposePromptContext):
     temporal: TemporalWindow | None = None
     seed_query: str = ""
     providers: list[ProviderConfig] = field(default_factory=list)
+    # Spec 007: errores trazables acumulados por los nuevos pipeline steps de
+    # evaluacion (WS-A..E). Cada step opt-in escribe aqui sus fallos no
+    # criticos en vez de levantar excepciones.
+    errors: list[StepError] = field(default_factory=list)
 
 
 class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
@@ -58,13 +63,14 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
         event_publisher: EventPublisher | None,
         cross_branch_hints: deque[str],
         branch_type: BranchType,
+        reranker: Reranker | None = None,
     ) -> None:
         self._execution_client = execution_client
         self._embedding_gateway = embedding_gateway
         self._event_publisher = event_publisher
         self._cross_branch_hints = cross_branch_hints
         self._branch_type = branch_type
-        self._reranker: Any = None
+        self._reranker: Reranker | None = reranker
 
     async def execute(self, context: ToolLoopContext) -> ToolLoopContext:
         ctx = context
@@ -235,13 +241,9 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
             else str(r)
             for r in results
         ]
+        if self._reranker is None:
+            return
         try:
-            if self._reranker is None:
-                from vigilancia_multiagente.infra.reranking.semantic_reranker import (
-                    SemanticReranker,
-                )
-
-                self._reranker = SemanticReranker(self._embedding_gateway)
             ranked = await self._reranker.rerank(query, texts)
         except Exception:
             return

@@ -1,0 +1,669 @@
+openapi: 3.0.3
+info:
+  title: Vigilancia Tecnologica API
+  version: 0.1.0
+  description: Contract for multiagent research lifecycle and knowledge graph access.
+servers:
+  - url: /api/v2
+paths:
+  /system-base:
+    get:
+      summary: Get current system base configuration
+      responses:
+        "200":
+          description: System base configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemBaseResponse"
+  /system-base/composed-prompt/{session_id}/{branch_type}:
+    get:
+      summary: Compose a full prompt from system base and branch overlay
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: branch_type
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Fully composed prompt for branch execution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComposedPromptResponse"
+  /research/start:
+    post:
+      summary: Start a research session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_query]
+              properties:
+                user_query:
+                  type: string
+                scope:
+                  type: object
+      responses:
+        "200":
+          description: Session started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStartResponse"
+  /research/{session_id}/clarify:
+    post:
+      summary: Submit clarification answers and get draft plan
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answers]
+              properties:
+                answers:
+                  type: object
+                  additionalProperties:
+                    type: string
+      responses:
+        "200":
+          description: Plan generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanResponse"
+  /research/{session_id}/approve:
+    post:
+      summary: Approve plan and start parallel execution
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approved]
+              properties:
+                approved:
+                  type: boolean
+      responses:
+        "200":
+          description: Execution accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  status: { type: string }
+                  message: { type: string }
+  /research/{session_id}/stream:
+    get:
+      summary: Stream session progress events
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: text/event-stream
+  /research/{session_id}/report:
+    get:
+      summary: Get final consolidated report
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Final report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FinalReport"
+  /research/{session_id}/sources:
+    get:
+      summary: Get all deduplicated sources for session
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Source list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  total: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceRef"
+  /research/{session_id}/providers:
+    get:
+      summary: Get MCP provider status and runtime metrics for session
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Provider metrics and health
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  providers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProviderStatus"
+  /research/{session_id}/iterations:
+    get:
+      summary: Get branch iterations and semantic relations for session
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Iteration timeline
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/IterationRecord"
+                  semantic_relations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SemanticRelation"
+  /research/{session_id}/agent-contracts:
+    get:
+      summary: Get agent-skill matrix and prompt contracts
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Agent governance contracts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  skill_matrix:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentSkillPolicy"
+                  prompt_contracts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentPromptContract"
+  /research/{session_id}/artifacts:
+    get:
+      summary: Get artifact manifest and storage policy
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Session artifact manifest
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  root: { type: string }
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArtifactManifestEntry"
+  /research/{session_id}/evaluation:
+    get:
+      summary: Get operational KPIs and regression status
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Branch evaluation snapshot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id: { type: string, format: uuid }
+                  by_branch:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BranchEvaluation"
+  /research/{session_id}/graph:
+    get:
+      summary: Get full knowledge graph
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Graph payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeGraph"
+  /research/{session_id}/plan:
+    get:
+      summary: Get latest research plan
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Latest plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanResponse"
+  /research/{session_id}/modify:
+    post:
+      summary: Create a modified plan revision
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModifyPlanRequest"
+      responses:
+        "200":
+          description: Modified plan created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanResponse"
+  /research/{session_id}/graph/nodes:
+    get:
+      summary: Get graph nodes
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Node list
+  /research/{session_id}/graph/edges:
+    get:
+      summary: Get graph edges
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Edge list
+  /research/{session_id}/graph/analytics:
+    get:
+      summary: Get graph analytics snapshot
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Graph analytics
+  /research/{session_id}/graph/path:
+    get:
+      summary: Get shortest path between graph nodes
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: source_node_id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: target_node_id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Path result
+  /research/{session_id}/graph/search:
+    get:
+      summary: Semantic lookup over graph nodes
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Search hits
+components:
+  schemas:
+    SessionStartResponse:
+      type: object
+      required: [session_id, status]
+      properties:
+        session_id: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [clarifying, planning, executing, completed, failed, canceled]
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+    Question:
+      type: object
+      required: [id, text]
+      properties:
+        id: { type: string }
+        text: { type: string }
+        options:
+          type: array
+          items: { type: string }
+    PlanResponse:
+      type: object
+      required: [session_id, status, plan, requires_approval]
+      properties:
+        session_id: { type: string, format: uuid }
+        status: { type: string, enum: [planning] }
+        requires_approval: { type: boolean }
+        plan:
+          type: object
+          properties:
+            id: { type: string }
+            system_base_version: { type: string }
+            branches:
+              type: array
+              items:
+                $ref: "#/components/schemas/BranchConfig"
+    ModifyPlanRequest:
+      type: object
+      properties:
+        branch_type:
+          type: string
+          enum: [AVANCES, COMERCIAL, RIESGO, PI_NORMATIVA, COMPETITIVO, OPORTUNIDADES]
+        focus_queries:
+          type: array
+          items: { type: string }
+        mcp_providers:
+          type: array
+          items: { type: string }
+        mcp_tool_profile:
+          type: string
+        priority_weight:
+          type: integer
+        global_constraints:
+          type: object
+    BranchConfig:
+      type: object
+      required: [branch_type, focus_queries, mcp_providers]
+      properties:
+        branch_type:
+          type: string
+          enum: [avances, comercial, riesgo, pi_normativa, competitivo, oportunidades]
+        focus_queries:
+          type: array
+          items: { type: string }
+        mcp_providers:
+          type: array
+          items: { type: string }
+        mcp_tool_profile:
+          type: string
+        overlay_ref:
+          type: string
+          nullable: true
+    FinalReport:
+      type: object
+      required: [session_id, generated_at, executive_summary, recommendations]
+      properties:
+        session_id: { type: string, format: uuid }
+        generated_at: { type: string, format: date-time }
+        executive_summary: { type: string }
+        branch_sections:
+          type: object
+          additionalProperties: { type: string }
+        cross_analysis: { type: string }
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              text: { type: string }
+              priority: { type: string, enum: [high, medium, low] }
+              based_on:
+                type: array
+                items: { type: string }
+    SourceRef:
+      type: object
+      required: [url, provider, branch_type]
+      properties:
+        url: { type: string, format: uri }
+        title: { type: string }
+        provider: { type: string }
+        branch_type: { type: string }
+        accessed_at: { type: string, format: date-time }
+    ProviderStatus:
+      type: object
+      required: [name, transport, status]
+      properties:
+        name: { type: string }
+        transport: { type: string, enum: [stdio, http, streamable_http] }
+        status: { type: string, enum: [active, degraded, disabled] }
+        avg_latency_ms: { type: number }
+        error_rate: { type: number }
+        retry_rate: { type: number }
+    IterationRecord:
+      type: object
+      required: [branch_type, iteration_index, query, query_type]
+      properties:
+        branch_type: { type: string }
+        iteration_index: { type: integer }
+        query: { type: string }
+        query_type: { type: string, enum: [seed, follow_up] }
+        needs_follow_up: { type: boolean }
+        stop_reason: { type: string, enum: [depth_limit, evidence_saturation, no_follow_up, error] }
+    SemanticRelation:
+      type: object
+      required: [source_iteration_id, target_iteration_id, relation_type, similarity_score]
+      properties:
+        source_iteration_id: { type: string, format: uuid }
+        target_iteration_id: { type: string, format: uuid }
+        relation_type: { type: string, enum: [supports, contradicts, refines, duplicates] }
+        similarity_score: { type: number }
+    AgentSkillPolicy:
+      type: object
+      required: [branch_type, allowed_tools, tool_order, substitution_policy]
+      properties:
+        branch_type: { type: string }
+        allowed_tools:
+          type: array
+          items: { type: string }
+        tool_order:
+          type: array
+          items: { type: string }
+        timeout_ms_per_tool:
+          type: object
+          additionalProperties: { type: integer }
+        retry_limit_per_tool:
+          type: object
+          additionalProperties: { type: integer }
+        substitution_policy:
+          type: string
+          enum: [none]
+    AgentPromptContract:
+      type: object
+      required: [branch_type, objective, output_schema, quality_criteria]
+      properties:
+        branch_type: { type: string }
+        objective: { type: string }
+        required_context:
+          type: array
+          items: { type: string }
+        output_schema:
+          type: object
+          additionalProperties: true
+        quality_criteria:
+          type: array
+          items: { type: string }
+        do_rules:
+          type: array
+          items: { type: string }
+        dont_rules:
+          type: array
+          items: { type: string }
+        uncertainty_handling: { type: string }
+        version: { type: string }
+    ArtifactManifestEntry:
+      type: object
+      required: [artifact_path, artifact_type, produced_by, retention_days]
+      properties:
+        artifact_path: { type: string }
+        artifact_type: { type: string, enum: [prompt, trace, raw_results, findings, report, graph, metrics] }
+        produced_by: { type: string }
+        naming_pattern: { type: string }
+        retention_days: { type: integer }
+        version: { type: string }
+    BranchEvaluation:
+      type: object
+      required: [branch_type, coverage_kpi, precision_kpi, latency_ms_kpi, cost_kpi, prompt_regression_passed]
+      properties:
+        branch_type: { type: string }
+        coverage_kpi: { type: number }
+        precision_kpi: { type: number }
+        latency_ms_kpi: { type: number }
+        cost_kpi: { type: number }
+        prompt_regression_passed: { type: boolean }
+        golden_case_id: { type: string }
+    KnowledgeGraph:
+      type: object
+      required: [session_id, nodes, edges]
+      properties:
+        session_id: { type: string, format: uuid }
+        nodes:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              type: { type: string }
+              label: { type: string }
+              metadata: { type: object, additionalProperties: true }
+        edges:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              source: { type: string }
+              target: { type: string }
+              relation_type: { type: string }
+              weight: { type: number }
+    SystemBaseResponse:
+      type: object
+      required: [version, global_rules, tool_usage_policy]
+      properties:
+        version: { type: string }
+        global_rules:
+          type: array
+          items: { type: string }
+        tool_usage_policy:
+          type: object
+          additionalProperties: { type: string }
+        safety_limits:
+          type: object
+          additionalProperties: { type: string }
+        error_handling:
+          type: array
+          items: { type: string }
+        output_style:
+          type: array
+          items: { type: string }
+        model_behavior:
+          type: object
+          additionalProperties: { type: string }
+        embedding_config:
+          type: object
+          additionalProperties: { type: string }
+    ComposedPromptResponse:
+      type: object
+      required: [session_id, branch_type, system_base_version, composed_prompt]
+      properties:
+        session_id: { type: string, format: uuid }
+        branch_type: { type: string }
+        system_base_version: { type: string }
+        prompt_composition_id: { type: string }
+        system_base_sections:
+          type: array
+          items: { type: string }
+        branch_overlay:
+          type: object
+          properties:
+            objective: { type: string }
+            required_context:
+              type: array
+              items: { type: string }
+            do_rules:
+              type: array
+              items: { type: string }
+            dont_rules:
+              type: array
+              items: { type: string }
+            uncertainty_handling: { type: string }
+        user_query: { type: string }
+        composed_prompt: { type: string }

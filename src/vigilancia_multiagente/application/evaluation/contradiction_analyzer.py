@@ -3,6 +3,9 @@
 Donde las fuentes no concuerdan está la incertidumbre real, así que esa señal
 es un producto explícito y no un cálculo descartado en el source scoring.
 """
+# STATUS: ACTIVE
+
+# STATUS: ACTIVE — consumer: report_synthesizer (ContradictionAnalyzer.render_section)
 
 from __future__ import annotations
 

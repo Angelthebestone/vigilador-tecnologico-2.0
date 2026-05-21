@@ -4,6 +4,7 @@ Antes vivía duplicada en OrchestratorService, CrossSessionService y el
 ContradictionAnalyzer. Una sola definición evita que las tres versiones
 diverjan.
 """
+# STATUS: ACTIVE — consumers: orchestrator_service, adversarial_critic, contradiction_analyzer
 
 from __future__ import annotations
 
@@ -40,6 +41,8 @@ def claims_overlap(statement_a: str, statement_b: str) -> bool:
 
 def polarity_conflict(statement_a: str, statement_b: str) -> bool:
     """True si uno niega y el otro afirma (polaridad opuesta)."""
+# STATUS: ACTIVE
+
     neg_a = bool(set(statement_a.lower().split()) & _NEGATORS)
     neg_b = bool(set(statement_b.lower().split()) & _NEGATORS)
     return neg_a != neg_b

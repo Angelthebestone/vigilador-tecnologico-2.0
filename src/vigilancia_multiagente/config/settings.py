@@ -62,6 +62,20 @@ class Settings(BaseSettings):
     openalex_email: str | None = None
     openalex_api_key: SecretStr | None = None
 
+    # Spec 007 - Sistema de Evaluacion Inteligente (Workstreams A..E).
+    # Flags opt-in: default false preserva el comportamiento actual del
+    # vigilador. Cada workstream se activa explicitamente sin afectar los
+    # demas. Los adapters externos degradan a None si su clave no esta
+    # configurada (Manejo de Errores Estricto + Convencion sobre Configuracion).
+    eval_ws_a_enabled: bool = False  # Source Quality
+    eval_ws_b_enabled: bool = False  # Data Intelligence
+    eval_ws_c_enabled: bool = False  # Deep Analysis
+    eval_ws_d_enabled: bool = False  # Strategic Signals
+    eval_ws_e_enabled: bool = False  # Output Assurance
+
+    google_factcheck_api_key: SecretStr | None = None
+    retraction_watch_csv_url: str | None = None
+
     model_config = SettingsConfigDict(
         env_prefix="VT_",
         env_file=".env",

@@ -321,8 +321,16 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(api_dependencies.database, "initialize", _noop_initialize, raising=False)
     monkeypatch.setattr(research_start_clarify, "session_repository", session_repo)
     monkeypatch.setattr(research_start_clarify, "orchestrator", orchestrator)
-    monkeypatch.setattr(research_start_clarify, "clarification_service", ClarificationService())
-    monkeypatch.setattr(research_start_clarify, "plan_builder", PlanBuilder())
+    from vigilancia_multiagente.infra.prompts.loader import FilesystemPromptLoader
+    _prompt_loader = FilesystemPromptLoader()
+    monkeypatch.setattr(
+        research_start_clarify,
+        "clarification_service",
+        ClarificationService(prompt_loader=_prompt_loader),
+    )
+    monkeypatch.setattr(
+        research_start_clarify, "plan_builder", PlanBuilder(prompt_loader=_prompt_loader)
+    )
     monkeypatch.setattr(research_start_clarify, "plan_repository", plan_repo)
     monkeypatch.setattr(research_start_clarify, "event_log", api_dependencies.event_log)
 
