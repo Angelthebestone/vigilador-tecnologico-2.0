@@ -160,6 +160,70 @@ def _build_governance_services(s: dict[str, Any]) -> dict[str, Any]:
     return g
 
 
+# ── Factory: WS-E Output Assurance (spec 007 T029) ──────────────────────
+def _build_assurance_services(
+    s: dict[str, Any], e: dict[str, Any]
+) -> dict[str, Any]:
+    """ReportQualityGate + dependencias WS-E.
+
+    Solo se materializa cuando `VT_EVAL_WS_E_ENABLED=true`. Cuando esta off,
+    `gate` queda en `None` y `ReportSynthesizer` salta el quality gate
+    preservando el comportamiento previo al spec 007.
+    """
+    settings_local = get_settings()
+    errors_sink: list[Any] = []
+    if not settings_local.eval_ws_e_enabled:
+        return {"gate": None, "calibrator": None, "errors_sink": errors_sink}
+
+    from vigilancia_multiagente.application.evaluation.audit.bias_auditor import (
+        BiasAuditor,
+    )
+    from vigilancia_multiagente.application.evaluation.calibration.isotonic_calibrator import (
+        IsotonicConfidenceCalibrator,
+    )
+    from vigilancia_multiagente.application.evaluation.forensic.jsonb_trace_writer import (
+        JsonbForensicTraceWriter,
+    )
+    from vigilancia_multiagente.application.evaluation.report_quality_gate import (
+        ReportQualityGate,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_e.llm_falsification_prober import (
+        LlmFalsificationProber,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_e.llm_stakeholder_simulator import (
+        LlmStakeholderSimulator,
+    )
+    from vigilancia_multiagente.infra.persistence.calibration_curve_repository import (
+        PostgresCalibrationCurveRepository,
+    )
+
+    curve_repo = PostgresCalibrationCurveRepository(s["database"])
+    calibrator = IsotonicConfidenceCalibrator(curve_repository=curve_repo)
+    bias_auditor = BiasAuditor()
+    forensic_writer = JsonbForensicTraceWriter()
+    llm: LLMClient = s["llm_client"]
+    prompt_loader: PromptLoader = s["prompt_loader"]
+    stakeholder_simulator = LlmStakeholderSimulator(
+        llm=llm, prompt_loader=prompt_loader, errors_sink=errors_sink
+    )
+    falsification_prober = LlmFalsificationProber(
+        llm=llm, prompt_loader=prompt_loader, errors_sink=errors_sink
+    )
+    gate = ReportQualityGate(
+        bias_auditor=bias_auditor,
+        falsification_prober=falsification_prober,
+        stakeholder_simulator=stakeholder_simulator,
+        calibrator=calibrator,
+        forensic_trace_writer=forensic_writer,
+    )
+    return {
+        "gate": gate,
+        "calibrator": calibrator,
+        "errors_sink": errors_sink,
+        "curve_repository": curve_repo,
+    }
+
+
 # ── Factory: Evaluation / Fusion / Memory services ──────────────────────
 def _build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str, Any]:
     """Source scorer, linker, synthesizer, KPIs, memory, reports."""
@@ -176,10 +240,25 @@ def _build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str,
     e["event_log"] = event_log
     event_publisher: EventPublisher = InMemoryEventPublisher(event_log)
     e["event_publisher"] = event_publisher
+    assurance_services = _build_assurance_services(s, e)
+    e["report_assurance_errors"] = assurance_services["errors_sink"]
+    e["report_quality_gate"] = assurance_services["gate"]
+    e["isotonic_calibrator"] = assurance_services["calibrator"]
+    # Spec 007 T036: cablea el calibrator isotonico al HypeDetector para que
+    # `buzz = max(0, substance // 2)` se reemplace por la curva empirica
+    # cuando WS-E esta activo. Cuando esta off, calibrator=None y
+    # HypeDetector mantiene la formula heuristica historica (fallback).
+    if assurance_services["calibrator"] is not None:
+        from vigilancia_multiagente.application.evaluation.hype_detector import (
+            set_isotonic_calibrator,
+        )
+        set_isotonic_calibrator(assurance_services["calibrator"])
     e["report_synthesizer"] = ReportSynthesizer(
         event_publisher=event_publisher,
         source_scorer=source_scorer,
         prompt_loader=s["prompt_loader"],
+        report_quality_gate=assurance_services["gate"],
+        report_assurance_errors=assurance_services["errors_sink"],
     )
     e["graph_service"] = KnowledgeGraphService()
     e["metrics_service"] = MetricsService()

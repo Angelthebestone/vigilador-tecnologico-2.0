@@ -1,6 +1,14 @@
 # STATUS: ACTIVE — consumers: report_synthesizer, research_outputs (HypeDetector.analyze, infer_from_branch_results, render_section)
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from vigilancia_multiagente.application.evaluation.calibration.isotonic_calibrator import (
+        IsotonicConfidenceCalibrator,
+    )
 
 # Technology Readiness Level bands inferred from the relative weight of
 # research / patent / funding / prototype signals. Mirrors the NASA TRL scale
@@ -11,6 +19,26 @@ _TRL_LABELS: dict[str, str] = {
     "commercialization": "TRL 7-9 · comercialización",
     "unknown": "TRL desconocido",
 }
+
+# Spec 007 T036: calibrador opcional para reemplazar la division entera del
+# buzz por una curva empirica isotonica. Cuando es None (flag WS-E off),
+# se preserva el fallback historico.
+_CALIBRATOR: IsotonicConfidenceCalibrator | None = None
+# Para inferir el ratio se necesita un "techo" relativo de substance que la
+# curva isotonica conoce. Usamos un techo robusto observado historicamente
+# (4 senales * ~50 hits cada una). Si en prod se observa un techo mayor,
+# se ajusta sin riesgo (la curva clipea a [0, 1]).
+_SUBSTANCE_CEILING = 200.0
+
+
+def set_isotonic_calibrator(calibrator: IsotonicConfidenceCalibrator | None) -> None:
+    """Wiring punto-libre para que dependencies.py inyecte el calibrator.
+
+    Mantiene el HypeDetector sin tocar su constructor publico (cero ruptura
+    en consumidores) y respeta YAGNI: solo se sobreescribe cuando WS-E activo.
+    """
+    global _CALIBRATOR  # noqa: PLW0603 — wiring controlado de modulo
+    _CALIBRATOR = calibrator
 
 
 @dataclass(slots=True)
@@ -57,9 +85,23 @@ class HypeDetector:
             return report
 
         substance = sum(signals.values())
-        buzz = max(0, substance // 2)
-
-        report.hype_ratio = round(buzz / (substance + 1), 2)
+        # Spec 007 T036: si hay un calibrator isotonico activo (WS-E enabled),
+        # el ratio se deriva de la curva calibrada empirica en vez de la
+        # heuristica `buzz = max(0, substance // 2)`. Cuando no hay calibrator,
+        # se preserva la formula historica como fallback.
+        calibrator = _CALIBRATOR
+        if calibrator is not None:
+            try:
+                normalized = min(1.0, substance / _SUBSTANCE_CEILING)
+                calibrated = await calibrator.calibrate(normalized)
+                # hype_ratio = 1 - calibrated_substance_credibility
+                report.hype_ratio = round(max(0.0, min(1.0, 1.0 - calibrated)), 2)
+            except Exception:
+                buzz = max(0, substance // 2)
+                report.hype_ratio = round(buzz / (substance + 1), 2)
+        else:
+            buzz = max(0, substance // 2)
+            report.hype_ratio = round(buzz / (substance + 1), 2)
 
         if report.hype_ratio > 0.7:
             report.verdict = "exagerada"

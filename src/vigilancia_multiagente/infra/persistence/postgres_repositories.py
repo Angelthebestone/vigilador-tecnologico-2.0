@@ -20,6 +20,11 @@ from vigilancia_multiagente.domain.models import (
     ResearchSession,
     SourceRef,
 )
+from vigilancia_multiagente.domain.pipeline_errors import (
+    StepError,
+    StepErrorSeverity,
+    Workstream,
+)
 from vigilancia_multiagente.domain.repositories import (
     BranchResultRepository,
     GraphSnapshotRepository,
@@ -612,6 +617,7 @@ def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
         "total_sources_consulted": report.total_sources_consulted,
         "total_learnings": report.total_learnings,
         "confidence_score": report.confidence_score,
+        "errors": [_step_error_to_dict(e) for e in report.errors],
     }
 
 
@@ -639,4 +645,38 @@ def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
         total_sources_consulted=cast(int, data.get("total_sources_consulted", 0)),
         total_learnings=cast(int, data.get("total_learnings", 0)),
         confidence_score=cast(float, data.get("confidence_score", 0.0)),
+        errors=[
+            _step_error_from_dict(cast(dict[str, object], e))
+            for e in cast(list, data.get("errors") or [])
+        ],
+    )
+
+
+def _step_error_to_dict(error: StepError) -> dict[str, object]:
+    return {
+        "workstream": error.workstream.value,
+        "step_name": error.step_name,
+        "reason": error.reason,
+        "exception_type": error.exception_type,
+        "context": dict(error.context),
+        "occurred_at": error.occurred_at.isoformat(),
+        "severity": error.severity.value,
+    }
+
+
+def _step_error_from_dict(data: dict[str, object]) -> StepError:
+    occurred_raw = data.get("occurred_at")
+    occurred = (
+        datetime.fromisoformat(str(occurred_raw))
+        if isinstance(occurred_raw, str)
+        else cast(datetime, occurred_raw) if occurred_raw is not None else datetime.now()
+    )
+    return StepError(
+        workstream=Workstream(str(data.get("workstream", "WS-E"))),
+        step_name=str(data.get("step_name", "")),
+        reason=str(data.get("reason", "")),
+        exception_type=str(data.get("exception_type", "")),
+        context=cast(dict[str, object], data.get("context") or {}),
+        occurred_at=occurred,
+        severity=StepErrorSeverity(str(data.get("severity", "warning"))),
     )

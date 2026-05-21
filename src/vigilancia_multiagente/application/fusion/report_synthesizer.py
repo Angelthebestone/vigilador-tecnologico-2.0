@@ -94,10 +94,16 @@ class ReportSynthesizer:
         event_publisher: EventPublisher | None = None,
         source_scorer: object | None = None,
         prompt_loader: PromptLoader | None = None,
+        report_quality_gate: object | None = None,
+        report_assurance_errors: list[object] | None = None,
     ) -> None:
         self._event_publisher = event_publisher
         self._source_scorer = source_scorer
         self._prompt_loader = prompt_loader
+        # Spec 007 T030: gate inyectado solo cuando VT_EVAL_WS_E_ENABLED=true.
+        # None preserva el comportamiento previo al spec 007 (cero quality gate).
+        self._gate = report_quality_gate
+        self._assurance_errors = report_assurance_errors
 
     async def synthesize(
         self,
@@ -181,7 +187,7 @@ class ReportSynthesizer:
                     markdown = json.dumps(data, indent=2)
                     if intelligence:
                         markdown = f"{markdown}\n\n{intelligence}\n"
-                    return FinalReport(
+                    llm_report = FinalReport(
                         session_id=session_id,
                         markdown=markdown,
                         executive_summary=data.get("executive_summary", ""),
@@ -198,6 +204,7 @@ class ReportSynthesizer:
                         total_learnings=len(linked_findings),
                         confidence_score=float(data.get("confidence_score", 0.72)),
                     )
+                    return await self._apply_quality_gate(llm_report)
             except (json.JSONDecodeError, KeyError, TypeError, RuntimeError) as exc:
                 logger.warning("MiniMax synthesis failed, using template fallback: %s", exc)
 
@@ -208,7 +215,7 @@ class ReportSynthesizer:
             recommendations=recommendations,
             intelligence=intelligence,
         )
-        return FinalReport(
+        template_report = FinalReport(
             session_id=session_id,
             markdown=markdown,
             executive_summary=extract_section(markdown, "Resumen Ejecutivo"),
@@ -222,6 +229,36 @@ class ReportSynthesizer:
             total_learnings=len(linked_findings),
             confidence_score=0.72,
         )
+        return await self._apply_quality_gate(template_report)
+
+    async def _apply_quality_gate(self, report: FinalReport) -> FinalReport:
+        """Spec 007 T030: invoca el ReportQualityGate cuando esta inyectado.
+
+        - Gate None: retorna el report sin cambios (cero impacto pre-007).
+        - Gate retorna ReportAssurance: se anexa al report. Si calibrated_confidence
+          existe, se reemplaza confidence_score (curva isotonica empirica).
+        - Gate levanta QualityGateBlocked: se propaga al endpoint (HTTP 409).
+
+        Errores no criticos del gate ya van al `report_assurance_errors` sink que
+        compartimos por inyeccion; el sink se vuelca a `report.errors` antes de
+        retornar para que la entrega quede auditable.
+        """
+        if self._gate is None:
+            return report
+        from vigilancia_multiagente.domain.evaluation_entities import ReportAssurance
+        from vigilancia_multiagente.domain.pipeline_errors import StepError
+
+        assurance = await self._gate.run(report)  # type: ignore[attr-defined]
+        if isinstance(assurance, ReportAssurance):
+            report.assurance = assurance
+            if assurance.calibrated_confidence is not None:
+                report.confidence_score = assurance.calibrated_confidence
+        if self._assurance_errors:
+            report.errors.extend(
+                e for e in self._assurance_errors if isinstance(e, StepError)
+            )
+            self._assurance_errors.clear()
+        return report
 
 
 def _render_markdown(

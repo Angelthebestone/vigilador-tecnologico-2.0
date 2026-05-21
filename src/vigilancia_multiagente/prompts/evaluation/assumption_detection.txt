@@ -1,0 +1,7 @@
+PLACEHOLDER - Spec 007 WS-C (FR-C01).
+
+Detecta asunciones implicitas en el texto fuente. Devuelve JSON con la lista
+de asunciones, su severidad (info/warning/critical) y la penalizacion de
+confianza sugerida ([-1, 0]).
+
+Plantilla pendiente de redaccion en Phase 6 US4 (T095).

@@ -102,7 +102,6 @@ uploads/
 documentation/
 
 # ---------- Specs / feature artifacts ----------
-specs/
 
 # ---------- Speckit tooling (external) ----------
 .specify/extensions/
@@ -120,7 +119,6 @@ specs/
 .claude/
 
 # ---------- .github (external CI/skills) ----------
-.github/
 
 # ---------- .opencode agents, prompts & skills (external) ----------
 .opencode/agents/
