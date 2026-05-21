@@ -1,0 +1,6 @@
+PLACEHOLDER - Spec 007 WS-E (FR-E02).
+
+Simulas un competidor: amenazas competitivas, ventajas defendibles, time to
+market, barreras de entrada. Genera critique y counterpoints[] estructurados.
+
+Plantilla pendiente de redaccion en Phase 3 US1 (T025).

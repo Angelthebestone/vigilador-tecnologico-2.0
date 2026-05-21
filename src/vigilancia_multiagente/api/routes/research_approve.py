@@ -46,10 +46,28 @@ async def approve_plan(session_id: UUID, payload: ApproveRequest) -> dict[str, o
     if plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
 
+    # Spec 007 T031: si el ReportQualityGate detecta un sesgo critico durante
+    # la sintesis (WS-E activo), bloquea la entrega con HTTP 409 y expone el
+    # audit para que el operador decida.
+    from vigilancia_multiagente.application.evaluation.report_quality_gate import (
+        QualityGateBlocked,
+    )
+
     try:
         result = await approve_research_usecase.execute(session_id, plan)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except QualityGateBlocked as blocked:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "session_id": str(session_id),
+                "reason": "critical_bias_detected",
+                "categories": blocked.audit.bias_categories,
+                "geographic": blocked.audit.geographic_distribution,
+                "institutional": blocked.audit.institutional_distribution,
+            },
+        ) from blocked
 
     return {
         "session_id": str(result.session_id),

@@ -8,6 +8,7 @@ from vigilancia_multiagente.application.agents.pipeline.base_step import Pipelin
 from vigilancia_multiagente.application.agents.pipeline.compose_prompt_step import (
     ComposePromptContext,
 )
+from vigilancia_multiagente.domain.pipeline_errors import StepError
 from vigilancia_multiagente.application.mcp.types import ToolExecutionResult
 from vigilancia_multiagente.application.research.followup_loop import (
     run_followup_loop,
@@ -48,6 +49,10 @@ class ToolLoopContext(ComposePromptContext):
     temporal: TemporalWindow | None = None
     seed_query: str = ""
     providers: list[ProviderConfig] = field(default_factory=list)
+    # Spec 007: errores trazables acumulados por los nuevos pipeline steps de
+    # evaluacion (WS-A..E). Cada step opt-in escribe aqui sus fallos no
+    # criticos en vez de levantar excepciones.
+    errors: list[StepError] = field(default_factory=list)
 
 
 class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):

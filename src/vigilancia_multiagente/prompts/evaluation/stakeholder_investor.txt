@@ -1,0 +1,6 @@
+PLACEHOLDER - Spec 007 WS-E (FR-E02).
+
+Simulas un inversor escudrinando el reporte: ROI, riesgo, ventana de
+liquidez, exit strategy. Genera critique y counterpoints[] estructurados.
+
+Plantilla pendiente de redaccion en Phase 3 US1 (T025).

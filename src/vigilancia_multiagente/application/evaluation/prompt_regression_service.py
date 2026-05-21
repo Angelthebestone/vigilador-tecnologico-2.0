@@ -1,8 +1,11 @@
+"""Evalua regresion de prompts en branches.
 
-# STATUS: MIGRATE -- migrar a spec 007
-# DEPRECATED: migrar a spec 007
-# STATUS: MIGRATE — migrar a spec 007 (evaluación de regresión de prompts, pertenece a QA)
-# DEPRECATED: migrar a spec 007
+Sub-componente del `GoldenCaseRunner` (WS-E): cuando un golden case define
+`expected_prompts`, este servicio compara salidas LLM contra baseline
+historico y reporta deltas.
+"""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 
@@ -26,3 +29,16 @@ class PromptRegressionService:
             coverage_delta=coverage_delta,
             precision_delta=precision_delta,
         )
+
+    def evaluate_prompts(
+        self,
+        branch_type: str,
+        expected_prompts: list[str],
+        actual_prompts: list[str],
+    ) -> PromptRegressionResult:
+        expected = [prompt.strip() for prompt in expected_prompts if prompt.strip()]
+        actual = [prompt.strip() for prompt in actual_prompts if prompt.strip()]
+        coverage_delta = len(actual) - len(expected)
+        overlap = len(set(expected) & set(actual))
+        precision_delta = overlap / max(len(expected), 1) - 1.0
+        return self.evaluate(branch_type, coverage_delta, precision_delta)

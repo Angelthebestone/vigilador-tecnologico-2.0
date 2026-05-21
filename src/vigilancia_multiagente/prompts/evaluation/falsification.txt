@@ -1,0 +1,7 @@
+PLACEHOLDER - Spec 007 WS-E (FR-E03).
+
+Para la conclusion dada, formula escenarios hipoteticos de evidencia que la
+falsarian. Devuelve lista con hypothetical_evidence, plausibility [0, 1] y
+flag falsifiable.
+
+Plantilla pendiente de redaccion en Phase 3 US1 (T026).

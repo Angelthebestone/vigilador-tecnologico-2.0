@@ -102,25 +102,14 @@ uploads/
 documentation/
 
 # ---------- Specs / feature artifacts ----------
-specs/
 
 # ---------- Speckit tooling (external) ----------
-.specify/extensions/
-.specify/integrations/
-.specify/scripts/
-.specify/templates/
-.specify/workflows/
-.specify/memory/
-.specify/feature.json
-.specify/extensions.yml
-.specify/init-options.json
-.specify/integration.json
+
 
 # ---------- .claude (external config/worktrees/skills) ----------
 .claude/
 
 # ---------- .github (external CI/skills) ----------
-.github/
 
 # ---------- .opencode agents, prompts & skills (external) ----------
 .opencode/agents/
