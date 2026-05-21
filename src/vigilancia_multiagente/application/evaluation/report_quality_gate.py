@@ -23,7 +23,7 @@ from vigilancia_multiagente.domain.evaluation_entities import (
     StakeholderSimulation,
     StakeholderType,
 )
-from vigilancia_multiagente.domain.models import BranchResult, FinalReport
+from vigilancia_multiagente.domain.models import FinalReport
 
 if TYPE_CHECKING:
     from vigilancia_multiagente.application.evaluation.audit.bias_auditor import (
@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from vigilancia_multiagente.application.evaluation.forensic.jsonb_trace_writer import (
         JsonbForensicTraceWriter,
     )
-    from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService
     from vigilancia_multiagente.domain.ports.falsification import FalsificationProber
     from vigilancia_multiagente.domain.ports.stakeholder_simulator import (
         StakeholderSimulator,
@@ -73,7 +72,6 @@ class ReportQualityGate:
         stakeholder_simulator: StakeholderSimulator,
         calibrator: IsotonicConfidenceCalibrator,
         forensic_trace_writer: JsonbForensicTraceWriter | None = None,
-        branch_kpi_service: BranchKPIService | None = None,
         thresholds: BiasThresholds | None = None,
     ) -> None:
         self._bias_auditor = bias_auditor
@@ -81,17 +79,12 @@ class ReportQualityGate:
         self._stakeholder_simulator = stakeholder_simulator
         self._calibrator = calibrator
         self._forensic_trace_writer = forensic_trace_writer
-        self._branch_kpi_service = branch_kpi_service
         self._thresholds = thresholds or BiasThresholds()
 
-    async def run(
-        self,
-        report: FinalReport,
-        branch_results: list[BranchResult] | None = None,
-    ) -> ReportAssurance:
+    async def run(self, report: FinalReport) -> ReportAssurance:
         forensic_count = 0
         if self._forensic_trace_writer is not None:
-            # El modelo actual no expone claim_ids, asi que cerramos una traza
+            # El modelo actual no expone claim_ids, asi que se cierra una traza
             # por reporte usando el session_id como clave estable.
             forensic_trace = await self._forensic_trace_writer.finalize(report.session_id)
             forensic_count = len(forensic_trace.chain)
@@ -111,7 +104,7 @@ class ReportQualityGate:
             )
 
         calibrated = await self._calibrator.calibrate(report.confidence_score)
-        kpis: dict[str, float] = {
+        kpis = {
             "forensic_trace_count": float(forensic_count),
             "falsification_scenarios_count": float(len(scenarios)),
             "stakeholder_simulations_count": float(len(simulations)),
@@ -119,16 +112,6 @@ class ReportQualityGate:
             "sources_consulted": float(report.total_sources_consulted),
             "learnings": float(report.total_learnings),
         }
-        if self._branch_kpi_service is not None and branch_results is not None:
-            for result in branch_results:
-                branch_kpi = self._branch_kpi_service.compute(
-                    result, latency_ms=500, cost_kpi=0.0
-                )
-                prefix = result.branch_type.value.lower()
-                kpis[f"{prefix}_coverage_kpi"] = branch_kpi.coverage_kpi
-                kpis[f"{prefix}_precision_kpi"] = branch_kpi.precision_kpi
-                kpis[f"{prefix}_latency_ms_kpi"] = float(branch_kpi.latency_ms_kpi)
-                kpis[f"{prefix}_cost_kpi"] = branch_kpi.cost_kpi
 
         return ReportAssurance(
             bias_audit=audit,

@@ -95,7 +95,6 @@ class ReportSynthesizer:
         source_scorer: object | None = None,
         prompt_loader: PromptLoader | None = None,
         report_quality_gate: object | None = None,
-        branch_kpi_service: object | None = None,
         report_assurance_errors: list[object] | None = None,
     ) -> None:
         self._event_publisher = event_publisher
@@ -104,7 +103,6 @@ class ReportSynthesizer:
         # Spec 007 T030: gate inyectado solo cuando VT_EVAL_WS_E_ENABLED=true.
         # None preserva el comportamiento previo al spec 007 (cero quality gate).
         self._gate = report_quality_gate
-        self._branch_kpi_service = branch_kpi_service
         self._assurance_errors = report_assurance_errors
 
     async def synthesize(
@@ -206,7 +204,7 @@ class ReportSynthesizer:
                         total_learnings=len(linked_findings),
                         confidence_score=float(data.get("confidence_score", 0.72)),
                     )
-                    return await self._apply_quality_gate(llm_report, branch_results)
+                    return await self._apply_quality_gate(llm_report)
             except (json.JSONDecodeError, KeyError, TypeError, RuntimeError) as exc:
                 logger.warning("MiniMax synthesis failed, using template fallback: %s", exc)
 
@@ -231,11 +229,9 @@ class ReportSynthesizer:
             total_learnings=len(linked_findings),
             confidence_score=0.72,
         )
-        return await self._apply_quality_gate(template_report, branch_results)
+        return await self._apply_quality_gate(template_report)
 
-    async def _apply_quality_gate(
-        self, report: FinalReport, branch_results: list[BranchResult]
-    ) -> FinalReport:
+    async def _apply_quality_gate(self, report: FinalReport) -> FinalReport:
         """Spec 007 T030: invoca el ReportQualityGate cuando esta inyectado.
 
         - Gate None: retorna el report sin cambios (cero impacto pre-007).
@@ -252,9 +248,7 @@ class ReportSynthesizer:
         from vigilancia_multiagente.domain.evaluation_entities import ReportAssurance
         from vigilancia_multiagente.domain.pipeline_errors import StepError
 
-        assurance = await self._gate.run(  # type: ignore[attr-defined]
-            report, branch_results=branch_results
-        )
+        assurance = await self._gate.run(report)  # type: ignore[attr-defined]
         if isinstance(assurance, ReportAssurance):
             report.assurance = assurance
             if assurance.calibrated_confidence is not None:

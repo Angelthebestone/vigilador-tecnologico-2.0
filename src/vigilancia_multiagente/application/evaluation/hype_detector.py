@@ -20,9 +20,9 @@ _TRL_LABELS: dict[str, str] = {
     "unknown": "TRL desconocido",
 }
 
-    # Spec 007 T036: calibrador opcional para reemplazar la heuristica
-    # historica por una curva empirica isotonica. Cuando es None (flag WS-E
-    # off), se preserva un fallback monotono y deterministico.
+# Spec 007 T036: calibrador opcional para reemplazar la division entera del
+# buzz por una curva empirica isotonica. Cuando es None (flag WS-E off),
+# se preserva el fallback historico.
 _CALIBRATOR: IsotonicConfidenceCalibrator | None = None
 # Para inferir el ratio se necesita un "techo" relativo de substance que la
 # curva isotonica conoce. Usamos un techo robusto observado historicamente
@@ -86,8 +86,9 @@ class HypeDetector:
 
         substance = sum(signals.values())
         # Spec 007 T036: si hay un calibrator isotonico activo (WS-E enabled),
-        # el ratio se deriva de la curva calibrada empirica. Cuando no hay
-        # calibrator, se usa un fallback monotono equivalente.
+        # el ratio se deriva de la curva calibrada empirica en vez de la
+        # heuristica `buzz = max(0, substance // 2)`. Cuando no hay calibrator,
+        # se preserva la formula historica como fallback.
         calibrator = _CALIBRATOR
         if calibrator is not None:
             try:
@@ -96,9 +97,11 @@ class HypeDetector:
                 # hype_ratio = 1 - calibrated_substance_credibility
                 report.hype_ratio = round(max(0.0, min(1.0, 1.0 - calibrated)), 2)
             except Exception:
-                report.hype_ratio = round(min(1.0, substance / (substance + 1)), 2)
+                buzz = max(0, substance // 2)
+                report.hype_ratio = round(buzz / (substance + 1), 2)
         else:
-            report.hype_ratio = round(min(1.0, substance / (substance + 1)), 2)
+            buzz = max(0, substance // 2)
+            report.hype_ratio = round(buzz / (substance + 1), 2)
 
         if report.hype_ratio > 0.7:
             report.verdict = "exagerada"

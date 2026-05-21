@@ -23,7 +23,7 @@ Independent Test Criteria: `alembic upgrade head` aplica las 6 tablas; `pytest t
 - [ ] T003 [P] Crear migration `migrations/versions/<id>_add_evaluation_tables.py` con las 6 tablas: `author_reputation`, `temporal_decay_config`, `extraction_schema`, `golden_case`, `golden_case_run`, `calibration_curve`
 - [ ] T004 [P] Crear columnas JSONB opcionales `assumptions`, `external_validation`, `reproducibility`, `forensic_trace`, `authenticity` en tabla `findings` (mismo archivo de migration)
 - [ ] T005 Crear `src/vigilancia_multiagente/application/agents/pipeline/errors.py` con dataclass `StepError(workstream, step_name, reason, exception_type, context, occurred_at, severity)` y extender `ToolLoopContext` con campo `errors: list[StepError]`
-- [ ] T006 [P] Crear directorio `prompts/evaluation/` con plantillas vacias placeholder: `assumption_detection.txt`, `counterfactual.txt`, `falsification.txt`, `stakeholder_investor.txt`, `stakeholder_regulator.txt`, `stakeholder_competitor.txt`, `stakeholder_academic.txt`, `query_expand.txt`
+- [X] T006 [P] Crear directorio `prompts/evaluation/` con plantillas vacias placeholder: `assumption_detection.txt`, `counterfactual.txt`, `falsification.txt`, `stakeholder_investor.txt`, `stakeholder_regulator.txt`, `stakeholder_competitor.txt`, `stakeholder_academic.txt`, `query_expand.txt`
 - [ ] T007 [P] Crear estructura de carpetas nuevas: `src/vigilancia_multiagente/application/evaluation/{analytics,authenticity,audit,calibration,forensic,ws_a,ws_b,ws_c,ws_d,ws_e}/__init__.py`, `src/vigilancia_multiagente/infra/{factcheck,retraction,search}/__init__.py`
 - [ ] T008 [P] Crear `tests/application/evaluation/__init__.py`, `tests/integration/__init__.py`, `tests/golden/__init__.py`
 
@@ -56,7 +56,7 @@ Independent Test Criteria: `scripts/run_golden_cases.py --case alphafold-baselin
 
 - [ ] T019 [P] [US1] Implementar `PostgresGoldenCaseRepository` en `src/vigilancia_multiagente/infra/persistence/golden_case_repository.py` con `list_active`, `record_run`, `recent_runs` contra tablas `golden_case` / `golden_case_run`
 - [ ] T020 [P] [US1] Implementar `PostgresCalibrationCurveRepository` en `src/vigilancia_multiagente/infra/persistence/calibration_curve_repository.py` con persistencia de mappings y activacion por `model_version`
-- [ ] T021 [US1] Implementar `OrchestratorGoldenCaseRunner` en `src/vigilancia_multiagente/application/evaluation/ws_e/orchestrator_golden_case_runner.py`: invoca el flujo completo en modo sandbox (sin escribir produccion) y compara con `expected_findings` / `expected_confidence`
+- [X] T021 [US1] Implementar `OrchestratorGoldenCaseRunner` en `src/vigilancia_multiagente/application/evaluation/ws_e/orchestrator_golden_case_runner.py`: invoca el flujo completo en modo sandbox (sin escribir produccion) y compara con `expected_findings` / `expected_confidence`
 
 ### Clases concretas (sin Protocol — YAGNI)
 
@@ -71,41 +71,41 @@ Independent Test Criteria: `scripts/run_golden_cases.py --case alphafold-baselin
 
 ### Quality gate orquestador
 
-- [ ] T027 [US1] Implementar `ReportQualityGate` en `src/vigilancia_multiagente/application/evaluation/report_quality_gate.py` orquestando en orden: (1) `ForensicTraceWriter.finalize` por claim, (2) `BiasAuditor.audit` -> si critical_bias_detected lanza `QualityGateBlocked`, (3) `FalsificationProber.probe` por conclusion, (4) `StakeholderSimulator.simulate` para 4 perfiles, (5) `IsotonicConfidenceCalibrator.calibrate` ajusta confianzas. Output anexado a `FinalReport.assurance` (nuevo campo)
+- [X] T027 [US1] Implementar `ReportQualityGate` en `src/vigilancia_multiagente/application/evaluation/report_quality_gate.py` orquestando en orden: (1) `ForensicTraceWriter.finalize` por claim, (2) `BiasAuditor.audit` -> si critical_bias_detected lanza `QualityGateBlocked`, (3) `FalsificationProber.probe` por conclusion, (4) `StakeholderSimulator.simulate` para 4 perfiles, (5) `IsotonicConfidenceCalibrator.calibrate` ajusta confianzas. Output anexado a `FinalReport.assurance` (nuevo campo)
 - [ ] T028 [US1] Anadir campo `assurance: ReportAssurance | None` a `FinalReport` en `src/vigilancia_multiagente/domain/models.py` con sub-entidad serializable
 
 ### Wiring
 
 - [ ] T029 [US1] En `src/vigilancia_multiagente/api/dependencies.py` anadir factory `_build_assurance_services(s, g, e)` que instancia los 6 servicios de WS-E y registra `report_quality_gate`. Llamar solo si `settings.eval_ws_e_enabled`
 - [ ] T030 [US1] En `src/vigilancia_multiagente/application/fusion/report_synthesizer.py` invocar `ReportQualityGate.run(report)` tras sintetizar cuando el gate este inyectado. Si lanza `QualityGateBlocked`, propagar la excepcion al endpoint
-- [ ] T031 [US1] En `src/vigilancia_multiagente/api/routes/research_outputs.py` capturar `QualityGateBlocked` y responder HTTP 409 con detalle del sesgo critico
+- [X] T031 [US1] En `src/vigilancia_multiagente/api/routes/research_outputs.py` capturar `QualityGateBlocked` y responder HTTP 409 con detalle del sesgo critico
 
 ### Migracion legacy
 
-- [ ] T032 [US1] Reescribir `src/vigilancia_multiagente/application/evaluation/golden_cases_runner.py` como thin adapter sobre `GoldenCaseRunner` Protocol (delega al runner inyectado). Quitar marca `# DEPRECATED: migrar a spec 007`
-- [ ] T033 [US1] Reescribir `src/vigilancia_multiagente/application/evaluation/prompt_regression_service.py` como sub-fase del runner: cada `GoldenCase` puede incluir `expected_prompts`; el runner compara salidas. Quitar marca `# DEPRECATED`
-- [ ] T034 [US1] Reescribir `src/vigilancia_multiagente/application/evaluation/branch_kpi_service.py` para que `ReportQualityGate` lo invoque como sub-fase. KPIs (coverage, precision, latency, cost) van a `FinalReport.assurance.kpis`. Quitar marca `# DEPRECATED`
+- [X] T032 [US1] Reescribir `src/vigilancia_multiagente/application/evaluation/golden_cases_runner.py` como thin adapter sobre `GoldenCaseRunner` Protocol (delega al runner inyectado). Quitar marca `# DEPRECATED: migrar a spec 007`
+- [X] T033 [US1] Reescribir `src/vigilancia_multiagente/application/evaluation/prompt_regression_service.py` como sub-fase del runner: cada `GoldenCase` puede incluir `expected_prompts`; el runner compara salidas. Quitar marca `# DEPRECATED`
+- [X] T034 [US1] Reescribir `src/vigilancia_multiagente/application/evaluation/branch_kpi_service.py` para que `ReportQualityGate` lo invoque como sub-fase. KPIs (coverage, precision, latency, cost) van a `FinalReport.assurance.kpis`. Quitar marca `# DEPRECATED`
 
 ### Eliminacion controlada de heuristicas WS-E
 
 - [ ] T035 [US1] Tras 3 semanas de golden suite verde con `VT_EVAL_WS_E_ENABLED=true` en prod: eliminar `src/vigilancia_multiagente/application/evaluation/confidence_calibrator.py` y todos sus imports. Verificar `grep -rn "from .*evaluation.confidence_calibrator import" src/` vacio
-- [x] T036 [US1] Reemplazar `buzz = max(0, substance // 2)` en `src/vigilancia_multiagente/application/evaluation/hype_detector.py:60` por llamada a `IsotonicConfidenceCalibrator.calibrate(substance / max_substance_seen)`. La `verdict` (`exagerada`/`real`) se deriva del valor calibrado vs umbrales aprendidos
-- [x] T037 [US1] Verificar `grep -rn "buzz = max(0, substance" src/` retorna vacio tras T036
+- [ ] T036 [US1] Reemplazar `buzz = max(0, substance // 2)` en `src/vigilancia_multiagente/application/evaluation/hype_detector.py:60` por llamada a `IsotonicConfidenceCalibrator.calibrate(substance / max_substance_seen)`. La `verdict` (`exagerada`/`real`) se deriva del valor calibrado vs umbrales aprendidos
+- [ ] T037 [US1] Verificar `grep -rn "buzz = max(0, substance" src/` retorna vacio tras T036
 
 ### Scripts y golden cases iniciales
 
-- [x] T038 [P] [US1] Crear `scripts/seed_golden_cases.py --suite minimum` que inserta 3 golden cases: `alphafold-baseline`, `llm-chem`, `convergence-ai-bio` en tabla `golden_case` con expected_findings y expected_confidence
-- [x] T039 [P] [US1] Crear `scripts/run_golden_cases.py [--case <name>]` que ejecuta uno o todos via `OrchestratorGoldenCaseRunner` y reporta delta vs expected
-- [x] T040 [P] [US1] Crear `tests/golden/test_golden_suite.py` que parametriza un test por golden case activo (fixture leyendo `GoldenCaseRepository.list_active`), corre el runner y aserta delta de confianza <= 0.05
+- [ ] T038 [P] [US1] Crear `scripts/seed_golden_cases.py --suite minimum` que inserta 3 golden cases: `alphafold-baseline`, `llm-chem`, `convergence-ai-bio` en tabla `golden_case` con expected_findings y expected_confidence
+- [ ] T039 [P] [US1] Crear `scripts/run_golden_cases.py [--case <name>]` que ejecuta uno o todos via `OrchestratorGoldenCaseRunner` y reporta delta vs expected
+- [ ] T040 [P] [US1] Crear `tests/golden/test_golden_suite.py` que parametriza un test por golden case activo (fixture leyendo `GoldenCaseRepository.list_active`), corre el runner y aserta delta de confianza <= 0.05
 
 ### Tests
 
-- [x] T041 [P] [US1] `tests/application/evaluation/ws_e/test_isotonic_calibrator.py`: verifica curva identidad con < 50 muestras, curva ajustada con dataset sintetico, persistencia/recarga
-- [x] T042 [P] [US1] `tests/application/evaluation/ws_e/test_bias_auditor.py`: dataset sintetico con sobre-representacion geografica > 70% -> `critical_bias_detected=true`
-- [x] T043 [P] [US1] `tests/application/evaluation/ws_e/test_falsification_prober.py`: LLM mock devuelve 0 escenarios -> `falsifiable=False`; >= 1 escenario -> `falsifiable=True`
-- [x] T044 [P] [US1] `tests/application/evaluation/ws_e/test_quality_gate.py`: orquesta el orden correcto; cuando bias critical -> levanta `QualityGateBlocked`
-- [x] T045 [P] [US1] `tests/integration/test_research_outputs_409.py`: con flag activo y fixture de sesgo critico, endpoint responde 409
-- [x] T046 [P] [US1] `tests/application/evaluation/ws_e/test_forensic_trace_writer.py`: anota 3 pasos para un claim_id, `finalize` retorna `ForensicTrace` con cadena ordenada y confianzas
+- [ ] T041 [P] [US1] `tests/application/evaluation/ws_e/test_isotonic_calibrator.py`: verifica curva identidad con < 50 muestras, curva ajustada con dataset sintetico, persistencia/recarga
+- [ ] T042 [P] [US1] `tests/application/evaluation/ws_e/test_bias_auditor.py`: dataset sintetico con sobre-representacion geografica > 70% -> `critical_bias_detected=true`
+- [ ] T043 [P] [US1] `tests/application/evaluation/ws_e/test_falsification_prober.py`: LLM mock devuelve 0 escenarios -> `falsifiable=False`; >= 1 escenario -> `falsifiable=True`
+- [ ] T044 [P] [US1] `tests/application/evaluation/ws_e/test_quality_gate.py`: orquesta el orden correcto; cuando bias critical -> levanta `QualityGateBlocked`
+- [ ] T045 [P] [US1] `tests/integration/test_research_outputs_409.py`: con flag activo y fixture de sesgo critico, endpoint responde 409
+- [ ] T046 [P] [US1] `tests/application/evaluation/ws_e/test_forensic_trace_writer.py`: anota 3 pasos para un claim_id, `finalize` retorna `ForensicTrace` con cadena ordenada y confianzas
 
 ---
 

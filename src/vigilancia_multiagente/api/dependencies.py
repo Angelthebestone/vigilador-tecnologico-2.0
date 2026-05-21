@@ -14,10 +14,7 @@ from vigilancia_multiagente.application.evaluation.golden_cases_runner import Go
 from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
     PromptRegressionService,
 )
-from vigilancia_multiagente.application.evaluation.source_scorer import (
-    SourceScorer,
-    SourceScorerService,
-)
+from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer, SourceScorerService
 from vigilancia_multiagente.application.execution.branch_coordinator import BranchCoordinator
 from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
@@ -37,9 +34,7 @@ from vigilancia_multiagente.application.orchestration.orchestrator_service impor
 )
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
 from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
-from vigilancia_multiagente.application.research.ad_hoc_tools_service import (
-    AdHocResearchToolsService,
-)
+from vigilancia_multiagente.application.research.ad_hoc_tools_service import AdHocResearchToolsService
 from vigilancia_multiagente.application.research.document_conversion_service import (
     DocumentConversionService,
 )
@@ -51,13 +46,14 @@ from vigilancia_multiagente.domain.ports.global_knowledge_store import GlobalKno
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.markitdown_port import MarkitdownPort
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
+from vigilancia_multiagente.domain.ports.provider_registry import ProviderRegistry
 from vigilancia_multiagente.domain.ports.reranker import Reranker
 from vigilancia_multiagente.domain.ports.scholarly_works_gateway import ScholarlyWorksGateway
 from vigilancia_multiagente.domain.ports.source_trust_store import SourceTrustStore
 from vigilancia_multiagente.domain.ports.tool_executor import ToolExecutor
 from vigilancia_multiagente.domain.ports.vector_index import VectorIndex
 from vigilancia_multiagente.domain.system_base import SystemBase
-from vigilancia_multiagente.infra.db.connection import database as db_connection
+from vigilancia_multiagente.infra.db.connection import database
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.events.in_memory_event_publisher import InMemoryEventPublisher
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
@@ -65,9 +61,6 @@ from vigilancia_multiagente.infra.mcp.execution_client import MCPExecutionClient
 from vigilancia_multiagente.infra.mcp.markitdown_mcp import MarkitdownProvider
 from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
 from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderRegistry
-from vigilancia_multiagente.infra.openalex.openalex_client import (
-    OpenAlexScholarlyWorksGateway,
-)
 from vigilancia_multiagente.infra.persistence.global_knowledge_repository import (
     GlobalKnowledgeRepository,
 )
@@ -81,6 +74,9 @@ from vigilancia_multiagente.infra.persistence.postgres_repositories import (
 from vigilancia_multiagente.infra.persistence.source_trust_repository import (
     SourceTrustRepository,
 )
+from vigilancia_multiagente.infra.openalex.openalex_client import (
+    OpenAlexScholarlyWorksGateway,
+)
 from vigilancia_multiagente.infra.persistence.vector_index import PostgresVectorIndex
 from vigilancia_multiagente.infra.prompts.loader import FilesystemPromptLoader
 from vigilancia_multiagente.infra.reranking.semantic_reranker import SemanticReranker
@@ -93,11 +89,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 def _build_session_services() -> dict[str, Any]:
     """DB connection, repositories, MCP clients, embeddings, LLM, vector index."""
     srv: dict[str, Any] = {}
-    srv["session_repository"] = PostgresSessionRepository(db_connection)
-    srv["plan_repository"] = PostgresPlanRepository(db_connection)
-    srv["branch_result_repository"] = PostgresBranchResultRepository(db_connection)
-    srv["report_repository"] = PostgresReportRepository(db_connection)
-    srv["vector_index"] = cast(VectorIndex, PostgresVectorIndex(db_connection))
+    srv["session_repository"] = PostgresSessionRepository(database)
+    srv["plan_repository"] = PostgresPlanRepository(database)
+    srv["branch_result_repository"] = PostgresBranchResultRepository(database)
+    srv["report_repository"] = PostgresReportRepository(database)
+    srv["vector_index"] = cast(VectorIndex, PostgresVectorIndex(database))
     srv["embedding_gateway"] = cast(EmbeddingGateway, GeminiEmbeddingGateway())
     srv["llm_client"] = cast(LLMClient, MiniMaxClient())
     srv["minimax_client"] = srv["llm_client"]
@@ -132,7 +128,7 @@ def _build_session_services() -> dict[str, Any]:
     )
     srv["reranker"] = cast(Reranker, SemanticReranker(srv["embedding_gateway"]))
     srv["settings"] = settings
-    srv["database"] = db_connection
+    srv["database"] = database
     srv["PROJECT_ROOT"] = PROJECT_ROOT
     return srv
 
@@ -176,14 +172,8 @@ def _build_assurance_services(
     """
     settings_local = get_settings()
     errors_sink: list[Any] = []
-    branch_kpi_service = BranchKPIService()
     if not settings_local.eval_ws_e_enabled:
-        return {
-            "gate": None,
-            "calibrator": None,
-            "errors_sink": errors_sink,
-            "branch_kpi_service": branch_kpi_service,
-        }
+        return {"gate": None, "calibrator": None, "errors_sink": errors_sink}
 
     from vigilancia_multiagente.application.evaluation.audit.bias_auditor import (
         BiasAuditor,
@@ -225,14 +215,12 @@ def _build_assurance_services(
         stakeholder_simulator=stakeholder_simulator,
         calibrator=calibrator,
         forensic_trace_writer=forensic_writer,
-        branch_kpi_service=branch_kpi_service,
     )
     return {
         "gate": gate,
         "calibrator": calibrator,
         "errors_sink": errors_sink,
         "curve_repository": curve_repo,
-        "branch_kpi_service": branch_kpi_service,
     }
 
 
@@ -256,11 +244,10 @@ def _build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str,
     e["report_assurance_errors"] = assurance_services["errors_sink"]
     e["report_quality_gate"] = assurance_services["gate"]
     e["isotonic_calibrator"] = assurance_services["calibrator"]
-    e["branch_kpi_service"] = assurance_services["branch_kpi_service"]
     # Spec 007 T036: cablea el calibrator isotonico al HypeDetector para que
-    # la heuristica historica se reemplace por la curva empirica cuando
-    # WS-E esta activo. Cuando esta off, calibrator=None y HypeDetector
-    # mantiene un fallback monotono.
+    # `buzz = max(0, substance // 2)` se reemplace por la curva empirica
+    # cuando WS-E esta activo. Cuando esta off, calibrator=None y
+    # HypeDetector mantiene la formula heuristica historica (fallback).
     if assurance_services["calibrator"] is not None:
         from vigilancia_multiagente.application.evaluation.hype_detector import (
             set_isotonic_calibrator,
@@ -271,11 +258,11 @@ def _build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str,
         source_scorer=source_scorer,
         prompt_loader=s["prompt_loader"],
         report_quality_gate=assurance_services["gate"],
-        branch_kpi_service=e["branch_kpi_service"],
         report_assurance_errors=assurance_services["errors_sink"],
     )
     e["graph_service"] = KnowledgeGraphService()
     e["metrics_service"] = MetricsService()
+    e["branch_kpi_service"] = BranchKPIService()
     e["prompt_regression_service"] = PromptRegressionService()
     e["golden_cases_runner"] = GoldenCasesRunner()
     e["artifact_service"] = SessionArtifactService()
@@ -359,7 +346,7 @@ def _build_orchestration_services(
     )
 
     # Late import: circular dependency with routes.reports
-    from vigilancia_multiagente.api.routes.reports import store_report
+    from vigilancia_multiagente.api.routes.reports import store_report  # noqa: E402
 
     o["graph_snapshot_repository"] = PostgresGraphSnapshotRepository(s["database"])
     o["approve_research_usecase"] = ApproveResearchUseCase(

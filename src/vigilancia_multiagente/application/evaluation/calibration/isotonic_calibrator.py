@@ -35,7 +35,7 @@ class CalibrationCurveStore(Protocol):
     async def activate(self, model_version: str) -> None: ...
 
 
-_MIN_SAMPLES_FOR_FIT = 50
+_MIN_SAMPLES_FOR_FIT = 5
 _GRID_POINTS = 11  # 0.0, 0.1, ..., 1.0
 
 
@@ -43,7 +43,7 @@ class IsotonicConfidenceCalibrator:
     """Curva isotonica empirica que reemplaza heuristicas de calibracion.
 
     - `calibrate(raw)`: aplica la curva activa. Si no hay curva todavia
-      (samples < 50), retorna `raw` sin cambios (curva identidad).
+      (samples < 5), retorna `raw` sin cambios (curva identidad).
     - `retrain(runs)`: ajusta una nueva curva con los runs historicos,
       persistida pero no activada automaticamente — el operador decide
       via `repository.activate()`.
