@@ -131,6 +131,19 @@ class WeakSignalDetector:
     y la memoria recurrente que CrossSessionService ya expone."""
 # STATUS: ACTIVE
 
+    def degrade_to_sub_signal(
+        self,
+        branch_results: list[BranchResult],
+        convergence_clusters: list | None = None,
+    ) -> bool:
+        """Degrada la heuristica por frecuencia a sub-senal si hay ConvergenceCluster."""
+        from vigilancia_multiagente.domain.evaluation_entities import ConvergenceCluster
+
+        if convergence_clusters and any(
+            isinstance(c, ConvergenceCluster) for c in convergence_clusters
+        ):
+            return True
+        return False
 
     def detect(
         self,

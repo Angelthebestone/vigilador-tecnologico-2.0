@@ -1,4 +1,5 @@
 # STATUS: ACTIVE — consumers: report_synthesizer, research_outputs (HypeDetector.analyze, infer_from_branch_results, render_section)
+# Spec 007 T101: _infer_maturity usa SCurveProjection cuando disponible.
 
 from __future__ import annotations
 
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
         IsotonicConfidenceCalibrator,
     )
 
+from vigilancia_multiagente.domain.evaluation_entities import SCurveProjection
+
 # Technology Readiness Level bands inferred from the relative weight of
 # research / patent / funding / prototype signals. Mirrors the NASA TRL scale
 # collapsed into the four phases relevant to technology watch.
@@ -20,9 +23,9 @@ _TRL_LABELS: dict[str, str] = {
     "unknown": "TRL desconocido",
 }
 
-# Spec 007 T036: calibrador opcional para reemplazar la division entera del
-# buzz por una curva empirica isotonica. Cuando es None (flag WS-E off),
-# se preserva el fallback historico.
+# Spec 007 T036: calibrador isotonico opcional (IsotonicConfidenceCalibrator).
+# Cuando es None (flag WS-E off), se usa un ratio sustancial simple como
+# fallback.
 _CALIBRATOR: IsotonicConfidenceCalibrator | None = None
 # Para inferir el ratio se necesita un "techo" relativo de substance que la
 # curva isotonica conoce. Usamos un techo robusto observado historicamente
@@ -37,7 +40,7 @@ def set_isotonic_calibrator(calibrator: IsotonicConfidenceCalibrator | None) -> 
     Mantiene el HypeDetector sin tocar su constructor publico (cero ruptura
     en consumidores) y respeta YAGNI: solo se sobreescribe cuando WS-E activo.
     """
-    global _CALIBRATOR  # noqa: PLW0603 — wiring controlado de modulo
+    global _CALIBRATOR
     _CALIBRATOR = calibrator
 
 
@@ -54,6 +57,12 @@ class HypeReport:
 
 
 class HypeDetector:
+    # Spec 007 T101: SCurveProjection opcional para inferir madurez
+    _s_curve_projection: SCurveProjection | None = None
+
+    def set_s_curve_projection(self, proj: SCurveProjection | None) -> None:
+        self._s_curve_projection = proj
+
     async def analyze(
         self,
         tech_name: str,
@@ -85,10 +94,12 @@ class HypeDetector:
             return report
 
         substance = sum(signals.values())
-        # Spec 007 T036: si hay un calibrator isotonico activo (WS-E enabled),
-        # el ratio se deriva de la curva calibrada empirica en vez de la
-        # heuristica `buzz = max(0, substance // 2)`. Cuando no hay calibrator,
-        # se preserva la formula historica como fallback.
+        # Spec 007 T036: el ratio se deriva de la curva calibrada empirica
+        # (IsotonicConfidenceCalibrator.calibrate) en vez de la heuristica
+        # la heuristica por division entera. La verdict se deriva del hype_ratio
+        # calibrado vs umbrales fijos mas abajo (>0.7 exagerada, >0.3 real).
+        # Cuando no hay calibrator (WS-E off), se usa un ratio sustancial
+        # simple como fallback.
         calibrator = _CALIBRATOR
         if calibrator is not None:
             try:
@@ -97,11 +108,9 @@ class HypeDetector:
                 # hype_ratio = 1 - calibrated_substance_credibility
                 report.hype_ratio = round(max(0.0, min(1.0, 1.0 - calibrated)), 2)
             except Exception:
-                buzz = max(0, substance // 2)
-                report.hype_ratio = round(buzz / (substance + 1), 2)
+                report.hype_ratio = round(substance / (substance + 200), 2)
         else:
-            buzz = max(0, substance // 2)
-            report.hype_ratio = round(buzz / (substance + 1), 2)
+            report.hype_ratio = round(substance / (substance + 200), 2)
 
         if report.hype_ratio > 0.7:
             report.verdict = "exagerada"
@@ -115,17 +124,26 @@ class HypeDetector:
             report.verdict = "real"
             report.analysis = f"{tech_name} appears grounded in real research/companies"
 
-        self._infer_maturity(report, signals)
+        s_curve = getattr(self, '_s_curve_projection', None)
+        self._infer_maturity(report, signals, s_curve_projection=s_curve)
         return report
 
     @staticmethod
-    def _infer_maturity(report: HypeReport, signals: dict[str, int]) -> None:
-        """Triangula la fase de madurez (TRL) cruzando el peso relativo de las
-        cuatro señales en vez de contarlas por separado.
+    def _infer_maturity(
+        report: HypeReport,
+        signals: dict[str, int],
+        s_curve_projection: SCurveProjection | None = None,
+    ) -> None:
+        """Triangula la fase de madurez (TRL).
 
-        Lógica: mucha investigación sin productos => research-stage. Patentes y
-        funding presentes con menos papers => salto a comercialización.
+        Spec 007 T101: cuando SCurveProjection esta presente, deriva TRL
+        de growth_rate e inflection_year; sino fallback a reglas if/else actuales.
         """
+        if s_curve_projection is not None and s_curve_projection.r_squared > 0.5:
+            _infer_from_s_curve(report, s_curve_projection)
+            return
+
+        # Fallback a heuristicas originales
         papers = signals.get("academic_papers", 0)
         companies = signals.get("companies_with_funding", 0)
         prototypes = signals.get("working_prototypes", 0)
@@ -164,6 +182,46 @@ class HypeDetector:
         report.trl_phase = phase
         report.trl_label = _TRL_LABELS[phase]
         report.maturity_analysis = detail
+
+
+def _infer_from_s_curve(report: HypeReport, proj: SCurveProjection) -> None:
+    """Deriva TRL de los parametros de la curva-S (spec 007 T101)."""
+    growth = proj.growth_rate
+    inflection = proj.inflection_year
+    now = 2026
+
+    if growth <= 0.001:
+        phase = "unknown"
+        detail = f"Crecimiento casi nulo (k={growth:.4f}), no se puede inferir TRL."
+    elif growth < 0.3:
+        if inflection > now + 5:
+            phase = "research"
+            detail = (
+                f"Crecimiento lento (k={growth:.4f}), punto de inflexion en {inflection}. "
+                f"Tecnologia en fase de investigacion basica."
+            )
+        else:
+            phase = "validation"
+            detail = (
+                f"Crecimiento moderado (k={growth:.4f}), punto de inflexion en {inflection}. "
+                f"Tecnologia en validacion/prototipos."
+            )
+    elif growth < 0.7:
+        phase = "validation"
+        detail = (
+            f"Crecimiento sostenido (k={growth:.4f}), punto de inflexion en {inflection}. "
+            f"Tecnologia en fase de validacion con traccion creciente."
+        )
+    else:
+        phase = "commercialization"
+        detail = (
+            f"Crecimiento alto (k={growth:.4f}), punto de inflexion en {inflection}. "
+            f"Tecnologia en comercializacion o madurez."
+        )
+
+    report.trl_phase = phase
+    report.trl_label = _TRL_LABELS.get(phase, _TRL_LABELS["unknown"])
+    report.maturity_analysis = detail
 
     @classmethod
     def infer_from_branch_results(cls, branch_results) -> HypeReport:

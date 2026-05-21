@@ -17,9 +17,13 @@ class AdHocResearchToolsService:
         self,
         execution_client: ToolExecutor,
         provider_registry: ProviderRegistry,
+        schema_registry: object | None = None,
+        ws_b_enabled: bool = False,
     ) -> None:
         self._execution_client = execution_client
         self._provider_registry = provider_registry
+        self._schema_registry = schema_registry
+        self._ws_b_enabled = ws_b_enabled
 
     async def tool_results(
         self, provider_name: str, tool_name: str, arguments: dict[str, object]
@@ -33,6 +37,27 @@ class AdHocResearchToolsService:
             logger.warning("%s:%s failed: %s", provider_name, tool_name, exc)
             return None
         payload = response.payload
+        if self._ws_b_enabled and self._schema_registry is not None:
+            try:
+                from vigilancia_multiagente.domain.evaluation_entities import (
+                    ExtractionSchema,
+                    SourceType,
+                )
+
+                schema = self._schema_registry.get_schema(  # type: ignore[attr-defined]
+                    "news", "general"
+                )
+                validated = self._schema_registry.validate(  # type: ignore[attr-defined]
+                    payload, schema
+                )
+                if isinstance(validated, dict):
+                    for key in ("results", "items", "organic", "papers", "data"):
+                        value = validated.get(key)
+                        if isinstance(value, list):
+                            return value
+                    return []
+            except Exception:
+                pass
         for key in ("results", "items", "organic", "papers", "data"):
             value = payload.get(key)
             if isinstance(value, list):
@@ -49,7 +74,7 @@ class AdHocResearchToolsService:
             brave_resp = await self._execution_client.execute_tool(
                 brave_provider, "brave_news_search", {"query": tech}
             )
-            brave_results = brave_resp.payload.get("results", [])
+            brave_results = self._extract_results(brave_resp.payload)
         except Exception as exc:
             logger.warning("Brave search failed for session %s: %s", session_id, exc)
         try:
@@ -57,7 +82,14 @@ class AdHocResearchToolsService:
             exa_resp = await self._execution_client.execute_tool(
                 exa_provider, "web_search_advanced_exa", {"query": tech}
             )
-            exa_results = exa_resp.payload.get("results", [])
+            exa_results = self._extract_results(exa_resp.payload)
         except Exception as exc:
             logger.warning("Exa search failed for session %s: %s", session_id, exc)
         return brave_results, exa_results
+
+    def _extract_results(self, payload: dict[str, object]) -> list | None:
+        for key in ("results", "items", "organic", "papers", "data"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                return value
+        return []

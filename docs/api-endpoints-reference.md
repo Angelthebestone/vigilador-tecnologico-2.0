@@ -353,6 +353,112 @@
 
 ---
 
+## Cambios en Spec 007 — Sistema de Evaluacion Inteligente
+
+### HTTP 409 por Bias Critico (US1/WS-E)
+
+Los endpoints `POST /research/{session_id}/approve` y `GET /research/{session_id}/report`
+pueden retornar **HTTP 409 Conflict** cuando el `ReportQualityGate` (WS-E activo) detecta
+un sesgo critico en el reporte.
+
+**Respuesta 409** (ambos endpoints):
+
+```json
+{
+  "detail": {
+    "session_id": "uuid",
+    "reason": "critical_bias_detected",
+    "categories": ["geographic", "institutional"],
+    "geographic": { "north_america": 0.8, "europe": 0.2 },
+    "institutional": { "academic": 0.6, "corporate": 0.4 }
+  }
+}
+```
+
+| Endpoint | Cuando |
+|----------|--------|
+| `POST /research/{session_id}/approve` | Al aprobar el plan, si la sintesis dispara `QualityGateBlocked` (ver `research_approve.py:60-70`) |
+| `GET /research/{session_id}/report` | Al leer el reporte completo, si `bias_audit.critical_bias_detected` es `true` (ver `research_outputs.py:53-64`) |
+
+**Comportamiento legacy** (WS-E `false`): no se ejecuta `ReportQualityGate`.
+No se produce HTTP 409 por este motivo.
+
+---
+
+### Cambios en `/research/{id}/maturity` (US4/WS-C)
+
+`GET /research/{session_id}/maturity?tech=...`
+
+**Cuando WS-C activo** (`eval_ws_c_enabled=true`): devuelve `SCurveProjection`
+con parametros de la curva-S logistica.
+
+```json
+{
+  "session_id": "uuid",
+  "tech": "quantum-computing",
+  "s_curve_projection": {
+    "technology": "quantum-computing",
+    "domain": "general",
+    "growth_rate": 0.42,
+    "inflection_year": 2027,
+    "inflection_detected": 2027,
+    "ceiling": 100.0,
+    "r_squared": 0.95,
+    "samples_count": 7
+  },
+  "calibration_note": "S-Curve derived from publication frequency proxy"
+}
+```
+
+**Cuando WS-C inactivo** (`eval_ws_c_enabled=false`): comportamiento legacy
+via `HypeDetector` — devuelve `maturity` con heuristicas textuales.
+
+**Archivo**: `src/vigilancia_multiagente/api/routes/research_outputs.py:437-486`
+
+---
+
+### Cambios en `/research/{id}/obsolescence` (US5/WS-D)
+
+`POST /research/{session_id}/obsolescence?tech=...`
+
+Ahora incluye `NarrativeShift` en la respuesta cuando WS-D esta activo.
+
+| Flag | Efecto |
+|------|--------|
+| WS-C `true` | Pasa `SCurveProjection` al detector (curva-S con `growth_rate` negativo simula decline) |
+| WS-D `true` | Ejecuta `VaderNarrativeShiftDetector` e incluye `narrative_shifts` en el analisis |
+| Ambos `false` | Solo analisis basado en resultados de Brave + Exa |
+
+**Respuesta** (WS-C + WS-D activos):
+
+```json
+{
+  "session_id": "uuid",
+  "tech": "blockchain",
+  "result": {
+    "tech_name": "blockchain",
+    "s_curve_obsolescence": false,
+    "narrative_obsolescence": true,
+    "obsolescence_signals": 3,
+    "details": "Narrative sentiment declining since Q2 2025",
+    "narrative_shifts": [
+      {
+        "tech_name": "blockchain",
+        "period": "2025-01",
+        "avg_sentiment": -0.15,
+        "sample_size": 12,
+        "dominant_narrative": "skepticism"
+      }
+    ],
+    "s_curve_projection": { "growth_rate": -0.08, "inflection_year": 2026 }
+  }
+}
+```
+
+**Archivo**: `src/vigilancia_multiagente/api/routes/research_outputs.py:360-403`
+
+---
+
 ## TypeScript Type Mapping
 
 | Tipo TS | Archivo | Endpoint relacionado |

@@ -2,6 +2,23 @@ from collections import defaultdict
 from dataclasses import dataclass
 from uuid import UUID
 
+try:
+    from prometheus_client import Counter, Histogram
+
+    _step_duration = Histogram(
+        "evaluation_step_duration_seconds",
+        "Duration of evaluation steps per workstream and step",
+        ["workstream", "step_name"],
+    )
+    _step_errors = Counter(
+        "evaluation_step_errors_total",
+        "Total errors per evaluation step per workstream and step",
+        ["workstream", "step_name"],
+    )
+    _PROMETHEUS_ENABLED = True
+except ImportError:
+    _PROMETHEUS_ENABLED = False
+
 
 @dataclass(slots=True, frozen=True)
 class ProviderMetrics:
@@ -63,3 +80,11 @@ class MetricsService:
             else:
                 buckets["gte_1000ms"] += 1
         return buckets
+
+    def record_step_duration(self, workstream: str, step_name: str, duration: float) -> None:
+        if _PROMETHEUS_ENABLED:
+            _step_duration.labels(workstream=workstream, step_name=step_name).observe(duration)
+
+    def record_step_error(self, workstream: str, step_name: str) -> None:
+        if _PROMETHEUS_ENABLED:
+            _step_errors.labels(workstream=workstream, step_name=step_name).inc()

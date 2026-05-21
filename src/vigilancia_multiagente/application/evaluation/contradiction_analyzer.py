@@ -36,7 +36,46 @@ class ContradictionReport:
 
 
 class ContradictionAnalyzer:
+    def __init__(
+        self,
+        consensus_dispute_mapper: object | None = None,
+    ) -> None:
+        """Cuando ``consensus_dispute_mapper`` (ConsensusDisputeMapper) esta
+        inyectado, delega la deteccion de disputas. Sino usa solapamiento
+        lexico como fallback.
+        """
+        self._consensus_dispute_mapper = consensus_dispute_mapper
+
     def analyze(self, findings: list[Finding]) -> ContradictionReport:
+        if self._consensus_dispute_mapper is not None:
+            try:
+                import asyncio
+
+                maps = self._consensus_dispute_mapper.build(  # type: ignore[attr-defined]
+                    findings
+                )
+                if hasattr(maps, "__await__"):
+                    maps = asyncio.run(maps)
+                report = ContradictionReport()
+                for m in maps:
+                    report.disputed_points.append(
+                        DisputedPoint(
+                            topic=getattr(m, "claim", "")[:60],
+                            statement_a=getattr(m, "claim", ""),
+                            statement_b=str(
+                                getattr(m, "resolution", "Sin resolucion")
+                            ),
+                            confidence_a=0.5,
+                            confidence_b=0.5,
+                            explanation=(
+                                "Detectado via ConsensusDisputeMapper con "
+                                "embeddings y triangulacion."
+                            ),
+                        )
+                    )
+                return report
+            except Exception:
+                pass
         report = ContradictionReport()
         word_sets = [set(f.statement.lower().split()) for f in findings]
         for i, finding_a in enumerate(findings):

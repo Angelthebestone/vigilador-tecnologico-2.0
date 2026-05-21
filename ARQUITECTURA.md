@@ -1,5 +1,107 @@
 # Arquitectura — Vigilador Tecnológico 2.0
 
+## Flujo completo de una investigación
+
+```mermaid
+flowchart TD
+    subgraph ENTRADA["1. Entrada"]
+        U["👤 Usuario<br/>POST /research/start<br/>query + scope"]
+    end
+
+    subgraph CLARIFICACION["2. Clarificación"]
+        CS[ClarifyService<br/>LLM genera preguntas]
+        ANS["Usuario responde<br/>POST /research/{id}/clarify"]
+    end
+
+    subgraph PLANIFICACION["3. Planificación"]
+        PRE["preload_for_session<br/>memoria cross-session<br/>entidades recurrentes"]
+        PB["PlanBuilder<br/>LLM planning prompt<br/>→ 6 ramas + constraints"]
+        PLAN["ResearchPlan v1<br/>depth_limit=3<br/>requires_approval=true"]
+    end
+
+    subgraph APROBACION["4. Aprobación"]
+        AP{"¿usuario<br/>aprueba?"}
+        MOD["POST /modify<br/>ajusta ramas<br/>nueva versión"]
+        REJ["rechazado ✗"]
+    end
+
+    subgraph EJECUCION["5. Ejecución paralela · 6 ramas"]
+        direction LR
+        subgraph RAMA["BranchAgent × 6 ∥"]
+            PC[PromptComposer<br/>SystemBase+Overlay+filtro tools]
+            TS[ToolSelector<br/>selecciona tool × query]
+            EXE[execute MCP<br/>tavily·exa·brave·scholar…]
+            FS[FollowupStrategist<br/>propone next_query]
+            SAT{SaturationTracker<br/>¿saturado?}
+            PC --> TS --> EXE --> SAT
+            SAT -->|no, depth<3| FS --> TS
+            SAT -->|sí| BRES[BranchResult<br/>findings+sources+entities]
+        end
+        SIG["_signal_consumer_loop<br/>cross-branch signals<br/>MAX_REPLANS=5"]
+        RAMA -.gap/entidad.-> SIG
+        SIG -.replan directive.-> RAMA
+    end
+
+    subgraph EVALUACION["6. Workstreams de evaluación · spec 007 · opt-in"]
+        direction TB
+        WSA["WS-A · SourceQuality<br/>reputación autor · conflicto<br/>factcheck · retractación<br/>reproducibilidad · decay"]
+        WSB["WS-B · DataIntelligence<br/>BM25+embed · dedup semántico<br/>schema pydantic · IA detector<br/>multilingüe · consenso/disputa"]
+        WSC["WS-C · DeepAnalysis<br/>curva-S logística · meta-análisis<br/>asunciones · contrafactual<br/>dependencias críticas"]
+        WSD["WS-D · StrategicSignals<br/>convergencia · redes colaboración<br/>linaje ideas · narrativa<br/>talento · brechas patentes"]
+        WSA --> WSB --> WSC --> WSD
+    end
+
+    subgraph FUSION["7. Fusión + inteligencia"]
+        EL[EvidenceLinker<br/>dedup URL + link claim↔fuente<br/>cross-branch consensus boost]
+        HD[HypeDetector<br/>madurez vs ruido<br/>Gartner stage]
+        CA[ContradictionAnalyzer<br/>claims opuestos<br/>triangulación]
+        WS[WeakSignalDetector<br/>señales tempranas<br/>baja confianza + alta novedad]
+        CT[CausalTimelineBuilder<br/>causa→efecto temporal]
+        FI[FindingImpactScorer<br/>autoridad×novedad×convergencia]
+        AC["AdversarialCritic<br/>ataca claims sin evidencia<br/>descarta o marca débiles"]
+        EL --> HD --> CA --> WS --> CT --> FI --> AC
+    end
+
+    subgraph QUALITY["8. Quality Gate · WS-E"]
+        direction TB
+        T1["1·forensic trace<br/>JSONB paso a paso<br/>audit trail inmutable"]
+        T2["2·bias audit<br/>geográfico/género/institucional<br/>→ 409 si crítico"]
+        T3["3·falsificación<br/>LLM prober × conclusión<br/>¿puede refutarse?"]
+        T4["4·stakeholders<br/>investor·regulator<br/>competitor·academic"]
+        T5["5·calibración isotónica<br/>sklearn IsotonicRegression<br/>vs golden cases"]
+        T1 --> T2 --> T3 --> T4 --> T5
+        T2 -.bloquea si bias crítico.-> BLOCK["❌ HTTP 409<br/>QualityGateBlocked"]
+    end
+
+    subgraph SALIDA["9. Salida"]
+        RS["ReportSynthesizer<br/>LLM synthesis prompt<br/>→ ejecutivo+técnico+riesgo<br/>recomendaciones+confianza"]
+        GR["KnowledgeGraph<br/>NetworkX · centralidad<br/>clusters · layout"]
+        TF["TrendForecaster<br/>proyección polinómica<br/>subproceso aislado"]
+        OUT["📄 FinalReport<br/>+ 3 variantes<br/>+ graph analytics<br/>+ forecast"]
+        RS --> OUT
+        GR --> OUT
+        TF --> OUT
+    end
+
+    ENTRADA --> CLARIFICACION
+    CLARIFICACION --> PLANIFICACION
+    PLANIFICACION --> APROBACION
+    AP -->|sí| MOD
+    AP -->|sí| EJECUCION
+    AP -->|no| REJ
+    MOD --> EJECUCION
+    EJECUCION --> EVALUACION
+    EVALUACION --> FUSION
+    FUSION --> QUALITY
+    QUALITY --> BLOCK
+    QUALITY --> SALIDA
+```
+
+> **Estados de sesión**: `DRAFT → CLARIFYING → PLANNING → APPROVED → EXECUTING → COMPLETED`
+> **Workstreams de evaluación**: WS-A (`VT_EVAL_WS_A_ENABLED`), WS-B, WS-C, WS-D, WS-E — todas `default=false`. Si están apagadas, el pipeline es byte-idéntico a pre-007.
+
+---
+
 ## Capas
 
 ```mermaid
@@ -12,98 +114,78 @@ flowchart TD
     APP --> INF --> DOM
 ```
 
-## Pipeline de sesión + estados
-
-```mermaid
-stateDiagram-v2
-    [*] --> DRAFT
-    DRAFT --> CLARIFYING: start
-    CLARIFYING --> PLANNING: respuestas
-    PLANNING --> APPROVED: usuario aprueba
-    APPROVED --> EXECUTING: 6 ramas ∥
-    EXECUTING --> COMPLETED: fusión+grafo+forecast
-    COMPLETED --> [*]
-    DRAFT --> CANCELED
-    CLARIFYING --> CANCELED
-    PLANNING --> CANCELED
-    APPROVED --> CANCELED
-    EXECUTING --> FAILED
-```
-
-## Orquestación completa
-
-```mermaid
-flowchart TD
-    U[Usuario] --> CL[ClarifyService<br/>preguntas]
-    CL --> PB[PlanBuilder<br/>ResearchPlan · 6 ramas]
-    PB --> AP{Aprobado?}
-    AP -->|sí| BC[BranchCoordinator]
-    BC --> EXEC["6 BranchAgents ∥<br/>asyncio.gather"]
-    EXEC --> FU[Fusion]
-    FU --> EL[EvidenceLinker]
-    EL --> IS[Intelligence Sections]
-    IS --> AC[AdversarialCritic]
-    AC --> CC[ConfidenceCalibrator]
-    CC --> RS[ReportSynthesizer]
-    RS --> GR[KnowledgeGraph<br/>NetworkX]
-    RS --> TF[TrendForecaster<br/>no bloqueante]
-    GR & TF --> RV[ReportVariants]
-```
-
-## Ejecución de rama + sub-agentes + planner reactivo
-
-```mermaid
-flowchart TD
-    subgraph BR ["BranchAgent · iteración"]
-        direction TB
-        PC["PromptComposer<br/>SystemBase+Overlay+filtro allowed_tools"]
-        TS["ToolSelector (sub-agente tool)<br/>1·cadena PDF→texto<br/>2·sugerencia payload<br/>3·afinidad query↔tool<br/>4·barrido determinista"]
-        EXE["execute · MCP"]
-        FS["FollowupStrategist (sub-agente query)<br/>propone next_query"]
-        SAT["SaturationTracker<br/>¿aporta info nueva?"]
-        PC --> TS --> EXE --> SAT
-        SAT -->|sigue| FS --> TS
-        SAT -->|saturado / depth| OUT[BranchResult]
-    end
-
-    EXE -.señal gap/entidad.-> SQ[(signal_queue)]
-    SQ --> SCL["_signal_consumer_loop<br/>MAX_REPLANS=5"]
-    SCL --> RP["ReplanAction<br/>directive → receive_directive"]
-    RP -.mid-execution.-> BR
-    EXE -.cross-branch.-> XS["_process_cross_signals<br/>sub-ejecución relevance>umbral"]
-```
-
-## Niveles de confianza · calibración
+## 5 Workstreams de evaluación (spec 007) — detalle por etapa
 
 ```mermaid
 flowchart LR
-    P["Prompt asigna<br/>confidence 0.7 / 0.9..."] --> CAL[ConfidenceCalibrator]
-    subgraph CAL [ConfidenceCalibrator]
+    subgraph WSA["WS-A · SourceQuality<br/>ANTES de AssemblyResult"]
         direction TB
-        B["buckets [0·0.2·0.4·0.6·0.8·1.0]"]
-        R["record(predicho, ¿confirmado?)"]
-        F["factor = real / predicho<br/>(min N obs)"]
-        B --> R --> F
+        A1["author_reputation<br/>h-index + domain weights"]
+        A2["conflict_of_interest<br/>funder↔author ≥0.7→high"]
+        A3["factcheck<br/>Google FactCheck + Wikidata"]
+        A4["retraction_watch<br/>CSV cron diario"]
+        A5["reproducibilidad<br/>GitHub markers"]
+        A6["temporal_decay<br/>freshness configurable"]
     end
-    CAL --> O["confidence calibrada<br/>= raw × factor"]
-    O --> RPT[CalibrationReport<br/>desvío por bucket]
+
+    subgraph WSB["WS-B · DataIntelligence<br/>DENTRO de ToolLoop"]
+        direction TB
+        B1["hybrid_search<br/>BM25 + cosine embed"]
+        B2["dedup semántico<br/>umbral configurable"]
+        B3["extraction_schema<br/>pydantic × type,domain"]
+        B4["authenticity detector<br/>perplexity+burstiness IA"]
+        B5["multilingual normalizer<br/>1 LLM call × doc"]
+        B6["consensus_dispute map<br/>triangulación+embedding"]
+    end
+
+    subgraph WSC["WS-C · DeepAnalysis<br/>DESPUÉS de AssemblyResult"]
+        direction TB
+        C1["s_curve projection<br/>scipy logistic fit → TRL"]
+        C2["meta_analysis<br/>DerSimonian-Laird numpy"]
+        C3["implicit assumptions<br/>LLM assumption detection"]
+        C4["counterfactual<br/>LLM 3 scenarios"]
+        C5["critical dependencies<br/>LLM + KnowledgeGraph"]
+    end
+
+    subgraph WSD["WS-D · StrategicSignals<br/>DESPUÉS de DeepAnalysis"]
+        direction TB
+        D1["convergence clusters<br/>hierarchical clustering"]
+        D2["collaboration network<br/>co-author+co-inventor"]
+        D3["idea lineage<br/>referenced_works → leaves"]
+        D4["narrative shift<br/>VADER + 90d z-score"]
+        D5["talent mobility<br/>OpenAlex↔USPTO"]
+        D6["patenting gap<br/>papers vs patents density"]
+    end
+
+    subgraph WSE["WS-E · Output Assurance<br/>QualityGate al FINAL"]
+        direction TB
+        E1["1 forensic_trace<br/>JSONB paso a paso"]
+        E2["2 bias_audit<br/>geográfico/género/institucional"]
+        E3["3 falsification<br/>LLM prober ×conclusion"]
+        E4["4 stakeholders<br/>investor/regulator/competitor/academic"]
+        E5["5 isotonic calibration<br/>curva empírica golden cases"]
+    end
 ```
 
-## Pipeline de inteligencia (fusión)
+## Calibración isotónica
+
+```mermaid
+flowchart LR
+    GC[golden_case_run<br/>expected vs actual] --> RET[retrain<br/>sklearn IsotonicRegression]
+    RET --> CURVE[curva calibrada<br/>DB · activate × model_version]
+    CURVE --> CAL[calibrate raw]
+    CAL --> OUT["hype_ratio = 1 − calibrado"]
+    CAL -.N < 5.-> ID[curva identidad]
+```
+
+## Wire-up · opt-in por flag
 
 ```mermaid
 flowchart TD
-    BR["6 BranchResults<br/>findings + sources + entities"] --> EL[EvidenceLinker<br/>liga claim↔fuente]
-    EL --> HD[HypeDetector<br/>madurez vs ruido]
-    HD --> CA[ContradictionAnalyzer<br/>claims opuestos]
-    CA --> WS[WeakSignalDetector<br/>señales tempranas]
-    WS --> CT[CausalTimelineBuilder<br/>línea temporal]
-    CT --> FI[FindingImpactScorer]
-    FI --> AC["AdversarialCritic<br/>ataca claims sin evidencia"]
-    AC --> CK{passed?}
-    CK -->|no| FLAG[marca débiles]
-    CK -->|sí| OK[ok]
-    FLAG & OK --> SY[ReportSynthesizer<br/>secciones]
+    ENV[".env<br/>VT_EVAL_WS_{A,B,C,D,E}_ENABLED<br/>default=false"] --> DI[dependencies.py]
+    DI --> BLD["_build_assurance_services (E)<br/>_build_source_quality_services (A)<br/>_build_data_intelligence_services (B)<br/>_build_deep_analysis_services (C)<br/>_build_strategic_signals_services (D)"]
+    BLD --> BASE["base.py · concatena Steps<br/>solo si injected≠None"]
+    BASE --> PIPELINE["Pipeline<br/>byte-identical a pre-007<br/>cuando flags=false"]
 ```
 
 ## Agente → MCP → fuentes
@@ -139,33 +221,6 @@ sequenceDiagram
     O->>S: BranchCompleted / AllBranchesCompleted
     O->>S: FusionProgress → GraphAnalyticsComputed
     O->>S: ReportGenerated / ReportVariantsGenerated
-```
-
-## Mock server vs backend real
-
-```mermaid
-flowchart TD
-    subgraph REAL ["Backend real (requiere PostgreSQL + MCP + LLM)"]
-        direction TB
-        R1[Orquestación + 6 ramas ∥]
-        R2[ToolSelector · FollowupStrategist]
-        R3[Planner reactivo · ConfidenceCalibrator]
-        R4[7 detectores + AdversarialCritic]
-        R1 --> R2 --> R3 --> R4
-    end
-
-    subgraph MOCK ["Mock server (datos estáticos · sin deps)"]
-        direction TB
-        M1[Eventos SSE simulados]
-        M2["Cadenas de pensamiento ✓<br/>BRANCH_ITERATIONS"]
-        M3["ReplanTriggered ✓<br/>REPLAN_SIGNALS"]
-        M4["Calibración ✓<br/>confidenceCalibration"]
-        M5["6 secciones inteligencia ✓<br/>markdown reporte"]
-        M1 --> M2 & M3 & M4 & M5
-    end
-
-    REAL -.simula salida observable.-> MOCK
-    MOCK --> FE[Frontend · misma UI para ambos]
 ```
 
 ## Ejecución aislada de código (TrendForecaster)

@@ -224,6 +224,248 @@ def _build_assurance_services(
     }
 
 
+# ── Factory: WS-A Source Quality (spec 007 T057) ────────────────────────
+def _build_source_quality_services(
+    s: dict[str, Any], g: dict[str, Any], e: dict[str, Any]
+) -> dict[str, Any]:
+    """SourceQualityStep + los 6 adapters WS-A. Solo cuando flag activo."""
+    from vigilancia_multiagente.application.agents.pipeline.source_quality_step import (
+        SourceQualityStep,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_a.github_reproducibility_checker import (
+        GithubBasedReproducibilityChecker,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_a.llm_conflict_analyzer import (
+        LlmConflictOfInterestAnalyzer,
+    )
+    from vigilancia_multiagente.infra.factcheck.google_factcheck import GoogleFactCheckAdapter
+    from vigilancia_multiagente.infra.factcheck.wikidata_factcheck import WikidataFactCheckAdapter
+    from vigilancia_multiagente.infra.openalex.openalex_author_gateway import (
+        OpenAlexAuthorReputationGateway,
+    )
+    from vigilancia_multiagente.infra.persistence.author_reputation_repository import (
+        PostgresAuthorReputationRepository,
+    )
+    from vigilancia_multiagente.infra.persistence.temporal_decay_repository import (
+        PostgresTemporalDecayConfigRepository,
+    )
+    from vigilancia_multiagente.infra.retraction.retraction_watch_csv import (
+        RetractionWatchCSVAdapter,
+    )
+
+    sq: dict[str, Any] = {}
+    if not s["settings"].eval_ws_a_enabled:
+        sq["source_quality_step"] = None
+        return sq
+
+    errors_sink: list[Any] = e.get("report_assurance_errors", [])
+    temporal_repo = PostgresTemporalDecayConfigRepository(s["database"])
+    sq["author_gateway"] = OpenAlexAuthorReputationGateway(errors_sink=errors_sink)
+    sq["conflict_analyzer"] = LlmConflictOfInterestAnalyzer(
+        llm=s["llm_client"], errors_sink=errors_sink,
+    )
+    sq["fact_checker_google"] = GoogleFactCheckAdapter(errors_sink=errors_sink)
+    sq["fact_checker_wikidata"] = WikidataFactCheckAdapter()
+    sq["retraction_monitor"] = RetractionWatchCSVAdapter(errors_sink=errors_sink)
+    sq["reproducibility_checker"] = GithubBasedReproducibilityChecker(
+        errors_sink=errors_sink,
+    )
+    sq["temporal_decay_store"] = temporal_repo
+    sq["source_quality_step"] = SourceQualityStep(
+        author_reputation_gateway=sq["author_gateway"],
+        conflict_analyzer=sq["conflict_analyzer"],
+        fact_checker=sq["fact_checker_google"],
+        retraction_monitor=sq["retraction_monitor"],
+        reproducibility_checker=sq["reproducibility_checker"],
+        temporal_decay_store=sq["temporal_decay_store"],
+    )
+    return sq
+
+
+# ── Factory: WS-B Data Intelligence (spec 007 T077) ─────────────────────
+def _build_data_intelligence_services(
+    s: dict[str, Any], g: dict[str, Any], e: dict[str, Any]
+) -> dict[str, Any]:
+    """DataIntelligenceStep + los 6 adapters WS-B. Solo cuando flag activo."""
+    from vigilancia_multiagente.application.agents.pipeline.data_intelligence_step import (
+        DataIntelligenceStep,
+    )
+    from vigilancia_multiagente.application.evaluation.authenticity.local_perplexity_detector import (
+        LocalPerplexityAuthenticityDetector,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_b.consensus_dispute_mapper import (
+        ConsensusDisputeMapperImpl,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_b.embedding_dedup import (
+        EmbeddingBasedDeduplicator,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_b.llm_multilingual import (
+        LlmMultilingualNormalizer,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_b.llm_query_expander import (
+        LlmContextualQueryExpander,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_b.pydantic_schema_registry import (
+        PydanticExtractionSchemaRegistry,
+    )
+    from vigilancia_multiagente.infra.persistence.extraction_schema_repository import (
+        PostgresExtractionSchemaRepository,
+    )
+    from vigilancia_multiagente.infra.search.bm25_plus_embedding import (
+        BM25PlusEmbeddingSearchEngine,
+    )
+
+    di: dict[str, Any] = {}
+    if not s["settings"].eval_ws_b_enabled:
+        di["data_intelligence_step"] = None
+        return di
+
+    di["hybrid_search"] = BM25PlusEmbeddingSearchEngine(
+        embedding_gateway=s["embedding_gateway"],
+    )
+    di["deduplicator"] = EmbeddingBasedDeduplicator(
+        reranker=s["reranker"], threshold=0.92,
+    )
+    di["schema_registry"] = PydanticExtractionSchemaRegistry()
+    di["multilingual"] = LlmMultilingualNormalizer(llm_client=s["llm_client"])
+    di["authenticity_detector"] = LocalPerplexityAuthenticityDetector(
+        llm_client=s["llm_client"],
+    )
+    from vigilancia_multiagente.application.evaluation.contradiction_analyzer import (
+        ContradictionAnalyzer,
+    )
+    di["consensus_dispute"] = ConsensusDisputeMapperImpl(
+        contradiction_analyzer=ContradictionAnalyzer(),
+        embedding_gateway=s["embedding_gateway"],
+    )
+    di["query_expander"] = LlmContextualQueryExpander(llm_client=s["llm_client"])
+    di["data_intelligence_step"] = DataIntelligenceStep(
+        hybrid_search=di["hybrid_search"],
+        deduplicator=di["deduplicator"],
+        schema_registry=di["schema_registry"],
+        multilingual=di["multilingual"],
+        authenticity_detector=di["authenticity_detector"],
+        consensus_dispute=di["consensus_dispute"],
+    )
+    return di
+
+
+# ── Factory: WS-C Deep Analysis (spec 007 T099) ─────────────────────────
+def _build_deep_analysis_services(
+    s: dict[str, Any], g: dict[str, Any], e: dict[str, Any]
+) -> dict[str, Any]:
+    """DeepAnalysisStep + 5 servicios WS-C. Solo cuando flag activo."""
+    from vigilancia_multiagente.application.agents.pipeline.deep_analysis_step import (
+        DeepAnalysisStep,
+    )
+    from vigilancia_multiagente.application.evaluation.analytics.dersimonian_laird_meta import (
+        DerSimonianLairdMetaAnalyzer,
+    )
+    from vigilancia_multiagente.application.evaluation.analytics.scipy_logistic_forecaster import (
+        ScipyLogisticForecaster,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_c.llm_assumption_detector import (
+        LlmAssumptionDetector,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_c.llm_counterfactual_synthesizer import (
+        LlmCounterfactualSynthesizer,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_c.llm_critical_dependency_mapper import (
+        LlmCriticalDependencyMapper,
+    )
+
+    da: dict[str, Any] = {}
+    if not s["settings"].eval_ws_c_enabled:
+        da["deep_analysis_step"] = None
+        return da
+
+    da["forecaster"] = ScipyLogisticForecaster()
+    da["meta_analyzer"] = DerSimonianLairdMetaAnalyzer()
+    da["assumption_detector"] = LlmAssumptionDetector(
+        llm=s["llm_client"],
+        prompt_loader=s["prompt_loader"],
+        errors_sink=e.get("report_assurance_errors", []),
+    )
+    from vigilancia_multiagente.application.graph.knowledge_graph_service import (
+        KnowledgeGraphService,
+    )
+    da["dependency_mapper"] = LlmCriticalDependencyMapper(
+        llm=s["llm_client"],
+        graph_service=KnowledgeGraphService(),
+        errors_sink=e.get("report_assurance_errors", []),
+    )
+    da["counterfactual_synthesizer"] = LlmCounterfactualSynthesizer(
+        llm=s["llm_client"],
+        prompt_loader=s["prompt_loader"],
+        errors_sink=e.get("report_assurance_errors", []),
+    )
+    da["deep_analysis_step"] = DeepAnalysisStep(
+        forecaster=da["forecaster"],
+        meta_analyzer=da["meta_analyzer"],
+        assumption_detector=da["assumption_detector"],
+        dependency_mapper=da["dependency_mapper"],
+        counterfactual_synthesizer=da["counterfactual_synthesizer"],
+    )
+    return da
+
+
+# ── Factory: WS-D Strategic Signals (spec 007 T120) ─────────────────────
+def _build_strategic_signals_services(
+    s: dict[str, Any], g: dict[str, Any], e: dict[str, Any]
+) -> dict[str, Any]:
+    """StrategicSignalsStep + 6 detectores WS-D. Solo cuando flag activo."""
+    from vigilancia_multiagente.application.agents.pipeline.strategic_signals_step import (
+        StrategicSignalsStep,
+    )
+    from vigilancia_multiagente.application.evaluation.analytics.agglomerative_convergence import (
+        SklearnAgglomerativeConvergenceDetector,
+    )
+    from vigilancia_multiagente.application.evaluation.analytics.vader_narrative_shift import (
+        VaderNarrativeShiftDetector,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_d.collaboration_network_builder import (
+        CollaborationNetworkBuilderImpl,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_d.patenting_gap_analyzer import (
+        PatentingGapAnalyzerImpl,
+    )
+    from vigilancia_multiagente.application.evaluation.ws_d.talent_mobility_analyzer import (
+        TalentMobilityAnalyzerImpl,
+    )
+    from vigilancia_multiagente.infra.openalex.openalex_idea_lineage import (
+        OpenAlexIdeaLineageTracer,
+    )
+
+    ss: dict[str, Any] = {}
+    if not s["settings"].eval_ws_d_enabled:
+        ss["strategic_signals_step"] = None
+        return ss
+
+    ss["convergence_detector"] = SklearnAgglomerativeConvergenceDetector()
+    ss["narrative_detector"] = VaderNarrativeShiftDetector()
+    ss["lineage_tracer"] = OpenAlexIdeaLineageTracer(
+        polite_mailto=s["settings"].openalex_email,
+    )
+    ss["collaboration_builder"] = CollaborationNetworkBuilderImpl()
+    ss["mobility_analyzer"] = TalentMobilityAnalyzerImpl(
+        tool_executor=s["execution_client"],
+        provider_registry=s["provider_registry"],
+    )
+    ss["patenting_analyzer"] = PatentingGapAnalyzerImpl(
+        tool_executor=s["execution_client"],
+        provider_registry=s["provider_registry"],
+    )
+    ss["strategic_signals_step"] = StrategicSignalsStep(
+        convergence_detector=ss["convergence_detector"],
+        narrative_detector=ss["narrative_detector"],
+        lineage_tracer=ss["lineage_tracer"],
+        collaboration_builder=ss["collaboration_builder"],
+        mobility_analyzer=ss["mobility_analyzer"],
+        patenting_analyzer=ss["patenting_analyzer"],
+    )
+    return ss
+
+
 # ── Factory: Evaluation / Fusion / Memory services ──────────────────────
 def _build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str, Any]:
     """Source scorer, linker, synthesizer, KPIs, memory, reports."""
@@ -244,10 +486,22 @@ def _build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str,
     e["report_assurance_errors"] = assurance_services["errors_sink"]
     e["report_quality_gate"] = assurance_services["gate"]
     e["isotonic_calibrator"] = assurance_services["calibrator"]
-    # Spec 007 T036: cablea el calibrator isotonico al HypeDetector para que
-    # `buzz = max(0, substance // 2)` se reemplace por la curva empirica
-    # cuando WS-E esta activo. Cuando esta off, calibrator=None y
-    # HypeDetector mantiene la formula heuristica historica (fallback).
+
+    # Spec 007: factories de workstreams WS-A/B/C/D (opt-in via flags)
+    sq_services = _build_source_quality_services(s, g, e)
+    e["source_quality_step"] = sq_services["source_quality_step"]
+
+    di_services = _build_data_intelligence_services(s, g, e)
+    e["data_intelligence_step"] = di_services["data_intelligence_step"]
+
+    da_services = _build_deep_analysis_services(s, g, e)
+    e["deep_analysis_step"] = da_services["deep_analysis_step"]
+
+    ss_services = _build_strategic_signals_services(s, g, e)
+    e["strategic_signals_step"] = ss_services["strategic_signals_step"]
+    # Spec 007 T036: cablea el calibrator isotonico al HypeDetector. Cuando
+    # WS-E esta activo el ratio se deriva de la curva empirica; cuando esta
+    # off calibrator=None y HypeDetector usa un ratio sustancial simple.
     if assurance_services["calibrator"] is not None:
         from vigilancia_multiagente.application.evaluation.hype_detector import (
             set_isotonic_calibrator,
@@ -312,6 +566,11 @@ def _build_agent_services(
             event_publisher=e["event_publisher"],
             scholarly_works_gateway=s["scholarly_works_gateway"],
             reranker=s["reranker"],
+            # Spec 007: pipeline steps opcionales (WS-A/B/C/D)
+            source_quality_step=e.get("source_quality_step"),
+            data_intelligence_step=e.get("data_intelligence_step"),
+            deep_analysis_step=e.get("deep_analysis_step"),
+            strategic_signals_step=e.get("strategic_signals_step"),
         )
     return {"agents": agents}
 

@@ -28,6 +28,15 @@ class StrategistContext:
 
 
 class FollowupStrategist:
+    def __init__(
+        self,
+        query_expander: object | None = None,
+    ) -> None:
+        """Cuando ``query_expander`` implementa ``ContextualQueryExpander``,
+        delega la expansion. Sino, usa el comportamiento actual (fallback).
+        """
+        self._query_expander = query_expander
+
     def propose(self, context: StrategistContext, mcp_suggestion: str | None) -> str:
         """Devuelve la mejor siguiente query.
 
@@ -35,6 +44,26 @@ class FollowupStrategist:
         alto valor, (3) sugerencia del MCP si es novedosa, (4) refinamiento
         del seed. Nunca devuelve una query ya ejecutada.
         """
+        if self._query_expander is not None:
+            try:
+                prior = [
+                    {"query": context.seed_query, "query_type": context.branch_type}
+                ]
+                expansions = self._query_expander.expand(  # type: ignore[attr-defined]
+                    context.seed_query, prior
+                )
+                import asyncio
+
+                if hasattr(expansions, "__await__"):
+                    expansions = asyncio.run(expansions)
+                for exp in expansions:
+                    if isinstance(exp, str) and exp.lower() not in {
+                        t.lower() for t in context.explored_terms
+                    }:
+                        return exp
+            except Exception:
+                pass
+
         explored = {term.lower() for term in context.explored_terms}
 
         for hint in context.cross_branch_hints:

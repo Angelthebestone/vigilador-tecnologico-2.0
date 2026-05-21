@@ -1,8 +1,15 @@
-
-# STATUS: ACTIVE
 # STATUS: ACTIVE — consumer: research_outputs (ObsolescenceDetector.analyze)
+# Spec 007 T102: cuando SCurveProjection presente con growth_rate < 0,
+# reportar obsolescencia con base en cola descendente; sino fallback heuristico.
+
+from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+from vigilancia_multiagente.domain.evaluation_entities import (
+    NarrativeShift,
+    SCurveProjection,
+)
 
 
 @dataclass(slots=True)
@@ -11,6 +18,8 @@ class ObsolescenceSignal:
     signals: list[str] = field(default_factory=list)
     confidence: float = 0.0
     recommendation: str = ""
+    s_curve_obsolescence: bool = False  # spec 007 T102
+    narrative_obsolescence: bool = False  # spec 007 T123
 
 
 class ObsolescenceDetector:
@@ -19,8 +28,22 @@ class ObsolescenceDetector:
         tech_name: str,
         brave_news_results: list | None = None,
         exa_company_results: list | None = None,
+        s_curve_projection: SCurveProjection | None = None,  # spec 007 T102
+        narrative_shifts: list[NarrativeShift] | None = None,  # spec 007 T123
     ) -> ObsolescenceSignal:
         signal = ObsolescenceSignal(tech=tech_name)
+
+        # spec 007 T123: NarrativeShift con sentimiento negativo creciente
+        if narrative_shifts:
+            negative = [n for n in narrative_shifts if n.sentiment_post < n.sentiment_pre]
+            if negative:
+                return self._narrative_obsolescence(tech_name, negative)
+
+        # spec 007 T102: SCurveProjection con growth_rate < 0 -> obsolescencia
+        if s_curve_projection is not None and s_curve_projection.growth_rate < 0:
+            return self._s_curve_obsolescence(tech_name, s_curve_projection)
+
+        # Fallback heuristico (comportamiento original)
         signals_found: list[str] = []
 
         if brave_news_results:
@@ -56,3 +79,51 @@ class ObsolescenceDetector:
             signal.recommendation = f"Insufficient data for {tech_name}. Enable MCP providers."
 
         return signal
+
+    @staticmethod
+    def _narrative_obsolescence(
+        tech_name: str, shifts: list[NarrativeShift]
+    ) -> ObsolescenceSignal:
+        max_mag = max(s.change_magnitude for s in shifts)
+        avg_delta = sum(s.sentiment_pre - s.sentiment_post for s in shifts) / len(shifts)
+        confidence = min(0.85, 0.4 + max_mag)
+        return ObsolescenceSignal(
+            tech=tech_name,
+            narrative_obsolescence=True,
+            signals=[
+                f"Narrative shift toward negative sentiment detected: "
+                f"{len(shifts)} shift(s), max magnitude={max_mag:.4f}, "
+                f"avg delta={avg_delta:.4f}",
+                *[f"  {s.topic}: pre={s.sentiment_pre:.3f}, post={s.sentiment_post:.3f}"
+                  for s in shifts[:3]],
+            ],
+            confidence=round(confidence, 2),
+            recommendation=(
+                f"{tech_name} shows growing negative sentiment across "
+                f"{len(shifts)} narrative shift(s). "
+                f"Sentiment declining by avg {avg_delta:.3f}. "
+                f"Monitor closely for reputational risk."
+            ),
+        )
+
+    @staticmethod
+    def _s_curve_obsolescence(
+        tech_name: str, proj: SCurveProjection
+    ) -> ObsolescenceSignal:
+        decline_magnitude = abs(proj.growth_rate)
+        confidence = min(0.9, 0.5 + decline_magnitude)
+        return ObsolescenceSignal(
+            tech=tech_name,
+            s_curve_obsolescence=True,
+            signals=[
+                f"S-Curve decline detected: growth_rate={proj.growth_rate:.4f}, "
+                f"inflection_year={proj.inflection_year}, "
+                f"ceiling={proj.ceiling:.2f}"
+            ],
+            confidence=round(confidence, 2),
+            recommendation=(
+                f"{tech_name} shows S-Curve decline (rate={proj.growth_rate:.4f}). "
+                f"Technology may be approaching obsolescence. "
+                f"Consider monitoring替代 technologies."
+            ),
+        )

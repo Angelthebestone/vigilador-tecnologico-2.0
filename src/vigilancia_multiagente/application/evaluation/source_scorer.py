@@ -1,22 +1,5 @@
 """Scorer de confianza de fuente basado en reputación *aprendida* de dominio.
-
-DOS ESTRATEGIAS disponibles:
-
-1. **Snapshot** (:class:`SourceScorer`): scorer síncrono sin estado de red.
-   Recibe un dict ``learned_scores`` ya materializado y devuelve el score de un
-   dominio o ``None``. Ideal para pipelines de fusión donde no se necesita I/O.
-
-2. **Transactional** (:class:`SourceScorerService`): scorer async con acceso a
-   repositorio. Registra confirmaciones/contradicciones entre fuentes y persiste
-   los cambios en ``source_trust``. Ideal para uso en tiempo real durante la
-   evaluación de hallazgos.
-
-No hay tabla de dominios hardcodeada ni nota inicial fija: un dominio
-desconocido no tiene score (``None``) y no sobrescribe la confianza que el
-agente ya reportó. La reputación se construye con el tiempo a partir de
-confirmaciones/contradicciones cross-session persistidas en la tabla
-``source_trust`` (ver :class:`SourceScorerService` y
-``infra/persistence/source_trust_repository.py``).
+...
 """
 # STATUS: ACTIVE — consumers: evidence_linker, dependencies, finding_impact_scorer, source_quality_gate
 
@@ -25,6 +8,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
+
+from vigilancia_multiagente.config.settings import get_settings
+from vigilancia_multiagente.domain.ports.temporal_decay import TemporalDecayConfigStore
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +46,9 @@ class SourceScorer:
     ``None``: el llamador NO debe sobrescribir la confianza; el dominio aún no
     tiene reputación y la nota la pone el agente que lo encontró.
 
+    ``authenticity_signals`` (opcional): dict url -> effective_freshness para
+    ajuste multiplicativo cuando WS-B esta activo.
+
     Usage:
         scorer = SourceScorer(learned_scores={"arxiv.org": 88.0})
         scorer.score("https://arxiv.org/abs/2401.12345")  # → 0.78
@@ -67,12 +56,14 @@ class SourceScorer:
     """
 
     learned_scores: dict[str, float] = field(default_factory=dict)
+    authenticity_signals: dict[str, float] | None = None
 
     def score(self, url: str) -> float | None:
         """Score aprendido 0.0-1.0 de *url*, o ``None`` si el dominio es nuevo.
 
         Prueba match exacto del dominio y luego dominios padre
-        (``blog.reuters.com`` → ``reuters.com``).
+        (``blog.reuters.com`` → ``reuters.com``). Cuando WS-B activo,
+        multiplica por ``effective_freshness`` del signal correspondiente.
         """
         domain = normalize_domain(url)
         if domain is None:
@@ -89,7 +80,16 @@ class SourceScorer:
 
         if learned is None:
             return None
-        return self._to_unit(learned)
+        base = self._to_unit(learned)
+
+        if self.authenticity_signals:
+            eff = self.authenticity_signals.get(url) or self.authenticity_signals.get(
+                str(domain)
+            )
+            if isinstance(eff, (int, float)):
+                return base * min(1.0, max(0.0, float(eff)))
+
+        return base
 
     @staticmethod
     def _to_unit(learned: float) -> float:
@@ -104,6 +104,11 @@ class SourceScorerService:
     Usa un repositorio async para registrar interacciones entre fuentes y
     ajustar sus scores aprendidos. Sin repositorio (``None``) opera como no-op.
 
+    Spec 007 T060: cuando WS-A activo, los pesos fijos CONFIRMATION_BONUS,
+    CONTRADICTION_PENALTY, CONFIRMER_BONUS pasan a leerse de TemporalDecayConfig
+    por dominio. Mantener los valores hardcodeados como fallback cuando el
+    flag esta off.
+
     Usage:
         service = SourceScorerService(repository=source_trust_repo)
         await service.record_confirmation("arxiv.org", "pubmed.com")
@@ -117,29 +122,63 @@ class SourceScorerService:
     CONTRADICTION_PENALTY = -10
     CONFIRMER_BONUS = 3
 
-    def __init__(self, repository=None):
+    def __init__(
+        self,
+        repository=None,
+        temporal_decay_store: TemporalDecayConfigStore | None = None,
+    ) -> None:
         self.repository = repository
+        self._temporal_decay_store = temporal_decay_store
+        self._ws_a_enabled = get_settings().eval_ws_a_enabled
 
-    async def record_confirmation(self, source_a: str, source_b: str) -> dict:
+    async def _get_weights(self, domain: str = "general") -> dict[str, int]:
+        if not self._ws_a_enabled or self._temporal_decay_store is None:
+            return {
+                "confirmation_bonus": self.CONFIRMATION_BONUS,
+                "contradiction_penalty": self.CONTRADICTION_PENALTY,
+                "confirmer_bonus": self.CONFIRMER_BONUS,
+            }
+        try:
+            config = await self._temporal_decay_store.get(domain, "paper")
+            factor = max(1, config.half_life_months // 12)
+            return {
+                "confirmation_bonus": self.CONFIRMATION_BONUS * factor,
+                "contradiction_penalty": self.CONTRADICTION_PENALTY * factor,
+                "confirmer_bonus": self.CONFIRMER_BONUS * factor,
+            }
+        except Exception:
+            return {
+                "confirmation_bonus": self.CONFIRMATION_BONUS,
+                "contradiction_penalty": self.CONTRADICTION_PENALTY,
+                "confirmer_bonus": self.CONFIRMER_BONUS,
+            }
+
+    async def record_confirmation(
+        self, source_a: str, source_b: str, domain: str = "general"
+    ) -> dict:
         if self.repository is None:
             return {}
+        weights = await self._get_weights(domain)
         score_a = await self.repository.update_score(
-            source_a, self.CONFIRMATION_BONUS, f"Confirmed by {source_b}"
+            source_a, weights["confirmation_bonus"], f"Confirmed by {source_b}"
         )
         score_b = await self.repository.update_score(
-            source_b, self.CONFIRMATION_BONUS, f"Confirmed {source_a}"
+            source_b, weights["confirmation_bonus"], f"Confirmed {source_a}"
         )
         logger.info(f"Confirmation: {source_a} ({score_a}) confirmed by {source_b} ({score_b})")
         return {"source_a_score": score_a, "source_b_score": score_b}
 
-    async def record_contradiction(self, source_a: str, source_b: str) -> dict:
+    async def record_contradiction(
+        self, source_a: str, source_b: str, domain: str = "general"
+    ) -> dict:
         if self.repository is None:
             return {}
+        weights = await self._get_weights(domain)
         score_a = await self.repository.update_score(
-            source_a, self.CONTRADICTION_PENALTY, f"Contradicted by {source_b}"
+            source_a, weights["contradiction_penalty"], f"Contradicted by {source_b}"
         )
         score_b = await self.repository.update_score(
-            source_b, self.CONFIRMER_BONUS, f"Contradicted {source_a}"
+            source_b, weights["confirmer_bonus"], f"Contradicted {source_a}"
         )
         logger.info(f"Contradiction: {source_a} ({score_a}) contradicted by {source_b} ({score_b})")
         return {"source_a_score": score_a, "source_b_score": score_b}

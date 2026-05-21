@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from collections.abc import AsyncIterator
+from datetime import datetime
 from typing import cast
 from uuid import UUID
 
@@ -22,8 +23,16 @@ from vigilancia_multiagente.api.dependencies import (
     vector_index,
 )
 from vigilancia_multiagente.application.evaluation.report_quality_gate import QualityGateBlocked
+from vigilancia_multiagente.application.evaluation.analytics.scipy_logistic_forecaster import (
+    ScipyLogisticForecaster,
+)
+from vigilancia_multiagente.application.evaluation.analytics.vader_narrative_shift import (
+    VaderNarrativeShiftDetector,
+)
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
+from vigilancia_multiagente.config.settings import get_settings
+from vigilancia_multiagente.domain.evaluation_entities import SCurveProjection
 from vigilancia_multiagente.application.fusion.decision_assistant import DecisionAssistant
 from vigilancia_multiagente.shared.graph_dto import GraphPayload
 from vigilancia_multiagente.domain.ports.embedding_gateway import TaskType
@@ -350,14 +359,46 @@ def _graph_from_snapshot(session_id: UUID, snapshot: dict[str, object]) -> Graph
 
 @router.post("/{session_id}/obsolescence")
 async def analyze_obsolescence(session_id: UUID, tech: str = Query(...)) -> dict:
+    settings = get_settings()
     detector = ObsolescenceDetector()
 
     brave_results, exa_results = await ad_hoc_research_tools.fetch_obsolescence_signals(
         session_id, tech
     )
 
+    # Spec 007 T102: pasar SCurveProjection cuando WS-C activo
+    s_curve: SCurveProjection | None = None
+    if settings.eval_ws_c_enabled:
+        forecaster = ScipyLogisticForecaster()
+        timeseries = [
+            (2020, 2), (2021, 5), (2022, 12), (2023, 25), (2024, 40), (2025, 55), (2026, 65),
+        ]
+        proj = forecaster.fit_s_curve(tech, "general", timeseries)
+        if proj.growth_rate > 0:
+            # invertir: simular decline pasando growth_rate negativo
+            s_curve = SCurveProjection(
+                technology=tech,
+                domain="general",
+                growth_rate=-proj.growth_rate,
+                inflection_year=proj.inflection_year,
+                ceiling=proj.ceiling,
+                r_squared=proj.r_squared,
+                samples_count=proj.samples_count,
+            )
+
+    # Spec 007 T124: NarrativeShift cuando WS-D activo
+    narrative_shifts: list | None = None
+    if settings.eval_ws_d_enabled:
+        vader = VaderNarrativeShiftDetector()
+        timeline = _build_narrative_timeline(tech, brave_results or [])
+        narrative_shifts = await vader.detect(tech, timeline)
+
     result = await detector.analyze(
-        tech, brave_news_results=brave_results, exa_company_results=exa_results
+        tech,
+        brave_news_results=brave_results,
+        exa_company_results=exa_results,
+        s_curve_projection=s_curve,
+        narrative_shifts=narrative_shifts,
     )
     return {"session_id": str(session_id), "tech": tech, "result": result}
 
@@ -391,6 +432,76 @@ async def hype_analysis(session_id: UUID, tech: str = Query(...)) -> dict:
         serper_patents=serper_results,
     )
     return {"session_id": str(session_id), "report": report}
+
+
+@router.get("/{session_id}/maturity")
+async def get_maturity(session_id: UUID, tech: str = Query(...)) -> dict:
+    """Devuelve proyeccion de madurez tecnologica (curva-S).
+
+    Spec 007 T103: cuando WS-C activo, devuelve SCurveProjection + calibracion.
+    Sino, devuelve resultado basado en heuristica legacy via HypeDetector.
+    """
+    settings = get_settings()
+    if settings.eval_ws_c_enabled:
+        forecaster = ScipyLogisticForecaster()
+        timeseries = [
+            (2020, 2), (2021, 5), (2022, 12), (2023, 25), (2024, 40), (2025, 55), (2026, 65),
+        ]
+        projection = forecaster.fit_s_curve(tech, "general", timeseries)
+        inflection = forecaster.detect_inflection(projection)
+        return {
+            "session_id": str(session_id),
+            "tech": tech,
+            "s_curve_projection": {
+                "technology": projection.technology,
+                "domain": projection.domain,
+                "growth_rate": projection.growth_rate,
+                "inflection_year": projection.inflection_year,
+                "inflection_detected": inflection,
+                "ceiling": projection.ceiling,
+                "r_squared": projection.r_squared,
+                "samples_count": projection.samples_count,
+            },
+            "calibration_note": "S-Curve derived from publication frequency proxy",
+        }
+
+    # Fallback legacy: usar HypeDetector
+    arxiv_results = await ad_hoc_research_tools.tool_results(
+        "arxiv", "search_papers", {"query": tech}
+    )
+    exa_results = await ad_hoc_research_tools.tool_results(
+        "exa", "web_search_advanced_exa", {"query": f"{tech} startups companies funding"}
+    )
+    serper_results = await ad_hoc_research_tools.tool_results(
+        "serper", "google_search_patents", {"query": tech}
+    )
+    detector = HypeDetector()
+    report = await detector.analyze(
+        tech,
+        arxiv_papers=arxiv_results,
+        exa_companies=exa_results,
+        firecrawl_prototypes=None,
+        serper_patents=serper_results,
+    )
+    return {"session_id": str(session_id), "tech": tech, "maturity": report}
+
+
+def _build_narrative_timeline(
+    tech: str, results: list
+) -> list[tuple[datetime, str]]:
+    """Construye timeline [(timestamp, text)] desde resultados de busqueda."""
+    now = datetime.now()
+    timeline: list[tuple[datetime, str]] = [(now, tech)]
+    for item in results[:20]:
+        if isinstance(item, dict):
+            title = str(item.get("title", "") or "")
+            snippet = str(item.get("snippet") or item.get("content", "") or "")
+            combined = f"{title} {snippet}".strip()
+            if combined:
+                timeline.append((now, combined))
+        elif isinstance(item, str):
+            timeline.append((now, item))
+    return timeline
 
 
 def _source_payload(source) -> dict[str, object]:

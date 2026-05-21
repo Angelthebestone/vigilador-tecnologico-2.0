@@ -71,6 +71,11 @@ class BaseBranchAgent:
         event_publisher: EventPublisher | None = None,
         scholarly_works_gateway: ScholarlyWorksGateway | None = None,
         reranker: Reranker | None = None,
+        # Spec 007 — pipeline steps opcionales (WS-A/B/C/D)
+        source_quality_step: object | None = None,
+        data_intelligence_step: object | None = None,
+        deep_analysis_step: object | None = None,
+        strategic_signals_step: object | None = None,
     ) -> None:
         self.branch_type = branch_type
         self._governance_loader = governance_loader
@@ -89,6 +94,11 @@ class BaseBranchAgent:
         self._scholarly_works_gateway = scholarly_works_gateway
         self._reranker = reranker
         self._cross_branch_hints: deque[str] = deque(maxlen=32)
+        # Spec 007 — steps opcionales del pipeline de evaluacion
+        self._source_quality_step = source_quality_step
+        self._data_intelligence_step = data_intelligence_step
+        self._deep_analysis_step = deep_analysis_step
+        self._strategic_signals_step = strategic_signals_step
 
     def set_preload_context(self, context: dict | None) -> None:
         self._preload_context = context
@@ -131,12 +141,30 @@ class BaseBranchAgent:
                 cross_branch_hints=self._cross_branch_hints,
                 branch_type=self.branch_type,
                 reranker=self._reranker,
+                # Spec 007 T078: data_intelligence_step opcional (WS-B)
+                data_intelligence_step=self._data_intelligence_step,
             ),
+        ]
+
+        # Spec 007 T058: SourceQualityStep (WS-A) antes de AssembleBranchResultStep
+        if self._source_quality_step is not None:
+            steps.append(self._source_quality_step)  # type: ignore[arg-type]
+
+        steps.append(
             AssembleBranchResultStep(
                 embedding_gateway=self._embedding_gateway,
                 branch_type=self.branch_type,
             ),
-        ]
+        )
+
+        # Spec 007 T100: DeepAnalysisStep (WS-C) post-AssembleBranchResultStep
+        if self._deep_analysis_step is not None:
+            steps.append(self._deep_analysis_step)  # type: ignore[arg-type]
+
+        # Spec 007 T121: StrategicSignalsStep (WS-D) post-DeepAnalysisStep
+        if self._strategic_signals_step is not None:
+            steps.append(self._strategic_signals_step)  # type: ignore[arg-type]
+
         return Pipeline(steps)  # type: ignore[arg-type]
 
     async def run(

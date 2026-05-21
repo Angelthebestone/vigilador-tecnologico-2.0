@@ -8,6 +8,11 @@ from vigilancia_multiagente.application.agents.pipeline.base_step import Pipelin
 from vigilancia_multiagente.application.agents.pipeline.compose_prompt_step import (
     ComposePromptContext,
 )
+from vigilancia_multiagente.application.agents.pipeline.errors import (
+    StepErrorSeverity,
+    Workstream,
+    add_step_error,
+)
 from vigilancia_multiagente.domain.pipeline_errors import StepError
 from vigilancia_multiagente.application.mcp.types import ToolExecutionResult
 from vigilancia_multiagente.application.research.followup_loop import (
@@ -53,6 +58,22 @@ class ToolLoopContext(ComposePromptContext):
     # evaluacion (WS-A..E). Cada step opt-in escribe aqui sus fallos no
     # criticos en vez de levantar excepciones.
     errors: list[StepError] = field(default_factory=list)
+    # Spec 007 WS-A: anotaciones de SourceQualityStep por finding.
+    source_quality_annotations: list | None = None
+    # Sources directly accessible for pipeline steps.
+    sources: list = field(default_factory=list)
+    # Spec 007 WS-B: almacenamiento generico para DataIntelligenceStep.
+    ws_b_data: dict = field(default_factory=dict)
+    _authenticity_signals: list | None = None
+    _language_distribution: dict | None = None
+    _consensus_dispute_maps: list | None = None
+    _hybrid_ranking: dict | None = None
+    _dedup_groups: list | None = None
+    # Spec 007 WS-C: anotaciones de DeepAnalysisStep.
+    deep_analysis_annotations: list | None = None
+    deep_analysis_projections: list | None = None
+    deep_analysis_meta_result: object | None = None
+    deep_analysis_counterfactuals: list | None = None
 
 
 class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
@@ -64,6 +85,8 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
         cross_branch_hints: deque[str],
         branch_type: BranchType,
         reranker: Reranker | None = None,
+        # Spec 007 T078: sub-fase opcional WS-B (Data Intelligence)
+        data_intelligence_step: object | None = None,
     ) -> None:
         self._execution_client = execution_client
         self._embedding_gateway = embedding_gateway
@@ -71,6 +94,7 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
         self._cross_branch_hints = cross_branch_hints
         self._branch_type = branch_type
         self._reranker: Reranker | None = reranker
+        self._data_intelligence_step = data_intelligence_step
 
     async def execute(self, context: ToolLoopContext) -> ToolLoopContext:
         ctx = context
@@ -197,6 +221,15 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
         ctx.executions = executions
         ctx.query_payloads = query_payloads
         ctx.semantic_relations = semantic_relations
+        # Spec 007 T078: sub-fase DataIntelligenceStep (WS-B) opcional
+        if self._data_intelligence_step is not None:
+            try:
+                ctx = await self._data_intelligence_step.run(ctx)  # type: ignore[union-attr]
+            except Exception as exc:
+                add_step_error(
+                    ctx.errors, Workstream.WS_B, "DataIntelligenceStep.sub_phase", exc,
+                    severity=StepErrorSeverity.WARNING,
+                )
         return ctx
 
     def _select_provider(
