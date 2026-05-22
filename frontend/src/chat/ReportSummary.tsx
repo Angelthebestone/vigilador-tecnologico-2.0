@@ -1,8 +1,13 @@
-import type { FinalReport } from '@/types';
+import type { FinalReport, WsaResult, WscResult, WsdResult, WseResult } from '@/types';
 import { useStore } from '@/state/useStore';
 import { reportExportUrl } from '@/api';
 import { Icon } from '@/components';
 import { IntelligenceSections } from './IntelligenceSections';
+import { WorkstreamIndicator } from '@/analysis/WorkstreamIndicator';
+import { WSASection } from '@/analysis/WSASection';
+import { WSCSection } from '@/analysis/WSCSection';
+import { WSDSection } from '@/analysis/WSDSection';
+import { WSESection } from '@/analysis/WSESection';
 
 interface ReportSummaryProps {
   report: FinalReport;
@@ -27,6 +32,9 @@ export function ReportSummary({ report }: ReportSummaryProps) {
   const variants =
     reportVariants.length > 0 ? reportVariants : ['executive'];
 
+  const evaluation = report.evaluation;
+  const activeWs = evaluation?.activeWorkstreams ?? [];
+
   return (
     <article className="report">
       <header className="report__head">
@@ -49,6 +57,28 @@ export function ReportSummary({ report }: ReportSummaryProps) {
       </div>
 
       <IntelligenceSections markdown={report.markdown} />
+
+      {/* Spec 008 T036 — Workstream visualization sections */}
+      {evaluation && activeWs.length > 0 && (
+        <section className="report__workstreams">
+          <header className="report__workstreams-header">
+            <h3>Evaluación de Workstreams</h3>
+            <WorkstreamIndicator />
+          </header>
+          {evaluation.wsA && (
+            <WSASection data={evaluation.wsA as WsaResult} />
+          )}
+          {evaluation.wsC && (
+            <WSCSection data={evaluation.wsC as WscResult} />
+          )}
+          {evaluation.wsD && (
+            <WSDSection data={evaluation.wsD as WsdResult} />
+          )}
+          {evaluation.wsE && (
+            <WSESection data={evaluation.wsE as WseResult} />
+          )}
+        </section>
+      )}
 
       <div className="report__stats">
         <div className="report__stat">

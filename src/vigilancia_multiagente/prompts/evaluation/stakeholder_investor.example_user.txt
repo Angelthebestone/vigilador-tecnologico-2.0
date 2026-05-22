@@ -1,0 +1,12 @@
+# Quantum-Resistant Cryptography Adoption in Latin American Fintech (2025–2028)
+
+**Investment thesis (paraphrased).** A 2026–2028 acceleration in PQC adoption among
+Latin American neobanks creates a 3–5x revenue opportunity for the three named
+regional HSM vendors. The report recommends a Series C-stage position in the
+largest of the three, citing 9 of 14 surveyed neobanks declaring PQC roadmaps in
+2024 earnings calls and a vendor-reported 60–80% performance overhead vs RSA-2048.
+
+**Return framing.** Confidence: 0.78. Horizon: 36 months. Re-rating catalyst: NIST
+FIPS finalization and US correspondent-banking pressure. No downside scenario is
+articulated. Exit framing assumes a strategic acquisition by a regional banking
+incumbent.

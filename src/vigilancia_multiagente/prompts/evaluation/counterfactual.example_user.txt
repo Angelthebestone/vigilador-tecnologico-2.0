@@ -1,0 +1,9 @@
+Generate exactly 3 counterfactual scenarios for the following report.
+
+Report:
+The report concludes that European battery manufacturers will close the gap with Chinese incumbents by 2028 through gigafactory investments in Germany, Sweden, and Hungary, supported by the EU Net-Zero Industry Act and Critical Raw Materials Act. The base case assumes lithium prices stabilize at $15k/t and that nickel/cobalt supply contracts hold under current African and Indonesian commitments.
+
+Respond ONLY with a JSON array of 3 objects, each with:
+- "question": str (e.g. "What would happen if…"),
+- "probability": float [0, 1],
+- "impact_summary": str

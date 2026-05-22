@@ -1,0 +1,1 @@
+By 2027, retrieval-augmented generation (RAG) will be the dominant architecture for enterprise question-answering systems handling proprietary knowledge bases, displacing fine-tuned closed-domain LLMs as the default choice in regulated industries (finance, healthcare, legal).

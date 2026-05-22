@@ -1,0 +1,6 @@
+Seed query:
+perovskite tandem solar cell commercial deployment
+
+Previous iterations (do not repeat them):
+1. query=perovskite tandem solar cell efficiency record 2024 type=technical
+2. query=perovskite silicon tandem stability degradation type=technical

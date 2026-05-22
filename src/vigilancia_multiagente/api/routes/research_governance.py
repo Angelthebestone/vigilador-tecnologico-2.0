@@ -8,8 +8,10 @@ from vigilancia_multiagente.api.dependencies import (
     governance_loader,
     prompt_regression_service,
 )
+from vigilancia_multiagente.api.routes.research_evaluation import router as evaluation_router
 
 router = APIRouter(prefix="/research")
+router.include_router(evaluation_router)
 
 
 @router.get("/{session_id}/iterations")

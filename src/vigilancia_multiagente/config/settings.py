@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     google_factcheck_api_key: SecretStr | None = None
     retraction_watch_csv_url: str | None = None
 
+    # Spec 008 — Config UI persistence
+    workstream_overrides_path: str = "config/workstream_overrides.json"
+    prompt_overrides_dir: str = "config/prompt_overrides"
+
     model_config = SettingsConfigDict(
         env_prefix="VT_",
         env_file=".env",

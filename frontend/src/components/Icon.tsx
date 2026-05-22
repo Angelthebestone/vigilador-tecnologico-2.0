@@ -28,7 +28,10 @@ export type IconName =
   | 'clock'
   | 'gauge'
   | 'scale'
-  | 'shield';
+  | 'shield'
+  | 'cpu'
+  | 'database'
+  | 'trending-up';
 
 interface IconProps {
   name: IconName;
@@ -136,6 +139,25 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M10 3 4 5v5c0 4 2.6 6.4 6 7.5 3.4-1.1 6-3.5 6-7.5V5l-6-2z" />
       <path d="M7.5 10l2 2 3.5-4" />
+    </>
+  ),
+  cpu: (
+    <>
+      <rect x="6" y="6" width="8" height="8" />
+      <path d="M8 3v3M12 3v3M8 14v3M12 14v3M3 8h3M3 12h3M14 8h3M14 12h3" />
+    </>
+  ),
+  database: (
+    <>
+      <ellipse cx="10" cy="5" rx="6" ry="2.5" />
+      <path d="M4 5v10c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V5" />
+      <path d="M4 10c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5" />
+    </>
+  ),
+  'trending-up': (
+    <>
+      <path d="M3 14l5-5 3 3 6-6" />
+      <path d="M13 6h4v4" />
     </>
   ),
 };

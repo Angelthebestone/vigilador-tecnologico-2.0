@@ -58,7 +58,19 @@ Un administrador quiere ajustar el prompt de detección de asunciones implícita
 2. **Given** el administrador modificó un prompt y quiere revertirlo, **When** presiona "Restaurar default", **Then** el prompt vuelve al contenido original del template.
 3. **Given** un prompt modificado tiene sintaxis inválida (placeholders rotos), **When** el administrador guarda, **Then** el sistema muestra una advertencia pero permite guardar (los placeholders se validan en runtime).
 
+### Primary User Story 4: Mock server completo para desarrollo sin backend
+Un desarrollador frontend quiere iterar sobre la UI de workstreams sin depender de PostgreSQL, MCP providers ni LLM reales. El mock server debe simular el pipeline completo: sesiones, ramas, tools visibles, workstreams, quality gate y reportes.
+
+**Acceptance Scenarios**:
+1. **Given** el mock server iniciado, **When** el desarrollador crea una sesión de investigación desde el frontend, **Then** el mock server emite todos los eventos SSE en secuencia realista: `SessionStarted → ClarificationRequested → PlanGenerated → BranchStarted (×6) → BranchProgress (con toolCalls visibles) → ReplanTriggered → BranchCompleted → AllBranchesCompleted → FusionProgress → ReportGenerated → GraphAnalyticsComputed`.
+2. **Given** workstreams activados en el mock server, **When** se completa una investigación simulada, **Then** el `ReportGenerated` incluye datos simulados de WS-A (author reputation, fact-checks, retractaciones), WS-B (autenticidad, consenso/disputa), WS-C (curva-S, asunciones, contrafactuales), WS-D (redes, convergencia, narrativa) y WS-E (bias audit, stakeholders, calibración).
+3. **Given** el mock server, **When** el desarrollador inspecciona una rama, **Then** ve el `BranchProgress` con cadenas de pensamiento simuladas (razonamiento multi-paso), tool calls explícitas (tavily, exa, scholar, etc.) con payloads y resultados simulados, y saturation tracking visible.
+4. **Given** el mock server, **When** se solicita el knowledge graph, **Then** devuelve un grafo simulado con nodos, edges, clusters y analíticas (centralidad, densidad, clustering coefficient).
+
 ### Edge Cases
+- Mock server sin workstreams activados: emite el pipeline pre-007 (sin datos de evaluación) para permitir testear ambos modos.
+- Mock server responde a `GET /config/workstreams` y `PATCH /config/workstreams` con datos en memoria.
+- Mock server responde a `GET /config/prompts` y `PUT /config/prompts/{name}` con datos en memoria.
 - Workstream activado en UI pero servicio externo caído (OpenAlex, Google FactCheck): el sistema sigue funcionando, el workstream produce `StepError(warning)` y el frontend muestra "parcialmente disponible" en esa sección.
 - Workstream activado a mitad de una investigación en curso: no afecta la investigación actual, aplica a la siguiente.
 - Múltiples administradores editando prompts simultáneamente: última escritura gana, sin bloqueo.
@@ -113,12 +125,30 @@ Los flags de workstreams y los prompts modificados se persisten de forma que sob
 ### FR-F14: API de health check por workstream
 `GET /config/workstreams/health` devuelve el estado de disponibilidad de cada servicio externo requerido por los workstreams (OpenAlex reachable, Google FactCheck API key configured, Retraction Watch CSV disponible, etc.).
 
+### FR-F15: Mock server — pipeline completo simulado
+El mock server (`mock_server/`, raíz del repo) emite todos los eventos SSE del pipeline real en secuencia temporal realista (~2-3 segundos entre eventos): `SessionStarted`, `ClarificationRequested`, `PlanGenerated`, `BranchStarted` (×6), `BranchProgress` (con iteraciones por rama), `ReplanTriggered`, `BranchCompleted` (×6), `AllBranchesCompleted`, `FusionStarted`, `FusionProgress`, `ReportGenerated`, `ReportVariantsGenerated`, `PlanApproved`, `EvaluationComputed`, `GraphBuildingStarted`, `GraphAnalyticsComputed`. Ningún evento se omite.
+
+### FR-F16: Mock server — cadenas de pensamiento y tool calls visibles
+Cada `BranchProgress` incluye una cadena de razonamiento simulada multi-paso y tool calls explícitas con nombre de tool, query, payload simulado y resultados simulados. Las tools simuladas incluyen: tavily, exa, brave, scholar, arxiv, openalex, serper, jina, firecrawl. Los resultados de tools son JSON estructurado que imita respuestas reales.
+
+### FR-F17: Mock server — datos simulados de los 5 workstreams
+El `ReportGenerated` incluye datos simulados para cada workstream: WS-A (author reputation, conflictos, fact-checks, retractaciones, reproducibilidad), WS-B (estadísticas de búsqueda, autenticidad, consenso/disputa), WS-C (curva-S, meta-análisis, asunciones, contrafactuales, dependencias), WS-D (clusters de convergencia, red de colaboración, linaje de ideas, narrativa, talento, brechas), WS-E (bias audit, forensic trace, stakeholders, falsificación, calibración). Los datos son estáticos pero realistas.
+
+### FR-F18: Mock server — endpoints de configuración simulados
+El mock server implementa `GET /config/workstreams`, `PATCH /config/workstreams`, `GET /config/prompts`, `GET /config/prompts/{name}`, `PUT /config/prompts/{name}`, `POST /config/prompts/{name}/restore` y `GET /config/workstreams/health` con datos en memoria. No requiere backend real.
+
+### FR-F19: Mock server — toggle workstreams simulado
+El mock server permite activar/desactivar workstreams desde el panel de configuración. Si un workstream está desactivado, los datos simulados para ese workstream no aparecen en el `ReportGenerated`, replicando el comportamiento real de opt-in.
+
 ## Key Entities
 
 - **WorkstreamConfig**: flag booleano por workstream (A..E), persistido
 - **PromptTemplate**: nombre, contenido actual, contenido default, indicador de modificación
 - **SessionEvaluation**: agregado de resultados de todos los workstreams para una sesión, particionado por workstream activo
 - **WorkstreamHealth**: estado de disponibilidad de dependencias externas por workstream
+- **MockScenario**: conjunto de datos simulados para una sesión de investigación completa, incluyendo ramas, tools, workstreams y reporte final
+- **MockToolCall**: registro simulado de una tool call con nombre, query, payload y resultado
+- **MockThinkingChain**: secuencia de pasos de razonamiento simulados para una iteración de rama
 
 ## Success Criteria
 
@@ -128,6 +158,8 @@ Los flags de workstreams y los prompts modificados se persisten de forma que sob
 - **SC-004**: El frontend refleja correctamente qué workstreams estuvieron activos al 100% de las investigaciones completadas (sin falsos positivos ni negativos)
 - **SC-005**: El tiempo de carga del reporte no aumenta más de 2 segundos al incluir todas las secciones de workstreams
 - **SC-006**: Un usuario nuevo entiende qué hace cada workstream sin consultar documentación externa (tooltips y etiquetas auto-explicativas)
+- **SC-007**: El mock server emite el 100% de los eventos SSE del pipeline real, sin omitir ninguno
+- **SC-008**: Un desarrollador frontend puede iterar sobre la UI de workstreams usando solo el mock server, sin backend real, en menos de 2 minutos desde `npm run mock-server`
 
 ## Delivery Constraints
 - **Simplicidad obligatoria**: La UI usa componentes React existentes (Tailwind, Zustand stores, SSE) sin nuevos frameworks

@@ -3,10 +3,12 @@ import type { BranchAgent, BranchType, ChatMessage } from '@/types';
 import { useChatStore } from '@/state/chatStore';
 import { useAgentsStore } from '@/state/agentsStore';
 import { useStore } from '@/state/useStore';
+import { useConfigStore } from '@/state/configStore';
 import { startResearch, clarifySession, approvePlan, askFollowUp } from '@/api';
 import { AgentSidebar, PlanningChain } from '@/agents';
 import { ChatPanel } from './ChatPanel';
 import { useSSE } from './useSSE';
+import { WorkstreamIndicator } from '@/analysis/WorkstreamIndicator';
 
 const BRANCH_ORDER: BranchType[] = [
   'AVANCES',
@@ -40,6 +42,9 @@ export function ChatView({ historyBar }: ChatViewProps) {
 
   const report = useStore((s) => s.report);
 
+  // Spec 008 T029 — Workstream indicator visible during EXECUTING and COMPLETED
+  const workstreams = useConfigStore((s) => s.workstreams);
+
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [planApproved, setPlanApproved] = useState(false);
   const [followUpBusy, setFollowUpBusy] = useState(false);
@@ -47,6 +52,16 @@ export function ChatView({ historyBar }: ChatViewProps) {
   const executing = sessionStatus === 'EXECUTING';
   const conversationMode = sessionStatus === 'COMPLETED' && Boolean(report);
   useSSE({ sessionId, enabled: executing });
+
+  const activeWsLabels = useMemo(() => {
+    const labels: string[] = [];
+    if (workstreams.wsA) labels.push('WS-A');
+    if (workstreams.wsB) labels.push('WS-B');
+    if (workstreams.wsC) labels.push('WS-C');
+    if (workstreams.wsD) labels.push('WS-D');
+    if (workstreams.wsE) labels.push('WS-E');
+    return labels;
+  }, [workstreams]);
 
   const orderedAgents = useMemo<BranchAgent[]>(
     () =>
@@ -213,6 +228,14 @@ export function ChatView({ historyBar }: ChatViewProps) {
     <div className="atlas-body">
       {historyBar}
       <div className="atlas-plate">
+        {(executing || conversationMode) && (
+          <div className="atlas-status-bar">
+            <span className="atlas-status-bar__label">
+              {executing ? 'Investigando…' : 'Investigación completada'}
+            </span>
+            <WorkstreamIndicator activeWorkstreams={activeWsLabels} />
+          </div>
+        )}
         <ChatPanel
           messages={messages}
           inputDisabled={followUpBusy}

@@ -83,9 +83,15 @@ export function AgentDetailPanel({ agent }: AgentDetailPanelProps) {
               : 'Aún sin iteraciones registradas.'}
           </p>
         ) : (
-          agent.iterations.map((step) => (
-            <AgentIterationCard key={step.stepNumber} step={step} />
-          ))
+          <div className="iterchain">
+            {agent.iterations.map((step, i) => (
+              <AgentIterationCard
+                key={step.stepNumber}
+                step={step}
+                isLast={i === agent.iterations.length - 1}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -224,3 +224,998 @@ button {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* =================================================================
+   WORKSTREAM EVALUATION SECTIONS — Spec 007
+   Renderizadas dentro de .report__workstreams en ReportSummary.
+   ================================================================= */
+
+.report__workstreams {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.report__workstreams-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.report__workstreams-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--uts-green);
+  margin: 0;
+}
+
+/* --- Workstream Section (details/summary) ---
+   Estilo unificado con el resto del informe: papel blanco-hueso, bordes
+   finos de tinta, cabecera tipo "ficha de archivo" igual que .collapse. */
+.ws-section {
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  overflow: hidden;
+}
+
+.ws-section__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  border-left: 3px solid var(--lime);
+  list-style: none;
+}
+
+.ws-section__header::-webkit-details-marker {
+  display: none;
+}
+
+.ws-section__header:hover {
+  background: var(--lime-wash);
+}
+
+.ws-section[open] .ws-section__header {
+  border-bottom: 1px solid var(--rule);
+}
+
+.ws-section__icon {
+  display: flex;
+  align-items: center;
+  color: var(--uts-green);
+}
+
+.ws-section__title {
+  font-family: var(--serif-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--uts-green-deep);
+  flex: 1;
+}
+
+.ws-section__body {
+  padding: 0.875rem;
+}
+
+/* --- ws-block (sub-section) --- */
+.ws-block {
+  margin-bottom: 1.25rem;
+}
+
+.ws-block:last-child {
+  margin-bottom: 0;
+}
+
+.ws-block h4 {
+  font-family: var(--serif-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--uts-green);
+  margin: 0 0 0.5rem 0;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* --- ws-table — alineada con .dtable del informe --- */
+.ws-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.ws-table th,
+.ws-table td {
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+}
+
+.ws-table th {
+  font-weight: 500;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  border-bottom: var(--hair-strong);
+}
+
+.ws-table tr:hover td {
+  background: var(--lime-wash);
+}
+
+.ws-table--sm {
+  font-size: 0.78rem;
+}
+
+/* --- ws-cards --- */
+.ws-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+}
+
+.ws-card {
+  padding: 0.625rem;
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+}
+
+.ws-card__title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--uts-green-deep);
+  margin-bottom: 0.25rem;
+}
+
+.ws-card__num {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--lime-deep);
+}
+
+.ws-card__label {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ws-card__stat {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-top: 0.125rem;
+}
+
+.ws-card__text {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  margin: 0.25rem 0;
+}
+
+/* --- ws-badges --- */
+.ws-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+/* --- ws-list --- */
+.ws-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ws-list li {
+  padding: 0.375rem 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.ws-list li + li {
+  border-top: 1px solid var(--paper-deep);
+}
+
+/* --- ws-meter --- */
+.ws-meter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.ws-meter__label {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  min-width: 70px;
+  font-family: var(--mono);
+}
+
+.ws-meter__bar {
+  flex: 1;
+  height: 8px;
+  background: var(--paper-deep);
+  overflow: hidden;
+}
+
+.ws-meter__fill {
+  height: 100%;
+  background: var(--lime);
+  transition: width 0.3s ease;
+}
+
+.ws-meter__value {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--uts-green-deep);
+}
+
+.ws-meter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* --- ws-stat-row --- */
+.ws-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  flex-wrap: wrap;
+}
+
+.ws-stat-row + .ws-stat-row {
+  border-top: 1px solid var(--paper-deep);
+}
+
+/* --- ws-lineage --- */
+.ws-lineage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  font-size: 0.82rem;
+}
+
+.ws-lineage__seminal {
+  font-weight: 600;
+  color: var(--uts-green-deep);
+}
+
+.ws-lineage__arrow {
+  color: var(--lime);
+  font-size: 1.1rem;
+}
+
+.ws-lineage__leaves {
+  font-family: var(--mono);
+  color: var(--ink-faint);
+}
+
+/* --- ws-shift --- */
+.ws-shift {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+}
+
+/* --- ws-distribution --- */
+.ws-distribution {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.625rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.ws-distribution strong {
+  display: block;
+  color: var(--uts-green-deep);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.1875rem;
+}
+
+/* --- ws-trace --- */
+.ws-trace {
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+}
+
+.ws-trace__claim {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  margin-bottom: 0.375rem;
+}
+
+.ws-trace__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ws-trace__step {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+/* --- ws-alert --- */
+.ws-alert {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.ws-alert--danger {
+  background: var(--st-fail-wash);
+  color: var(--st-fail);
+  border: 1px solid var(--st-fail);
+}
+
+/* =================================================================
+   WS-A — conflictos de interés, retraction records
+   ================================================================= */
+.ws-explain {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-bottom: 0.625rem;
+  line-height: 1.5;
+}
+
+.ws-explain--warn {
+  color: var(--st-fail);
+  background: var(--paper-card);
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--st-fail);
+  font-style: normal;
+}
+
+.ws-conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ws-conflict-card {
+  border: 1px solid var(--rule);
+  padding: 0.625rem 0.75rem;
+  background: var(--paper-card);
+}
+
+.ws-conflict-card--high {
+  border-left: 3px solid var(--st-fail);
+}
+
+.ws-conflict-card--medium {
+  border-left: 3px solid var(--lime-deep);
+}
+
+.ws-conflict-card--low {
+  border-left: 3px solid var(--gray-dark);
+}
+
+.ws-conflict-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.ws-conflict-card__entity {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.ws-conflict-card__reason {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ws-block--alert {
+  border: 1px solid var(--st-fail);
+  border-left-width: 3px;
+  padding: 0.75rem;
+  background: var(--paper-card);
+}
+
+.ws-block--alert h4 {
+  color: var(--st-fail);
+}
+
+.ws-retraction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.ws-retraction-card {
+  background: var(--paper-card);
+  border: 1px solid var(--st-fail);
+  padding: 0.625rem 0.75rem;
+}
+
+.ws-retraction-card__title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 0.25rem;
+}
+
+.ws-retraction-card__meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  margin-bottom: 0.25rem;
+}
+
+.ws-retraction-card__reason {
+  font-size: 0.82rem;
+  color: var(--st-fail);
+}
+
+.ws-source-tag {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  margin-left: 0.5rem;
+}
+
+/* =================================================================
+   Figura de gráfico generado por el backend (matplotlib)
+   ================================================================= */
+.chart-figure {
+  margin: 0.625rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.chart-figure__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  background: #fff;
+}
+
+.chart-figure__caption {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-style: italic;
+  text-align: center;
+  max-width: 48ch;
+  line-height: 1.45;
+}
+
+/* =================================================================
+   WS-C — curvas S, meta-análisis, supuestos, contrafactuales
+   ================================================================= */
+.ws-scurve-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.ws-scurve-card {
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  padding: 0.75rem;
+}
+
+.ws-scurve-card__title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--uts-green-deep);
+}
+
+/* Cuadrícula de estadísticas cuando NO hay imagen del backend */
+.ws-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0;
+  border: 1px solid var(--rule);
+  margin-bottom: 0.5rem;
+}
+
+.ws-stat-cell {
+  padding: 0.5rem 0.625rem;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ws-stat-cell__label {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ws-stat-cell__value {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ws-scurve-card__interpretation {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.ws-meta-card {
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  padding: 0.75rem;
+  margin-bottom: 0.625rem;
+}
+
+.ws-meta-card__topic {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.ws-meta-card__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.ws-meta-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ws-meta-stat__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+.ws-meta-stat__value {
+  font-family: var(--mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Heterogeneidad alta: aviso (ámbar), no error — usa el lima profundo
+   de la marca, no el rojo institucional reservado para alertas reales. */
+.ws-meta-stat__value--warn {
+  color: var(--lime-deep);
+}
+
+.ws-meta-stat__hint {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.ws-assumption-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ws-assumption {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid var(--paper-deep);
+}
+
+.ws-assumption__text {
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.ws-counterfactual-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ws-counterfactual {
+  border: 1px solid var(--rule);
+  padding: 0.625rem 0.75rem;
+  background: var(--paper-card);
+}
+
+.ws-counterfactual__scenario {
+  font-size: 0.85rem;
+  color: var(--ink);
+  margin-bottom: 0.375rem;
+}
+
+.ws-counterfactual__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ws-counterfactual__invalidates {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+.ws-dependency-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ws-dependency {
+  border: 1px solid var(--rule);
+  padding: 0.625rem 0.75rem;
+  background: var(--paper-card);
+}
+
+.ws-dependency__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+
+.ws-dependency__alternatives {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.ws-dependency__alt-label {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+/* =================================================================
+   TRL — madurez tecnológica del informe (una tarjeta por tecnología)
+   ================================================================= */
+.trl-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trl-section__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.trl-card {
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.trl-card__tech {
+  font-family: var(--serif-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--uts-green-deep);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.trl-gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.trl-gauge__track {
+  display: flex;
+  gap: 3px;
+}
+
+.trl-gauge__cell {
+  flex: 1;
+  height: 28px;
+  border: 1.5px solid var(--rule-strong);
+  background: var(--paper-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.trl-gauge__cell--active {
+  border-color: currentColor;
+}
+
+.trl-gauge__num {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--paper-card);
+}
+
+.trl-gauge__cell:not(.trl-gauge__cell--active) .trl-gauge__num {
+  color: var(--ink-faint);
+}
+
+.trl-gauge__labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.trl-card__phase-badge {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--uts-green);
+  padding: 5px 10px;
+  border: 1px solid var(--uts-green);
+  background: var(--lime-wash);
+  align-self: flex-start;
+}
+
+.trl-card__detail {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.trl-card__levels {
+  border: 1px solid var(--rule);
+  background: var(--paper-deep);
+  padding: 0.625rem 0.75rem;
+}
+
+.trl-card__levels-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.375rem;
+}
+
+.trl-card__levels-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.trl-card__levels-list li {
+  font-size: 0.8rem;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.trl-card__levels-list li:last-child {
+  border-bottom: 0;
+}
+
+.trl-level--active {
+  color: var(--uts-green);
+  font-weight: 600;
+}
+
+.trl-level--inactive {
+  color: var(--ink-faint);
+}
+
+.trl-card__context p {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* =================================================================
+   WSE — stakeholders, calibration curve, forensic traces mejorados
+   ================================================================= */
+.ws-stakeholder-card {
+  border: 1px solid var(--rule);
+  background: var(--paper-card);
+  padding: 0.75rem 0.875rem;
+}
+
+.ws-stakeholder-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ws-stakeholder-card__role {
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ws-stakeholder-card__perspective {
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.ws-stakeholder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.ws-stakeholder-card__critique {
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+  border-left: 2px solid var(--lime-deep);
+  padding-left: 0.625rem;
+}
+
+.ws-stakeholder-card__counterpoints-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.25rem;
+}
+
+/* Barras de distribución (auditoría de sesgos) */
+.ws-dist-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ws-dist-group strong {
+  display: block;
+  color: var(--uts-green-deep);
+  font-size: 0.82rem;
+  margin-bottom: 0.25rem;
+}
+
+.ws-dist-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ws-dist-row__label {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  min-width: 90px;
+  text-transform: capitalize;
+}
+
+.ws-dist-row__track {
+  flex: 1;
+  height: 6px;
+  background: var(--paper-deep);
+  border: 1px solid var(--rule);
+}
+
+.ws-dist-row__fill {
+  height: 100%;
+}
+
+.ws-dist-row__value {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Trazas forenses */
+.ws-trace__conf {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  margin-left: 0.375rem;
+}
+
+/* Confianza calibrada final */
+.ws-confidence-final {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ws-confidence-final__label {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.ws-confidence-final__value {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.ws-confidence-final__hint {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* Métricas WS-B en pestaña de análisis */
+.metrics__wsb {
+  padding-top: 1.5rem;
+  border-top: var(--ink-line);
+}

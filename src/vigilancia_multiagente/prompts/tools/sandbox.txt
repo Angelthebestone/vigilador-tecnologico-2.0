@@ -40,7 +40,49 @@
 <rules>
   <rule>The sandbox has NO network access — do not attempt to download data or call APIs from within executed code.</rule>
   <rule>Always import libraries inside the code string (the environment does not auto-import).</rule>
-  <rule>Use scienceplots style for publication-quality charts: plt.style.use('science')</rule>
   <rule>To analyze collected data (publication counts per year, confidence distributions, term frequencies, trend slopes), pass it as JSON and process it with pandas/numpy/scipy in the code.</rule>
   <rule>Audit logging is automatic — every execution is recorded with timestamp and result summary.</rule>
+  <rule>EVERY chart you generate MUST be returned as a base64 PNG so it can be embedded in the final report. After savefig, read the file and emit it.</rule>
+  <rule>EVERY chart MUST be accompanied by a 1-2 sentence textual explanation of what it shows and why it matters — never emit a chart without interpretation.</rule>
 </rules>
+
+<chart_style>
+  <intent>All charts across the report must share ONE consistent visual identity so the report looks like a single coherent document, not a collage. Apply this style block verbatim before plotting.</intent>
+  <setup>
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({
+        'figure.figsize': (7, 4),
+        'figure.dpi': 150,
+        'font.family': 'sans-serif',
+        'font.size': 10,
+        'axes.spines.top': False,
+        'axes.spines.right': False,
+        'axes.grid': True,
+        'grid.alpha': 0.25,
+        'axes.edgecolor': '#878787',
+        'axes.labelcolor': '#16261a',
+        'text.color': '#16261a',
+        'savefig.bbox': 'tight',
+        'savefig.facecolor': 'white',
+    })
+  </setup>
+  <palette>
+    Use the institutional palette in this order: primary '#34531f' (verde UTS),
+    secondary '#9aab1f' (lima profundo), accent '#c3d730' (lima marca),
+    neutral '#878787' (gris). Reserve red '#6d100a' ONLY for genuine alerts
+    or negative trends. Do not use rainbow or default matplotlib colors.
+  </palette>
+  <rules>
+    <rule>Always set a descriptive title, xlabel and ylabel in Spanish.</rule>
+    <rule>Add a legend when more than one series is plotted.</rule>
+    <rule>Annotate the key data point (peak, inflection, threshold) directly on the chart.</rule>
+    <rule>Keep charts simple and readable — one idea per chart. No 3D, no chartjunk.</rule>
+  </rules>
+  <emit>
+    After plotting: fig.savefig('chart.png'); then read it back as base64 and
+    return it in the tool result so the report can embed the image. Include a
+    short caption describing the chart.
+  </emit>
+</chart_style>

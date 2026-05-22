@@ -77,6 +77,7 @@ async def get_report(session_id: UUID) -> dict[str, object]:
         "total_learnings": report.total_learnings,
         "confidence_score": report.confidence_score,
         "generated_at": report.generated_at.isoformat(),
+        "evaluation": getattr(report, "evaluation", None),
     }
 
 

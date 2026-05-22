@@ -79,6 +79,14 @@ export async function apiPatch<T>(
   return request<T>('PATCH', path, body, signal);
 }
 
+export async function apiPut<T>(
+  path: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return request<T>("PUT", path, body, signal);
+}
+
 export async function apiDel<T = unknown>(
   path: string,
   signal?: AbortSignal,

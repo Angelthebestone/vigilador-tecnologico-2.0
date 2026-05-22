@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 from uuid import UUID
 
 from vigilancia_multiagente.domain.evaluation_entities import ReportAssurance
@@ -146,8 +147,11 @@ class FinalReport:
     # el flujo cuando la lista esta vacia (POLA + Cero cambio funcional).
     errors: list[StepError] = field(default_factory=list)
     # Spec 007 T028: output del ReportQualityGate (WS-E). None cuando el flag
-    # esta off — el reporte serializa igual que antes.
+    # esta off â€” el reporte serializa igual que antes.
     assurance: ReportAssurance | None = None
+    # Spec 008: resultados de workstreams de evaluacion (WS-A..E).
+    # None cuando no hay workstreams activos â€” compatible con pre-008.
+    evaluation: Any = None
 
 
 class EntityType(StrEnum):

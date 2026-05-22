@@ -124,6 +124,7 @@ export type FinalReport = {
   totalLearnings: number;
   confidenceScore: number;
   generatedAt: string;
+  evaluation?: import('./evaluation').SessionEvaluation;
 };
 
 export type ResearchPlan = {
@@ -210,3 +211,45 @@ export type SourceScoreResult = {
   adjustment: number;
   reason: string;
 };
+
+// Re-export evaluation types (Spec 007/008)
+export type {
+  AuthorReputation,
+  ConflictOfInterest,
+  ClaimExternalValidation,
+  RetractionRecord,
+  ReproducibilityScore,
+  DedupedSource,
+  ContentAuthenticitySignal,
+  ConsensusDisputeEntry,
+  SCurveProjection,
+  GeneratedChart,
+  ImplicitAssumption,
+  CounterfactualScenario,
+  CriticalDependency,
+  MetaAnalysisResult,
+  ConvergenceCluster,
+  CollaborationNetwork,
+  IdeaLinage,
+  NarrativeShift,
+  TalentMobility,
+  PatentingGap,
+  BiasAudit,
+  ForensicTrace,
+  StakeholderSimulation,
+  FalsificationScenario,
+  CalibrationCurve,
+  WsaResult,
+  WsbResult,
+  WscResult,
+  WsdResult,
+  WseResult,
+  SessionEvaluation,
+  WorkstreamConfig,
+  PromptTemplate,
+  PromptKind,
+  PromptVariants,
+  PromptVariantMeta,
+  WorkstreamHealth,
+  HealthStatus,
+} from './evaluation';

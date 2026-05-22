@@ -4,23 +4,25 @@ import { useHistoryStore } from '@/state/historyStore';
 import { useChatStore } from '@/state/chatStore';
 import { useAgentsStore } from '@/state/agentsStore';
 import { ChatView } from '@/chat';
-import { AnalysisView } from '@/analysis';
+import { AnalysisView, ConfigView } from '@/analysis';
 import { HistoryBar, SessionTimeline } from '@/history';
 import { TabNav, ConnectionStatus } from '@/components';
 import { getPlan, getReport } from '@/api';
 
-type MainTab = 'chat' | 'analisis' | 'memoria';
+type MainTab = 'chat' | 'analisis' | 'memoria' | 'configuracion';
 
 const TABS = [
   { id: 'chat' as const, label: 'Chat' },
   { id: 'analisis' as const, label: 'Análisis' },
   { id: 'memoria' as const, label: 'Memoria' },
+  { id: 'configuracion' as const, label: 'Configuración' },
 ];
 
 const FOLIO: Record<MainTab, string> = {
   chat: 'I',
   analisis: 'II',
   memoria: 'III',
+  configuracion: 'IV',
 };
 
 export function MainLayout() {
@@ -120,6 +122,7 @@ export function MainLayout() {
           </div>
         </div>
       )}
+      {tab === 'configuracion' && <ConfigView />}
     </div>
   );
 }

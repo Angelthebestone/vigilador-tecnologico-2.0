@@ -1,5 +1,6 @@
 import { useStore } from './useStore';
 import { useChatStore } from './chatStore';
+import { useConfigStore } from './configStore';
 import type {
   BranchAgent,
   GraphData,
@@ -7,6 +8,9 @@ import type {
   ResearchPlan,
   SessionStatus,
   ChatMessage,
+  WorkstreamConfig,
+  PromptTemplate,
+  WorkstreamHealth,
 } from '@/types';
 
 export function useChatMessages(): ChatMessage[] {

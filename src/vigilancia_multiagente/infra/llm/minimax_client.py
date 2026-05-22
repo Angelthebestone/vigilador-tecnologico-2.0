@@ -74,7 +74,6 @@ class MiniMaxClient:
             json={
                 "model": self._settings.minimax_model,
                 "messages": [m.to_dict() for m in enriched],
-                "max_tokens": 100000,
                 "temperature": 0.3,
                 "stream": stream,
                 "reasoning_split": True,

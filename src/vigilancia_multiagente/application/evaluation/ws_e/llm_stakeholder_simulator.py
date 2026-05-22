@@ -21,9 +21,11 @@ from vigilancia_multiagente.domain.pipeline_errors import (
     StepErrorSeverity,
     Workstream,
 )
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
-from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 
 logger = logging.getLogger(__name__)
 
@@ -54,15 +56,14 @@ class LlmStakeholderSimulator:
 
         prompt_path = f"evaluation/stakeholder_{stakeholder_type.value}.txt"
         try:
-            prompt = self._prompt_loader.load(prompt_path)
+            messages = build_messages_with_fewshot(
+                prompt_loader=self._prompt_loader,
+                base_path=prompt_path,
+                user_content=report.markdown or report.executive_summary,
+            )
         except FileNotFoundError as exc:
             self._record_error(report.session_id, exc, context={"prompt": prompt_path})
             return _empty(report.session_id, stakeholder_type.value)
-
-        messages = [
-            MiniMaxMessage(role="system", content=prompt),
-            MiniMaxMessage(role="user", content=report.markdown or report.executive_summary),
-        ]
         try:
             response = await self._llm.complete(messages)
         except Exception as exc:  # noqa: BLE001 — adapter de frontera externa

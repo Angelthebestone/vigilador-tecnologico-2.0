@@ -21,10 +21,12 @@ from vigilancia_multiagente.domain.pipeline_errors import (
     StepErrorSeverity,
     Workstream,
 )
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.ports.counterfactual import CounterfactualSynthesizer
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
-from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +54,6 @@ class LlmCounterfactualSynthesizer(CounterfactualSynthesizer):
         scenarios_n: int | None = None,
     ) -> list[CounterfactualScenario]:
         n = scenarios_n if scenarios_n is not None else self._scenarios_n
-        try:
-            system_prompt = self._prompt_loader.load("evaluation/counterfactual.txt")
-        except FileNotFoundError as exc:
-            self._record_error(exc, context={"prompt": "evaluation/counterfactual.txt"})
-            return []
 
         summary = (
             report_draft.executive_summary
@@ -64,20 +61,24 @@ class LlmCounterfactualSynthesizer(CounterfactualSynthesizer):
             or report_draft.technical_section
         )[:3000]
 
-        messages = [
-            MiniMaxMessage(role="system", content=system_prompt),
-            MiniMaxMessage(
-                role="user",
-                content=(
-                    f"Genera exactamente {n} escenarios contrafactuales para el siguiente reporte.\n\n"
-                    f"Reporte:\n{summary}\n\n"
-                    f"Responde SOLO con un JSON array de {n} objetos, cada uno con:\n"
-                    f'- "question": str (ej: "Que pasaria si..."),\n'
-                    f'- "probability": float [0, 1],\n'
-                    f'- "impact_summary": str\n'
-                ),
-            ),
-        ]
+        user_content = (
+            f"Generate exactly {n} counterfactual scenarios for the following report.\n\n"
+            f"Report:\n{summary}\n\n"
+            f"Respond ONLY with a JSON array of {n} objects, each with:\n"
+            f'- "question": str (e.g. "What would happen if..."),\n'
+            f'- "probability": float [0, 1],\n'
+            f'- "impact_summary": str\n'
+        )
+
+        try:
+            messages = build_messages_with_fewshot(
+                prompt_loader=self._prompt_loader,
+                base_path="evaluation/counterfactual.txt",
+                user_content=user_content,
+            )
+        except FileNotFoundError as exc:
+            self._record_error(exc, context={"prompt": "evaluation/counterfactual.txt"})
+            return []
         try:
             response = await self._llm.complete(messages)
         except Exception as exc:

@@ -1,5 +1,7 @@
 from fastapi import APIRouter
 
+from vigilancia_multiagente.api.routes.config_prompts import router as config_prompts_router
+from vigilancia_multiagente.api.routes.config_workstreams import router as config_workstreams_router
 from vigilancia_multiagente.api.routes.conversation import router as conversation_router
 from vigilancia_multiagente.api.routes.reports import router as reports_router
 from vigilancia_multiagente.api.routes.research_approve import router as approve_router
@@ -14,6 +16,8 @@ from vigilancia_multiagente.api.routes.upload import router as upload_router
 
 api_router = APIRouter()
 api_v2_router = APIRouter(prefix="/api/v2")
+api_router.include_router(config_workstreams_router)
+api_router.include_router(config_prompts_router)
 api_router.include_router(start_router)
 api_router.include_router(approve_router)
 api_router.include_router(outputs_router)
@@ -23,6 +27,8 @@ api_router.include_router(reports_router)
 api_router.include_router(conversation_router)
 api_router.include_router(delete_router)
 api_router.include_router(upload_router)
+api_v2_router.include_router(config_workstreams_router)
+api_v2_router.include_router(config_prompts_router)
 api_v2_router.include_router(start_router)
 api_v2_router.include_router(approve_router)
 api_v2_router.include_router(outputs_router)

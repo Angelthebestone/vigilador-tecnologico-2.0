@@ -19,6 +19,8 @@ function AnalysisContent({ sessionId }: { sessionId: string | null }) {
   const recommendationsError = useAnalysisStore((s) => s.recommendationsError);
   const fetchMetrics = useAnalysisStore((s) => s.fetchMetrics);
   const fetchRecommendations = useAnalysisStore((s) => s.fetchRecommendations);
+  const report = useStore((s) => s.report);
+  const wsB = report?.evaluation?.wsB ?? null;
 
   useEffect(() => {
     if (!sessionId) return;
@@ -30,7 +32,7 @@ function AnalysisContent({ sessionId }: { sessionId: string | null }) {
     <AnalysisPanel
       graph={<GraphTab key={sessionId ?? 'none'} sessionId={sessionId} />}
       metrics={
-        <MetricsTab metrics={metrics} loading={metricsLoading} error={metricsError} />
+        <MetricsTab metrics={metrics} loading={metricsLoading} error={metricsError} wsB={wsB} />
       }
       recommendations={
         <RecommendationsTab

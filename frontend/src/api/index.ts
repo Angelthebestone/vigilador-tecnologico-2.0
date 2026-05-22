@@ -29,3 +29,13 @@ export {
   adjustSourceScore,
 } from './endpoints';
 export { SseClient } from './sse';
+export {
+  getWorkstreamConfig,
+  patchWorkstreamConfig,
+  getWorkstreamHealth,
+  getPromptList,
+  getPrompt,
+  putPrompt,
+  restorePrompt,
+  getSessionEvaluation,
+} from './evaluation';

@@ -1,0 +1,15 @@
+# Quantum-Resistant Cryptography Adoption in Latin American Fintech (2025–2028)
+
+**Executive summary.** Based on a review of 14 public statements from Latin American
+neobanks and 6 vendor whitepapers, we conclude that post-quantum cryptography (PQC)
+migration in the regional fintech sector will accelerate from 2026 onward, driven
+by NIST FIPS 203/204/205 finalization and US regulatory pressure on cross-border
+correspondent banking. Confidence: 0.78.
+
+**Implications flagged by the report.**
+- Cross-border data flows between US correspondent banks and Latin American
+  neobanks will require PQC-grade transport security.
+- Customer-facing key-exchange operations on mobile apps will see a 60–80%
+  performance overhead.
+- No regional regulator has issued binding PQC guidance as of Q3 2024; the
+  report assumes regulators will follow NIST within 18–24 months.

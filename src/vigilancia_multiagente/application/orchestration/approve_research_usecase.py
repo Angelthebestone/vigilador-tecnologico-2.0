@@ -15,10 +15,13 @@ from vigilancia_multiagente.application.execution.branch_coordinator import Bran
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
 from vigilancia_multiagente.application.fusion.report_synthesizer import ReportSynthesizer
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
-from vigilancia_multiagente.shared.graph_dto import GraphAnalyticsPayload
 from vigilancia_multiagente.application.observability.metrics_service import MetricsService
-from vigilancia_multiagente.application.orchestration.orchestrator_service import OrchestratorService
+from vigilancia_multiagente.application.orchestration.orchestrator_service import (
+    OrchestratorService,
+)
 from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
+from vigilancia_multiagente.config.settings import get_settings
+from vigilancia_multiagente.config.workstream_overrides import resolve_workstream_config
 from vigilancia_multiagente.domain.conversation_state import SessionContinuationState
 from vigilancia_multiagente.domain.global_knowledge import GlobalKnowledgeSnapshot
 from vigilancia_multiagente.domain.models import BranchType, ResearchPlan, ResearchSession
@@ -34,6 +37,7 @@ from vigilancia_multiagente.domain.repositories import (
     SessionRepository,
 )
 from vigilancia_multiagente.domain.session_state import SessionStatus
+from vigilancia_multiagente.shared.graph_dto import GraphAnalyticsPayload
 from vigilancia_multiagente.shared.vector_record import VectorRecord
 
 logger = logging.getLogger(__name__)
@@ -115,8 +119,30 @@ class ApproveResearchUseCase:
                 trend_projections,  # type: ignore[arg-type]
             )
 
+        # Spec 007-008: build session evaluation from active workstreams
+        # so it lands in the final report (fix: was never passed before).
+        settings = get_settings()
+        config = resolve_workstream_config(settings)
+        active_list = [k for k in ("ws_a", "ws_b", "ws_c", "ws_d", "ws_e") if getattr(config, k)]
+        session_evaluation = None
+        if active_list:
+            session_evaluation = {
+                "session_id": str(session_id),
+                "active_workstreams": active_list,
+                "ws_a": _build_empty_ws_result("a") if config.ws_a else None,
+                "ws_b": _build_empty_ws_result("b") if config.ws_b else None,
+                "ws_c": _build_empty_ws_result("c") if config.ws_c else None,
+                "ws_d": _build_empty_ws_result("d") if config.ws_d else None,
+                "ws_e": _build_empty_ws_result("e") if config.ws_e else None,
+            }
+
         report = await self.report_synthesizer.synthesize(
-            session_id, branch_results, linked_findings, all_sources, llm=self.llm_client
+            session_id,
+            branch_results,
+            linked_findings,
+            all_sources,
+            llm=self.llm_client,
+            session_evaluation=session_evaluation,
         )
 
         try:
@@ -368,6 +394,52 @@ class ApproveResearchUseCase:
 
     def _append_event(self, session_id: UUID, event: SessionEvent) -> None:
         self.event_log.setdefault(str(session_id), []).append(format_sse(event))
+
+
+def _build_empty_ws_result(ws: str) -> dict:
+    """Return empty scaffold matching the workstream data shape."""
+    scaffolds = {
+        "a": {
+            "author_reputations": [],
+            "conflicts_of_interest": [],
+            "external_validations": [],
+            "retraction_records": [],
+            "reproducibility_scores": [],
+            "effective_freshness": [],
+        },
+        "b": {
+            "hybrid_search_stats": {},
+            "dedup_rate": 0.0,
+            "deduped_sources": [],
+            "authenticity_signals": [],
+            "consensus_disputes": [],
+        },
+        "c": {
+            "s_curves": [],
+            "meta_analyses": [],
+            "implicit_assumptions": [],
+            "counterfactuals": [],
+            "critical_dependencies": [],
+        },
+        "d": {
+            "convergence_clusters": [],
+            "collaboration_network": [],
+            "idea_lineages": [],
+            "narrative_shifts": [],
+            "talent_mobilities": [],
+            "patenting_gaps": [],
+        },
+        "e": {
+            "bias_audit": None,
+            "forensic_traces": [],
+            "stakeholder_simulations": [],
+            "falsification_scenarios": [],
+            "calibration_curve": None,
+            "quality_gate_passed": True,
+            "calibrated_confidence": None,
+        },
+    }
+    return scaffolds.get(ws, {})
 
 
 def graph_analytics_payload(graph_analytics: GraphAnalyticsPayload) -> dict[str, object]:

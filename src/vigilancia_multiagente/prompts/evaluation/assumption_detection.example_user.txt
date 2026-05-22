@@ -1,0 +1,2 @@
+Finding: Edge-AI deployments will replace cloud-based inference in industrial QA pipelines within 18 months.
+Source: A survey of 12 European auto-parts factories showed that 4 of them piloted edge-AI vision systems in 2024 with 30–40% latency reductions vs cloud baselines. Two pilots reported cost savings; the rest did not report cost data. None of the surveyed plants had completed certification under the upcoming EU Machinery Regulation.

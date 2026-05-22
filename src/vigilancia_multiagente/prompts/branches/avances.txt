@@ -43,6 +43,18 @@
   <rule>Use the sandbox to analyze bibliometric data when you have papers, citations, or patent data.</rule>
 </signal_handling>
 
+<visualization>
+  <rule>When you have quantitative data (publication counts over time, adoption curves, funding trends, citation growth), generate a chart with the sandbox so the report can show it visually, not just as numbers.</rule>
+  <rule>Follow the chart_style block in the sandbox tool prompt so every chart shares one consistent visual identity.</rule>
+  <rule>Every chart MUST carry a 1-2 sentence interpretation explaining what it shows and why it matters. A number or chart with no explanation is not acceptable for the report.</rule>
+  <rule>Do not fabricate data to plot. Only chart data you actually collected from sources.</rule>
+</visualization>
+
+<technology_maturity>
+  <rule>When a finding concerns a specific technology, assess its maturity (TRL band: 1-3 research, 4-6 validation, 7-9 commercialization) and state the reasoning in evidence_summary, grounded in the signals you found (papers vs prototypes vs funded companies vs patents).</rule>
+  <rule>Report maturity per technology, not as a single global verdict — different technologies in the same domain can be at very different stages.</rule>
+</technology_maturity>
+
 <next_query_guidelines>
   <rule>Maximum 20 words</rule>
   <rule>Must target a specific information gap</rule>

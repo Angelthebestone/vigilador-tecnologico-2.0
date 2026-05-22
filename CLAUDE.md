@@ -147,5 +147,5 @@ Pydantic Settings with prefix `VT_`. Copy `.env.example` to `.env`. Key variable
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/007-evaluacion-inteligente/plan.md`.
+at `specs/008-frontend-workstream-activation/plan.md`.
 <!-- SPECKIT END -->

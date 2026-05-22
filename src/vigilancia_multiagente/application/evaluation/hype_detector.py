@@ -183,6 +183,128 @@ class HypeDetector:
         report.trl_label = _TRL_LABELS[phase]
         report.maturity_analysis = detail
 
+    @classmethod
+    def infer_from_branch_results(cls, branch_results) -> HypeReport:
+        """Estima un TRL global a partir de los findings ya recolectados,
+        sin llamar a proveedores en vivo. Mantiene compatibilidad con
+        consumidores que esperan un único HypeReport agregado.
+        """
+        statements = [
+            finding.statement
+            for result in branch_results
+            for finding in result.findings
+        ]
+        signals = _count_signals(statements)
+        report = HypeReport(tech="", signals=signals)
+        cls._infer_maturity(report, signals)
+        return report
+
+    @classmethod
+    def infer_per_technology(cls, branch_results) -> list[HypeReport]:
+        """Estima el TRL de CADA tecnología detectada por separado.
+
+        Agrupa los findings por su `topic` (cada topic representa una
+        tecnología o concepto distinto) y calcula un HypeReport
+        independiente para cada uno. Así el informe puede reportar, por
+        ejemplo, que "Gemelos Digitales de Base Humana" está en TRL 4-6
+        mientras otra tecnología está en TRL 7-9.
+        """
+        by_topic: dict[str, list[str]] = {}
+        for result in branch_results:
+            for finding in result.findings:
+                topic = (finding.topic or "").strip()
+                if not topic:
+                    continue
+                by_topic.setdefault(topic, []).append(finding.statement)
+
+        reports: list[HypeReport] = []
+        for topic, statements in by_topic.items():
+            # Solo tecnologías con evidencia suficiente (>=2 findings) para
+            # evitar ruido de menciones aisladas.
+            if len(statements) < 2:
+                continue
+            signals = _count_signals(statements)
+            report = HypeReport(tech=topic, signals=signals)
+            cls._infer_maturity(report, signals)
+            if report.trl_phase != "unknown":
+                reports.append(report)
+
+        # Orden estable: comercialización primero (más maduras).
+        phase_order = {
+            "commercialization": 0,
+            "validation": 1,
+            "research": 2,
+            "unknown": 3,
+        }
+        reports.sort(key=lambda r: (phase_order.get(r.trl_phase, 3), r.tech))
+        return reports
+
+    @staticmethod
+    def render_section(report: HypeReport) -> str:
+        """Renderiza la sección de madurez para un único HypeReport."""
+        if report.trl_phase == "unknown":
+            return ""
+        return "\n".join(
+            [
+                "## Madurez tecnológica",
+                "",
+                f"- **{report.trl_label}**",
+                f"- {report.maturity_analysis}",
+                "",
+            ]
+        )
+
+    @staticmethod
+    def render_per_technology_section(reports: list[HypeReport]) -> str:
+        """Renderiza la sección de madurez con un sub-bloque por tecnología.
+
+        Cada tecnología es un subtítulo `### Nombre` seguido de su TRL en
+        negrita y una descripción. El frontend (MaturitySection) parsea
+        estos subtítulos para renderizar un gauge TRL por tecnología.
+        """
+        if not reports:
+            return ""
+        lines: list[str] = [
+            "## Madurez tecnológica",
+            "",
+            "Nivel de madurez tecnológica (TRL) estimado para cada "
+            "tecnología detectada en la investigación:",
+            "",
+        ]
+        for report in reports:
+            lines.append(f"### {report.tech}")
+            lines.append(f"- **{report.trl_label}**")
+            lines.append(f"- {report.maturity_analysis}")
+            lines.append("")
+        return "\n".join(lines)
+
+
+def _count_signals(statements: list[str]) -> dict[str, int]:
+    """Cuenta señales de madurez (papers / prototipos / funding / patentes)
+    en un conjunto de statements de findings."""
+    signals: dict[str, int] = dict.fromkeys(_SIGNAL_KEYWORDS, 0)
+    for statement in statements:
+        text = statement.lower()
+        for key, keywords in _SIGNAL_KEYWORDS.items():
+            if any(kw in text for kw in keywords):
+                signals[key] += 1
+    return signals
+
+
+# Palabras clave para contar señales de madurez en los statements.
+_SIGNAL_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "academic_papers": ("paper", "study", "research", "arxiv", "preprint", "investigación"),
+    "working_prototypes": (
+        "prototype", "demo", "beta", "pilot", "deployment",
+        "prototipo", "piloto", "despliegue",
+    ),
+    "companies_with_funding": (
+        "funding", "raised", "series", "investment", "startup",
+        "inversión", "financiación",
+    ),
+    "patents": ("patent", "patente", "trademark"),
+}
+
 
 def _infer_from_s_curve(report: HypeReport, proj: SCurveProjection) -> None:
     """Deriva TRL de los parametros de la curva-S (spec 007 T101)."""
@@ -222,46 +344,3 @@ def _infer_from_s_curve(report: HypeReport, proj: SCurveProjection) -> None:
     report.trl_phase = phase
     report.trl_label = _TRL_LABELS.get(phase, _TRL_LABELS["unknown"])
     report.maturity_analysis = detail
-
-    @classmethod
-    def infer_from_branch_results(cls, branch_results) -> HypeReport:
-        """Estima el TRL a partir de los findings ya recolectados, sin llamar
-        a proveedores en vivo (igual de determinístico que el resto de
-        analizadores de inteligencia).
-
-        Cuenta señales por palabras clave en los statements: papers /
-        prototipos / funding / patentes.
-        """
-# STATUS: ACTIVE
-
-        signal_keywords: dict[str, tuple[str, ...]] = {
-            "academic_papers": ("paper", "study", "research", "arxiv", "preprint"),
-            "working_prototypes": ("prototype", "demo", "beta", "pilot", "deployment"),
-            "companies_with_funding": ("funding", "raised", "series", "investment", "startup"),
-            "patents": ("patent", "ip ", "trademark"),
-        }
-        signals: dict[str, int] = dict.fromkeys(signal_keywords, 0)
-        for result in branch_results:
-            for finding in result.findings:
-                text = finding.statement.lower()
-                for key, keywords in signal_keywords.items():
-                    if any(kw in text for kw in keywords):
-                        signals[key] += 1
-
-        report = HypeReport(tech="", signals=signals)
-        cls._infer_maturity(report, signals)
-        return report
-
-    @staticmethod
-    def render_section(report: HypeReport) -> str:
-        if report.trl_phase == "unknown":
-            return ""
-        return "\n".join(
-            [
-                "## Madurez tecnológica",
-                "",
-                f"- **{report.trl_label}**",
-                f"- {report.maturity_analysis}",
-                "",
-            ]
-        )

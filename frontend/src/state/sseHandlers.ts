@@ -4,12 +4,14 @@ import { useStore } from './useStore';
 import { useChatStore } from './chatStore';
 import { useAgentsStore } from './agentsStore';
 import { useHistoryStore } from './historyStore';
+import { useConfigStore } from './configStore';
 import type {
   ResearchPlan,
   FinalReport,
   ThinkingStep,
   BranchType,
   ReplanSignal,
+  SessionEvaluation,
 } from '@/types';
 
 interface SessionStartedData {
@@ -36,6 +38,7 @@ interface BranchProgressData {
 
 interface ReportGeneratedData {
   report: FinalReport;
+  evaluation?: SessionEvaluation;
 }
 
 interface GraphEventData {
@@ -50,7 +53,13 @@ export function createSSEHandlers(): Record<string, (data: unknown) => void> {
   return {
     SessionStarted: (data) => {
       const d = data as SessionStartedData;
-      store.setSession(d.sessionId, d.userQuery);
+      // Solo poblar sessionId/userQuery si todavía no están seteados; nunca
+      // reescribir cuando ya estamos en EXECUTING tras el approve, porque
+      // setSession resetea sessionStatus a 'DRAFT' y rompe el SSE en marcha.
+      const current = useStore.getState();
+      if (!current.sessionId) {
+        store.setSession(d.sessionId, d.userQuery);
+      }
       chatStore.addMessage({
         type: 'system',
         role: 'assistant',
@@ -125,6 +134,10 @@ export function createSSEHandlers(): Record<string, (data: unknown) => void> {
       if (!sessionId) return;
       try {
         const report = await getReport(sessionId);
+        // Spec 008 T037 — attach evaluation from SSE payload when available
+        if (d.evaluation && !report.evaluation) {
+          (report as FinalReport).evaluation = d.evaluation;
+        }
         useStore.getState().setReport(report);
         useStore.getState().setSessionStatus('COMPLETED');
         const userQuery = useStore.getState().userQuery;
@@ -182,6 +195,8 @@ export function createSSEHandlers(): Record<string, (data: unknown) => void> {
           })),
         );
       }
+      // Spec 008 T037 — refresh config store so WorkstreamIndicator stays in sync
+      useConfigStore.getState().fetchWorkstreams();
     },
 
     GraphBuildingStarted: (data) => {

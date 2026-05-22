@@ -11,7 +11,6 @@ from vigilancia_multiagente.application.evaluation.finding_impact_scorer import 
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.weak_signal_detector import WeakSignalDetector
 from vigilancia_multiagente.application.fusion.adversarial_critic import AdversarialCritic
-from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.models import (
     BranchResult,
     FinalReport,
@@ -19,6 +18,7 @@ from vigilancia_multiagente.domain.models import (
     Recommendation,
     SourceRef,
 )
+from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
 from vigilancia_multiagente.domain.system_base import MiniMaxMessage
@@ -49,10 +49,17 @@ def _build_intelligence_sections(
     weak_report = WeakSignalDetector().detect(branch_results, recurring_entities)
     timeline = CausalTimelineBuilder().build(branch_results)
     scored = FindingImpactScorer(cast(Any, source_scorer)).score(branch_results)
-    maturity = HypeDetector.infer_from_branch_results(branch_results)
+    # Madurez por tecnología: cada topic detectado recibe su propio TRL.
+    # Si no hay tecnologías con evidencia suficiente, cae al TRL global.
+    maturity_per_tech = HypeDetector.infer_per_technology(branch_results)
 
     parts: list[str] = []
-    section = HypeDetector.render_section(maturity)
+    if maturity_per_tech:
+        section = HypeDetector.render_per_technology_section(maturity_per_tech)
+    else:
+        section = HypeDetector.render_section(
+            HypeDetector.infer_from_branch_results(branch_results)
+        )
     if section:
         parts.append(section)
     if scored:
@@ -112,6 +119,7 @@ class ReportSynthesizer:
         linked_findings: list[Finding],
         all_sources: list[SourceRef],
         llm: LLMClient | None = None,
+        session_evaluation: object = None,
     ) -> FinalReport:
         from vigilancia_multiagente.application.events.sse_publisher import SessionEvent, format_sse
 
@@ -204,6 +212,7 @@ class ReportSynthesizer:
                         total_learnings=len(linked_findings),
                         confidence_score=float(data.get("confidence_score", 0.72)),
                     )
+                    llm_report.evaluation = session_evaluation
                     return await self._apply_quality_gate(llm_report)
             except (json.JSONDecodeError, KeyError, TypeError, RuntimeError) as exc:
                 logger.warning("MiniMax synthesis failed, using template fallback: %s", exc)
@@ -229,6 +238,7 @@ class ReportSynthesizer:
             total_learnings=len(linked_findings),
             confidence_score=0.72,
         )
+        template_report.evaluation = session_evaluation
         return await self._apply_quality_gate(template_report)
 
     async def _apply_quality_gate(self, report: FinalReport) -> FinalReport:

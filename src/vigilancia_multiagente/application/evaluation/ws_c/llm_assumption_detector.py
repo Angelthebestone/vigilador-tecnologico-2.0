@@ -23,10 +23,12 @@ from vigilancia_multiagente.domain.pipeline_errors import (
     StepErrorSeverity,
     Workstream,
 )
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.ports.assumption_detector import AssumptionDetector
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
-from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +54,16 @@ class LlmAssumptionDetector(AssumptionDetector):
         source_text: str,
     ) -> list[ImplicitAssumption]:
         try:
-            system_prompt = self._prompt_loader.load("evaluation/assumption_detection.txt")
+            messages = build_messages_with_fewshot(
+                prompt_loader=self._prompt_loader,
+                base_path="evaluation/assumption_detection.txt",
+                user_content=(
+                    f"Finding: {finding.statement}\nSource: {source_text[:2000]}"
+                ),
+            )
         except FileNotFoundError as exc:
             self._record_error(exc, context={"prompt": "evaluation/assumption_detection.txt"})
             return []
-
-        messages = [
-            MiniMaxMessage(role="system", content=system_prompt),
-            MiniMaxMessage(
-                role="user",
-                content=f"Finding: {finding.statement}\nSource: {source_text[:2000]}",
-            ),
-        ]
         try:
             response = await self._llm.complete(messages)
         except Exception as exc:
