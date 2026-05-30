@@ -46,6 +46,39 @@ ruff check src/ tests/
 ruff format src/ tests/
 ```
 
+## Enterprise (spec 009 — Vigilador 3.0 MVP Foundation)
+
+La capa `enterprise/` añade el adapter Xiaomimimo, ToolRegistry, HealthMonitor, OAuthManager,
+observabilidad y los endpoints `/api/v2/enterprise/*` (auth, onboarding, tools, /metrics).
+
+**Migraciones** (SQL crudo, NO Alembic — el 2.0 no usa ORM): las 5 tablas enterprise viven en
+`infra/db/migrations/006_mvp_foundation.sql` y las aplica el `MigrationRunner` existente en el
+startup (`database.initialize()`). No hay `alembic upgrade head`; basta arrancar la app o:
+```python
+python -c "import asyncio; from vigilancia_multiagente.infra.db.connection import database; asyncio.run(database.initialize())"
+```
+
+**Variables de entorno nuevas** (prefijo `VT_`, todas con default salvo la API key):
+- `VT_XIAOMIMIMO_API_KEY` (requerida para el LLM default del MVP), `VT_XIAOMIMIMO_MODEL`
+  (`mimo-v2-flash`), `VT_XIAOMIMIMO_BASE_URL`.
+- `VT_LLM_DEFAULT` (`xiaomimimo`|`minimax`), `VT_LLM_ADAPTER_XIAOMIMIMO_ENABLED`,
+  `VT_LLM_ADAPTER_MINIMAX_ENABLED`.
+- `VT_HEALTH_MONITOR_ENABLED`, `VT_HEALTH_MONITOR_INTERVAL_SEC` (30),
+  `VT_HEALTH_MONITOR_CB_THRESHOLD` (3), `VT_HEALTH_MONITOR_CB_WINDOW_SEC` (60),
+  `VT_HEALTH_MONITOR_COOLDOWN_SEC` (300).
+- `VT_CREDENTIALS_DIR` (Fernet key; default `~/.vigilador/credentials/`),
+  `VT_DEFAULT_TENANT_ID`, `VT_OTEL_EXPORTER_ENDPOINT`, `VT_PROMETHEUS_METRICS_PATH`,
+  `VT_ADMIN_USERNAME`.
+
+**HealthMonitor**: arranca en el lifespan de FastAPI si `VT_HEALTH_MONITOR_ENABLED=true` y hay
+un `tool_registry` en `app.state`. Escribe JSONL en `~/.vigilador/audit/healthcheck.log`.
+
+**Deshabilitar enterprise**: poner `VT_HEALTH_MONITOR_ENABLED=false` desactiva el monitor; los
+routers `/api/v2/enterprise/*` son aditivos y no afectan al 2.0. Revertir la superficie nueva =
+no registrar los routers en `api/router.py` (el resto del 2.0 queda intacto).
+
+**Tests enterprise**: `pytest tests/enterprise/`. Frontend: `npm test --prefix frontend`.
+
 ## Architecture
 
 ### Layers

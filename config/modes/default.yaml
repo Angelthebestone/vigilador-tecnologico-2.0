@@ -1,0 +1,21 @@
+id: default
+display_name: "Asistente General"
+description: "Modo por defecto del Vigilador. Acceso a búsqueda web, documentos y herramientas generales."
+version: "1.0.0"
+status: active
+
+tools:
+  domains:
+    - search
+    - web
+    - documents
+  excluded: []
+
+playbooks:
+  default: general
+  allowed:
+    - general
+
+mode_settings:
+  language_default: es
+  intensity: REACTIVE

@@ -1,0 +1,35 @@
+id: vigilancia-tech
+display_name: "Vigilancia Tecnológica"
+description: "Modo especializado en vigilancia tecnológica. Compatible con el flujo 2.0 (BranchCoordinator + 6 agentes de rama)."
+version: "1.0.0"
+status: active
+
+soul_overlay:
+  tone: "analítico, técnico, orientado a datos"
+  vocabulary_emphasis:
+    - tendencias
+    - innovación
+    - patentes
+    - competidores
+  do_rules:
+    - "Citar fuentes académicas y técnicas"
+    - "Priorizar datos recientes (últimos 12 meses)"
+  dont_rules:
+    - "No emitir opiniones sin respaldo de datos"
+
+tools:
+  domains:
+    - search
+    - research
+    - web
+    - analytics
+  excluded: []
+
+playbooks:
+  default: technology-watch
+  allowed:
+    - technology-watch
+
+mode_settings:
+  language_default: es
+  intensity: REACTIVE

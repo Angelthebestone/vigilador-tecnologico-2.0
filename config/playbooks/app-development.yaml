@@ -1,0 +1,87 @@
+id: app-development
+name: App Development (Spec-Kit Pipeline)
+executor_type: single_agent
+parallel: false
+mode_compatible:
+  - Operaciones PYME
+  - CEO
+  - default
+  - CFO
+complexity_routing:
+  SIMPLE:
+    skip: true
+    redirect_to: general
+  MODERADA:
+    phases:
+      - constitution
+      - specify
+      - plan
+      - tasks
+      - implement
+  COMPLEJA:
+    phases:
+      - constitution
+      - specify
+      - plan
+      - tasks
+      - analyze
+      - implement
+      - test
+agents:
+  - id: constitution_agent
+    role: constitution_definer
+    skills_allowed:
+      - template_render
+      - file_system
+  - id: specify_agent
+    role: spec_writer
+    skills_allowed:
+      - template_render
+  - id: plan_agent
+    role: architect
+    skills_allowed:
+      - template_render
+  - id: tasks_agent
+    role: task_decomposer
+    skills_allowed:
+      - template_render
+  - id: analyze_agent
+    role: coherence_verifier
+    skills_allowed:
+      - template_render
+  - id: implement_agent
+    role: code_generator
+    skills_allowed:
+      - template_render
+      - e2b_sandbox
+      - file_system
+  - id: test_agent
+    role: test_runner
+    skills_allowed:
+      - e2b_sandbox
+      - file_system
+flow:
+  type: sequential
+  phases_order:
+    - constitution
+    - specify
+    - plan
+    - tasks
+    - analyze
+    - implement
+    - test
+  approval_at_end_of:
+    - constitution
+    - analyze
+output_schema:
+  constitution: constitution.md
+  spec: spec.md
+  plan: plan.md
+  tasks: tasks.md
+  analyze_report: analyze-report.md
+  checklist: checklist.md
+guardrails:
+  max_total_llm_calls: 500
+  max_session_duration_seconds: 86400
+  cove_required: true
+  sandbox_required: true

@@ -1,0 +1,17 @@
+id: consultor-legal
+display_name: "Consultor Legal"
+description: "Modo para consultoría legal. Enfoque en normativa y cumplimiento."
+version: "1.0.0"
+status: roadmap
+
+tools:
+  domains:
+    - search
+    - research
+    - legal
+  excluded: []
+
+playbooks:
+  default: general
+  allowed:
+    - general

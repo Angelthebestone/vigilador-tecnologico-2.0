@@ -1,0 +1,15 @@
+id: decision-debate
+name: Decision Debate
+executor_type: crewai
+parallel: false
+agents:
+  - id: advocate
+    role: decision_advocate
+    skills_allowed:
+      - web_search
+      - document_analysis
+  - id: critic
+    role: decision_critic
+    skills_allowed:
+      - web_search
+      - document_analysis

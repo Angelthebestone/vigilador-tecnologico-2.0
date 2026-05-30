@@ -1,0 +1,17 @@
+id: marketing
+display_name: "Marketing"
+description: "Modo para equipos de marketing. Enfoque en análisis de mercado y contenido."
+version: "1.0.0"
+status: roadmap
+
+tools:
+  domains:
+    - search
+    - web
+    - analytics
+  excluded: []
+
+playbooks:
+  default: general
+  allowed:
+    - general

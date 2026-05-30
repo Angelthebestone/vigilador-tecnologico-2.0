@@ -1,0 +1,16 @@
+id: deep-research
+name: Deep Research
+executor_type: crewai
+parallel: false
+agents:
+  - id: researcher
+    role: deep_researcher
+    skills_allowed:
+      - web_search
+      - document_analysis
+      - deep_research
+  - id: synthesizer
+    role: research_synthesizer
+    skills_allowed:
+      - report_generation
+      - document_analysis

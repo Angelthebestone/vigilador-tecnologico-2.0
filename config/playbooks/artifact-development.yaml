@@ -1,0 +1,43 @@
+id: artifact-development
+name: Artifact Development
+display_name: "Desarrollo de Artefactos (Dashboards, Pipelines, Métricas)"
+executor_type: single_agent
+parallel: false
+mode_compatible:
+  - CEO
+  - CFO
+  - Operaciones PYME
+  - Marketing
+flow:
+  type: sequential
+  fases_order:
+    - source_inventory
+    - metric_model
+    - pipeline_plan
+    - build
+    - verify
+    - publish
+agents:
+  - id: source_inventory_agent
+    role: inventario_fuentes
+    skills_allowed:
+      - analytics:source_profile
+      - code:file_system
+  - id: metric_model_agent
+    role: modelado_kpis
+    skills_allowed:
+      - analytics:kpi_modeling
+  - id: builder_agent
+    role: constructor_artefactos
+    skills_allowed:
+      - analytics:dashboard_generate
+      - code:e2b_sandbox
+      - code:file_system
+output_schema:
+  artifact_type: string
+  artifact_path: string
+  data_sources: list
+  refresh_policy: string
+  metrics: list
+guardrails:
+  sandbox_required: true

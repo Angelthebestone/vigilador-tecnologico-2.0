@@ -1,0 +1,17 @@
+id: cfo
+display_name: "Director Financiero"
+description: "Modo para directores financieros. Enfoque en análisis financiero y presupuestario."
+version: "1.0.0"
+status: roadmap
+
+tools:
+  domains:
+    - search
+    - research
+    - finance
+  excluded: []
+
+playbooks:
+  default: general
+  allowed:
+    - general

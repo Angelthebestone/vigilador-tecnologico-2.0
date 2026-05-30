@@ -1,0 +1,35 @@
+id: technology-watch
+name: Technology Watch
+executor_type: branch_coordinator
+parallel: true
+agents:
+  - id: avances
+    role: avances_tecnologicos
+    skills_allowed:
+      - web_search
+      - document_analysis
+  - id: comercial
+    role: inteligencia_comercial
+    skills_allowed:
+      - web_search
+      - document_analysis
+  - id: riesgo
+    role: analisis_riesgo
+    skills_allowed:
+      - web_search
+      - document_analysis
+  - id: pi_normativa
+    role: propiedad_intelectual
+    skills_allowed:
+      - web_search
+      - document_analysis
+  - id: competitivo
+    role: analisis_competitivo
+    skills_allowed:
+      - web_search
+      - document_analysis
+  - id: oportunidades
+    role: oportunidades_mercado
+    skills_allowed:
+      - web_search
+      - document_analysis

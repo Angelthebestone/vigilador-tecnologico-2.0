@@ -1,0 +1,17 @@
+id: operaciones-pyme
+display_name: "Operaciones PYME"
+description: "Modo para operaciones de pequeñas y medianas empresas."
+version: "1.0.0"
+status: roadmap
+
+tools:
+  domains:
+    - search
+    - web
+    - productivity
+  excluded: []
+
+playbooks:
+  default: general
+  allowed:
+    - general

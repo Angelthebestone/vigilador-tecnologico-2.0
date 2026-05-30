@@ -2,7 +2,6 @@
 name = "vigilancia-multiagente"
 version = "0.1.0"
 description = "Sistema multiagente de vigilancia tecnologica"
-readme = "SPEC_V2.md"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",
@@ -28,7 +27,21 @@ dependencies = [
   "python-dotenv>=1.0.1",
   "pyyaml>=6.0.2",
   "rank_bm25>=0.2.2",
+  # Spec 009 — Vigilador 3.0 MVP foundation (enterprise/)
+  "openai>=1.40",
+  "cryptography>=42",
+  "apscheduler>=3.10",
+  "prometheus-client>=0.19",
+  "opentelemetry-api>=1.27",
+  "opentelemetry-sdk>=1.27",
+  # Spec 016/018 — MVP ola 1 (audit CLI + document tools)
+  "click>=8.1",
+  "jinja2>=3.1",
+  "python-docx>=1.1",
 ]
+
+[project.scripts]
+vigilador-admin = "vigilancia_multiagente.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -37,7 +50,10 @@ dev = [
   "ruff>=0.5.0",
   "mypy>=1.10.0",
   "basedpyright>=1.39.0",
+  # Spec 009 — mock del endpoint OpenAI-compatible en tests del XiaomimimoClient
+  "respx>=0.21",
 ]
+pdf = ["weasyprint>=61.0"]
 
 [build-system]
 requires = ["hatchling"]

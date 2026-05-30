@@ -3,6 +3,14 @@ from fastapi import APIRouter
 from vigilancia_multiagente.api.routes.config_prompts import router as config_prompts_router
 from vigilancia_multiagente.api.routes.config_workstreams import router as config_workstreams_router
 from vigilancia_multiagente.api.routes.conversation import router as conversation_router
+from vigilancia_multiagente.api.routes.enterprise_metrics import router as enterprise_metrics_router
+from vigilancia_multiagente.api.routes.enterprise_onboarding import (
+    router as enterprise_onboarding_router,
+)
+from vigilancia_multiagente.api.routes.enterprise_subsystems import (
+    router as enterprise_subsystems_router,
+)
+from vigilancia_multiagente.api.routes.enterprise_tools import router as enterprise_tools_router
 from vigilancia_multiagente.api.routes.reports import router as reports_router
 from vigilancia_multiagente.api.routes.research_approve import router as approve_router
 from vigilancia_multiagente.api.routes.research_delete import router as delete_router
@@ -40,3 +48,7 @@ api_v2_router.include_router(reports_router)
 api_v2_router.include_router(conversation_router)
 api_v2_router.include_router(delete_router)
 api_v2_router.include_router(upload_router)
+api_v2_router.include_router(enterprise_onboarding_router)
+api_v2_router.include_router(enterprise_tools_router)
+api_v2_router.include_router(enterprise_metrics_router)
+api_v2_router.include_router(enterprise_subsystems_router)

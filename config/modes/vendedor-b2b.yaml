@@ -1,0 +1,17 @@
+id: vendedor-b2b
+display_name: "Vendedor B2B"
+description: "Modo para ventas B2B. Enfoque en prospección y relaciones comerciales."
+version: "1.0.0"
+status: roadmap
+
+tools:
+  domains:
+    - search
+    - web
+    - productivity
+  excluded: []
+
+playbooks:
+  default: general
+  allowed:
+    - general

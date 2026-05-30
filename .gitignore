@@ -35,6 +35,7 @@ ENV/
 env.bak/
 venv.bak/
 
+.commancode/
 # Test / coverage / type caches
 .pytest_cache/
 .mypy_cache/
@@ -100,6 +101,9 @@ uploads/
 
 # ---------- Documentation (third-party READMEs) ----------
 documentation/
+
+# ---------- Kiro CLI (agent workspace state, like .claude/.cursor) ----------
+.kiro/
 
 # ---------- Specs / feature artifacts ----------
 
@@ -553,3 +557,17 @@ frontend/public/mock-chart.png
 .commandcode/skills/web-design-guidelines/SKILL.md
 .commandcode/taste/taste.md
 $null
+.kilo/kilo.json
+
+
+
+.cursor/rules/specify-rules.mdc
+.cursor/skills/speckit-analyze/SKILL.md
+.cursor/skills/speckit-checklist/SKILL.md
+.cursor/skills/speckit-clarify/SKILL.md
+.cursor/skills/speckit-constitution/SKILL.md
+.cursor/skills/speckit-implement/SKILL.md
+.cursor/skills/speckit-plan/SKILL.md
+.cursor/skills/speckit-specify/SKILL.md
+.cursor/skills/speckit-tasks/SKILL.md
+.cursor/skills/speckit-taskstoissues/SKILL.md

@@ -1,0 +1,11 @@
+id: general
+name: General Assistant
+executor_type: single_agent
+parallel: false
+agents:
+  - id: general_assistant
+    role: general_assistant
+    skills_allowed:
+      - web_search
+      - document_analysis
+      - report_generation

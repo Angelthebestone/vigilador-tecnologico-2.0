@@ -80,6 +80,115 @@ class Settings(BaseSettings):
     workstream_overrides_path: str = "config/workstream_overrides.json"
     prompt_overrides_dir: str = "config/prompt_overrides"
 
+    # ------------------------------------------------------------------
+    # Spec 009 — Vigilador 3.0 MVP Foundation (enterprise/)
+    # Campos aditivos. Nada obligatorio salvo xiaomimimo_api_key para que el
+    # LLM default del MVP funcione. Se mantiene el patrón plano del 2.0
+    # (claves VT_<campo>), no objetos anidados.
+    # ------------------------------------------------------------------
+
+    # LLM provider activo y adapters
+    llm_default: str = "xiaomimimo"  # xiaomimimo | minimax
+    llm_adapter_xiaomimimo_enabled: bool = True
+    llm_adapter_minimax_enabled: bool = False
+
+    # Xiaomimimo (default del MVP, endpoint OpenAI-compatible)
+    xiaomimimo_api_key: SecretStr | None = None
+    xiaomimimo_model: str = "mimo-v2-flash"
+    xiaomimimo_base_url: str = "https://platform.xiaomimimo.com/v1"
+
+    # HealthMonitor (CQS; circuit breaker)
+    health_monitor_enabled: bool = True
+    health_monitor_interval_sec: int = 30
+    health_monitor_cb_threshold: int = 3
+    health_monitor_cb_window_sec: int = 60
+    health_monitor_cooldown_sec: int = 300
+
+    # OAuth & credentials (Fernet). Vacío resuelve a ~/.vigilador/credentials/.
+    credentials_dir: str | None = None
+
+    # Tenant (single-tenant en MVP; schema preparado para multi-tenancy)
+    default_tenant_id: str = "00000000-0000-0000-0000-000000000001"
+
+    # Observabilidad
+    otel_exporter_endpoint: str | None = None
+    prometheus_metrics_path: str = "/metrics"
+
+    # Admin frontend (single-tenant)
+    admin_username: str = "admin"
+
+    # Spec 018 — catálogo SSOT de tools/MCPs
+    catalog_path: str = "config/tools/catalog.yaml"
+
+    # Spec 016 — audit trail (directorio de logs JSONL de modificaciones)
+    audit_dir: str = "~/.vigilador/audit/agent_mods"
+
+    # ------------------------------------------------------------------
+    # Specs 011-017 — Ola 2 (modes, skills, playbooks, goals, artifacts,
+    # dreaming). Campos aditivos planos VT_<campo>. Defaults seguros: el
+    # subsistema dreaming arranca OFF (ejecuta fases en background).
+    # ------------------------------------------------------------------
+    # Composition gate
+    enterprise_enabled: bool = True
+    file_system_root: str = ""  # vacío resuelve al PROJECT_ROOT
+
+    # Spec 011 — modes + playbooks
+    modes_dir: str = "config/modes"
+    playbooks_dir: str = "config/playbooks"
+
+    # Spec 015 + Spec 021 D3 — skill marketplace (sin claude-local en runtime)
+    skills_marketplace_enabled: bool = True
+    skills_sources_enabled: list[str] = [
+        "curated",
+        "learned",
+        "external:k-dense",
+        "external:agency-agents",
+    ]
+    skills_curated_path: str = "config/skills/curated"
+    skills_learned_path: str = "config/skills/learned"
+    # Spec 021 D2 — repos clonados dentro de src/
+    skills_vendor_dir: str = (
+        "src/vigilancia_multiagente/enterprise/skills_marketplace/_vendor"
+    )
+
+    # Spec 013 — goal pursuit
+    goal_pursuit_max_depth: int = 5
+    goal_pursuit_checkpoint_every: int = 3
+    goal_pursuit_token_ttl_sec: int = 28800
+
+    # Spec 014 — artifact development
+    artifacts_registry_path: str = "data/artifacts.jsonl"
+
+    # Spec 017 — dreaming (background maintenance; default OFF por seguridad)
+    dreaming_enabled: bool = False
+    dreaming_cron_hour: int = 3
+    dreaming_idle_timeout_min: int = 10
+
+    # ------------------------------------------------------------------
+    # Spec 021 — Integracion Runtime MVP (D1..D5)
+    # ------------------------------------------------------------------
+    # MCP fallback supervisor (FR-004..008). En native-first idealmente N=0.
+    mcp_external_config: str = "config/mcp/external.yaml"
+    mcp_supervisor_enabled: bool = True
+    mcp_logs_dir: str = "~/.vigilador/mcp-logs"
+    # Vector index (D1 revisada): TurboVec NATIVO via paquete PyPI `turbovec`.
+    vector_index_backend: str = "turbovec"
+    # Ingestion (F2)
+    ingestion_enabled: bool = True
+    ingestion_connectors: list[str] = ["google_drive"]
+    # Provider selection (FR-049)
+    embedding_provider: str = "gemini"
+    reranker_provider: str = "cohere"
+    # Frontend MVP (FR-046, sin login por D4)
+    frontend_enabled: bool = True
+    onboarding_enabled: bool = True
+    # Computer use (FR-029/030, off por seguridad)
+    computer_use_enabled: bool = False
+    computer_use_app_allowlist: list[str] = []
+    # Governance (FR-042..045)
+    tools_delete_whitelist: list[str] = ["forget_user"]
+    pi_defense_enabled: bool = True
+
     model_config = SettingsConfigDict(
         env_prefix="VT_",
         env_file=".env",

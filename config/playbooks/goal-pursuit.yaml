@@ -1,0 +1,18 @@
+id: goal-pursuit
+name: Goal Pursuit - Autonomous Long-Running Execution
+executor_type: single_agent
+parallel: false
+agents:
+  - id: goal_executor
+    role: autonomous_executor
+    skills_allowed:
+      - web_search
+      - document_analysis
+mode_compatible:
+  - all
+intensity: AUTONOMOUS
+flow_type: dag
+guardrails:
+  max_depth: 5
+  checkpoint_every_n_steps: 3
+  capability_token_ttl_seconds: 28800

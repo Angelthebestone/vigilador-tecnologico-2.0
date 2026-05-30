@@ -1,0 +1,27 @@
+# ============================================================================
+# Spec 009 — Vigilador 3.0 MVP Foundation
+# Defaults declarativos del proveedor LLM. Estos valores documentan la
+# configuración por defecto del MVP; la fuente de verdad en runtime sigue
+# siendo `Settings` (env VT_*). Este archivo es la referencia legible para
+# el operador y futuros loaders de configuración por archivo.
+# ============================================================================
+
+llm:
+  default: xiaomimimo  # xiaomimimo | minimax
+  adapters:
+    xiaomimimo:
+      enabled: true
+      model: mimo-v2-flash
+      api_key_env: VT_XIAOMIMIMO_API_KEY
+      base_url: https://platform.xiaomimimo.com/v1
+    minimax:
+      enabled: false
+      api_key_env: VT_MINIMAX_API_KEY
+
+enterprise:
+  health_monitor:
+    enabled: true
+    interval_sec: 30
+    circuit_breaker_threshold: 3
+    circuit_breaker_window_sec: 60
+    cooldown_sec: 300
