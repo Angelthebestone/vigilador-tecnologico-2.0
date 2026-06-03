@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Test agent: executes tests in sandbox and generates checklist."""
 
 from __future__ import annotations

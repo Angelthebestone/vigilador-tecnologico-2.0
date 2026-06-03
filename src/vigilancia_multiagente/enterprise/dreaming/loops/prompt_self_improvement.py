@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 3 — Prompt self-improvement: generate variants and manage A/B tests."""
 
 from __future__ import annotations

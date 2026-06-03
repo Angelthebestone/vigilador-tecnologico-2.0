@@ -43,9 +43,10 @@ class _Triple:
 class KDenseAdapter:
     """Adapter for the ``K-Dense-AI/scientific-agent-skills`` marketplace."""
 
-    def __init__(self, vendor_path: Path) -> None:
+    def __init__(self, vendor_path: Path, cold_skills_enabled: bool = False) -> None:
         """``vendor_path`` is the ``_vendor/k_dense/`` directory root."""
         self._root = vendor_path
+        self._cold_skills_enabled = cold_skills_enabled
 
     def scan(self) -> list[tuple[CommandSkill, SkillSummary, str]]:
         out: list[tuple[CommandSkill, SkillSummary, str]] = []
@@ -57,12 +58,28 @@ class KDenseAdapter:
         for skill_dir in sorted(skills_dir.iterdir()):
             if not skill_dir.is_dir():
                 continue
-            skill_file = skill_dir / "SKILL.md"
-            if not skill_file.is_file():
+            is_cold = skill_dir.name == "_cold" or "/_cold/" in str(skill_dir) or "\\_cold\\" in str(skill_dir)
+            # FR-037: Skip _cold unless explicitly enabled
+            if is_cold and not self._cold_skills_enabled:
                 continue
-            triple = self._parse_one(skill_file)
-            if triple is not None:
-                out.append((triple.card, triple.summary, triple.body))
+            # If it's _cold dir and enabled, recurse into its children
+            if is_cold and self._cold_skills_enabled:
+                for child_dir in sorted(skill_dir.iterdir()):
+                    if not child_dir.is_dir():
+                        continue
+                    skill_file = child_dir / "SKILL.md"
+                    if not skill_file.is_file():
+                        continue
+                    triple = self._parse_one(skill_file)
+                    if triple is not None:
+                        out.append((triple.card, triple.summary, triple.body))
+            else:
+                skill_file = skill_dir / "SKILL.md"
+                if not skill_file.is_file():
+                    continue
+                triple = self._parse_one(skill_file)
+                if triple is not None:
+                    out.append((triple.card, triple.summary, triple.body))
         logger.info("KDenseAdapter: scanned %d skills under %s", len(out), skills_dir)
         return out
 
@@ -72,11 +89,14 @@ class KDenseAdapter:
 
     def _parse_one(self, path: Path) -> _Triple | None:
         try:
-            content = path.read_text(encoding="utf-8")
+            # FR-003: Frontmatter-only read to save I/O during boot
+            # Read only the first 2KB to capture frontmatter
+            with open(path, "r", encoding="utf-8") as f:
+                content_snippet = f.read(2048)
         except OSError as exc:
             logger.warning("KDenseAdapter: cannot read %s: %s", path, exc)
             return None
-        match = _FRONTMATTER_RE.match(content)
+        match = _FRONTMATTER_RE.match(content_snippet)
         if not match:
             logger.warning("KDenseAdapter: no frontmatter in %s", path)
             return None
@@ -88,7 +108,8 @@ class KDenseAdapter:
         if not isinstance(frontmatter, dict):
             logger.warning("KDenseAdapter: non-dict frontmatter in %s", path)
             return None
-        body = content[match.end():]
+        # Body is loaded lazily on demand, so we don't need the full content here
+        body = ""
 
         skill_id = self._slug(str(frontmatter.get("name") or path.parent.name))
         description = str(frontmatter.get("description", ""))
@@ -108,7 +129,7 @@ class KDenseAdapter:
         if version:
             tags.append(f"v{version}")
 
-        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+        content_hash = hashlib.sha256(content_snippet.encode("utf-8")).hexdigest()[:16]
 
         card = CommandSkill(
             id=f"k_dense.{skill_id}",

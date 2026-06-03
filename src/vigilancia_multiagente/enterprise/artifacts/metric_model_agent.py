@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """MetricModelAgent — models KPIs from sources and user request (FR-003, FR-007)."""
 
 from __future__ import annotations

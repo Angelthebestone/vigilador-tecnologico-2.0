@@ -58,19 +58,29 @@ async def client(app):
 
 
 @pytest.mark.asyncio
-async def test_post_company_persists_profile(client, mock_company_repo):
+async def test_post_company_persists_profile(client, mock_company_repo, tmp_path, monkeypatch):
     """POST /api/v2/enterprise/onboarding/company persiste company_profile."""
+    # Redirect identity.md write away from the repo tree.
+    from vigilancia_multiagente.api.routes import enterprise_onboarding
+
+    monkeypatch.setattr(enterprise_onboarding, "_project_root", lambda: tmp_path)
+
     payload = {
         "name": "Acme Corp",
         "sector": "Technology",
-        "country": "CO",
-        "department": "Antioquia",
-        "municipality": "Medellín",
-        "timezone": "America/Bogota",
+        "geo": {
+            "country": "CO",
+            "department": "Antioquia",
+            "municipality": "Medellín",
+            "timezone": "America/Bogota",
+        },
     }
     resp = await client.post("/api/v2/enterprise/onboarding/company", json=payload)
     assert resp.status_code in (200, 201)
     mock_company_repo.upsert.assert_called_once()
+    body = resp.json()
+    assert body["geo"]["country"] == "CO"
+    assert (tmp_path / "config" / "company" / "identity.md").exists()
 
 
 @pytest.mark.asyncio
@@ -99,14 +109,20 @@ async def test_post_test_llm_calls_xiaomimimo_returns_ok_with_latency(client, mo
 
 
 @pytest.mark.asyncio
-async def test_partial_flow_step1_then_resume(client, mock_company_repo):
-    """Flujo parcial: solo paso 1, luego retomar."""
-    # Paso 1: company
-    payload = {"name": "Partial Corp", "sector": "Finance"}
+async def test_partial_flow_step1_then_resume(client, mock_company_repo, tmp_path, monkeypatch):
+    """Flujo parcial: solo paso 1, luego retomar (upsert idempotente)."""
+    from vigilancia_multiagente.api.routes import enterprise_onboarding
+
+    monkeypatch.setattr(enterprise_onboarding, "_project_root", lambda: tmp_path)
+
+    payload = {
+        "name": "Partial Corp",
+        "sector": "Finance",
+        "geo": {"country": "CO"},
+    }
     resp = await client.post("/api/v2/enterprise/onboarding/company", json=payload)
     assert resp.status_code in (200, 201)
 
-    # Retomar: volver a enviar paso 1 (upsert idempotente)
     resp2 = await client.post("/api/v2/enterprise/onboarding/company", json=payload)
     assert resp2.status_code in (200, 201)
     assert mock_company_repo.upsert.call_count == 2

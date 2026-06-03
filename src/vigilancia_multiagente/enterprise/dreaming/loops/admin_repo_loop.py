@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 7 — Admin repo: detect releases, classify impact, never auto-promote."""
 
 from __future__ import annotations

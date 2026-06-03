@@ -48,7 +48,7 @@ def test_k_dense_adapter_scans_well_formed_skill(tmp_path):
     assert "v1.2" in card.tags
     assert card.content_hash  # 16-char prefix
     assert summary.audit_level == "standard"
-    assert "body content here." in body
+    assert body == ""  # FR-003: Body loaded lazily on demand
 
 
 def test_k_dense_adapter_skips_invalid_yaml(tmp_path):

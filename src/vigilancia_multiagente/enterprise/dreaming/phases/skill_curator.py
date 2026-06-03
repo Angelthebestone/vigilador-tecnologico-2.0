@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase 2 — Skill curator: revalidate learned skills against recent executions."""
 
 from __future__ import annotations

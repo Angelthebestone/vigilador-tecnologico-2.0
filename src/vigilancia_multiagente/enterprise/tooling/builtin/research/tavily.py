@@ -1,13 +1,11 @@
-"""Tavily search tool — native WRAP-SDK over the Tavily REST API.
+"""Tavily search tool — WRAP-SDK over the official tavily-python package.
 
 Spec 021 FR-053/054: native-first, universal Tool abstraction.
 Catalog: ``tavily`` / domain ``research`` / capabilities
 ``[web_search, news_search]``.
 
-Strategy: WRAP-SDK using ``httpx`` (already a project dependency). The
-official ``tavily-python`` package would add a layer but ``httpx`` is more
-portable and the REST surface is small. Constitución #2 KISS — minimal
-client wrapper, no auto-retry magic.
+Strategy: WRAP-SDK using the official ``tavily-python`` package.
+Constitución #2 KISS — minimal client wrapper, no auto-retry magic.
 """
 
 from __future__ import annotations
@@ -15,12 +13,9 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-import httpx
+from tavily import TavilyClient
 
 from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
-
-_TAVILY_BASE_URL = "https://api.tavily.com"
-_DEFAULT_TIMEOUT_S = 30.0
 
 
 @dataclass(frozen=True)
@@ -34,6 +29,9 @@ class TavilyTool:
 
     def _api_key(self) -> str | None:
         return os.getenv("VT_TAVILY_API_KEY") or None
+
+    def _client(self) -> TavilyClient:
+        return TavilyClient(api_key=self._api_key())
 
     async def healthcheck(self) -> HealthcheckResult:
         """Verify API key is present. Skips a live ping to avoid quota burn."""
@@ -57,8 +55,6 @@ class TavilyTool:
         Raises:
             ValueError: if ``tool_name`` is not supported.
             RuntimeError: if the API key is missing.
-            httpx.HTTPStatusError: for non-2xx HTTP responses (callers see
-                provider-side rate limits / auth failures with full context).
         """
         api_key = self._api_key()
         if not api_key:
@@ -68,17 +64,16 @@ class TavilyTool:
             )
 
         if tool_name == "web_search":
-            return await self._search(api_key, args, topic=None)
+            return self._search(args, topic=None)
         if tool_name == "news_search":
-            return await self._search(api_key, args, topic="news")
+            return self._search(args, topic="news")
         raise ValueError(
             f"TavilyTool: unknown tool_name '{tool_name}' "
             f"(supported: web_search, news_search)"
         )
 
-    async def _search(
+    def _search(
         self,
-        api_key: str,
         args: dict[str, object],
         *,
         topic: str | None,
@@ -90,22 +85,18 @@ class TavilyTool:
         if not isinstance(max_results, int) or max_results <= 0:
             max_results = 5
 
-        body: dict[str, object] = {
-            "api_key": api_key,
-            "query": query,
-            "max_results": max_results,
-        }
-        if topic:
-            body["topic"] = topic
-
-        async with httpx.AsyncClient(timeout=_DEFAULT_TIMEOUT_S) as client:
-            response = await client.post(f"{_TAVILY_BASE_URL}/search", json=body)
-            response.raise_for_status()
-            payload = response.json()
+        client = self._client()
+        response = client.search(
+            query=query,
+            max_results=max_results,
+            topic=topic or "general",
+            search_depth="advanced",
+            include_answer=True,
+        )
 
         return {
             "query": query,
             "topic": topic or "general",
-            "results": payload.get("results", []),
-            "answer": payload.get("answer"),
+            "results": response.get("results", []),
+            "answer": response.get("answer"),
         }

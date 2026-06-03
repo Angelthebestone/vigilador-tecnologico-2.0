@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Constitution agent: defines stack, constraints, and target directory."""
 
 from __future__ import annotations

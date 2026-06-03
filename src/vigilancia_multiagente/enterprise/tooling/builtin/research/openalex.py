@@ -1,12 +1,11 @@
-"""OpenAlex tool — native WRAP-SDK over the OpenAlex REST API.
+"""OpenAlex tool — WRAP-SDK over the pyalex package.
 
 Spec 021 FR-053/054: native-first, universal Tool abstraction.
 Catalog: ``openalex`` / domain ``research`` / capabilities
 ``[search_works, get_authors, get_institutions]``.
 
-Strategy: WRAP-SDK using ``httpx``. OpenAlex doesn't require an API key,
-but supplying ``mailto`` in the User-Agent moves the request to the
-"polite pool" with much higher rate limits. We honor ``VT_OPENALEX_EMAIL``.
+Strategy: WRAP-SDK using the official ``pyalex`` package.
+Constitución #2 KISS — minimal client wrapper.
 
 Reference: https://docs.openalex.org/
 """
@@ -16,12 +15,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-import httpx
+import pyalex
+from pyalex import Works, Authors, Institutions
 
 from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
-
-_OPENALEX_BASE_URL = "https://api.openalex.org"
-_DEFAULT_TIMEOUT_S = 30.0
 
 
 @dataclass(frozen=True)
@@ -33,12 +30,14 @@ class OpenAlexTool:
     is_external_mcp: bool = False
     requires_auth: bool = False
 
-    def _user_agent(self) -> str:
+    def _configure(self) -> None:
+        """Configure pyalex with polite pool email and optional API key."""
         mailto = os.getenv("VT_OPENALEX_EMAIL") or ""
-        ua = "vigilador-tecnologico/3.0 (https://github.com/example/vigilador)"
         if mailto:
-            return f"{ua} mailto:{mailto}"
-        return ua
+            pyalex.config.email = mailto
+        api_key = os.getenv("VT_OPENALEX_API_KEY") or ""
+        if api_key:
+            pyalex.config.api_key = api_key
 
     async def healthcheck(self) -> HealthcheckResult:
         """Always reports UP — OpenAlex is anonymous-public."""
@@ -56,18 +55,11 @@ class OpenAlexTool:
           ``per_page`` (int, default 25).
         * ``get_institutions`` — args: ``query`` (str, required),
           ``per_page`` (int, default 25).
+
+        Raises:
+            ValueError: if ``tool_name`` is not supported or query is empty.
         """
-        endpoint_map: dict[str, str] = {
-            "search_works": "/works",
-            "get_authors": "/authors",
-            "get_institutions": "/institutions",
-        }
-        path = endpoint_map.get(tool_name)
-        if path is None:
-            raise ValueError(
-                f"OpenAlexTool: unknown tool_name '{tool_name}' "
-                f"(supported: {', '.join(endpoint_map)})"
-            )
+        self._configure()
 
         query = args.get("query")
         if not isinstance(query, str) or not query.strip():
@@ -76,25 +68,28 @@ class OpenAlexTool:
         if not isinstance(per_page, int) or per_page <= 0:
             per_page = 25
 
-        params: dict[str, str | int] = {
-            "search": query,
-            "per_page": per_page,
+        entity_map = {
+            "search_works": Works,
+            "get_authors": Authors,
+            "get_institutions": Institutions,
         }
-        api_key = os.getenv("VT_OPENALEX_API_KEY") or ""
-        if api_key:
-            params["api_key"] = api_key
-
-        headers = {"User-Agent": self._user_agent(), "Accept": "application/json"}
-        async with httpx.AsyncClient(timeout=_DEFAULT_TIMEOUT_S) as client:
-            response = await client.get(
-                f"{_OPENALEX_BASE_URL}{path}", params=params, headers=headers
+        entity_class = entity_map.get(tool_name)
+        if entity_class is None:
+            raise ValueError(
+                f"OpenAlexTool: unknown tool_name '{tool_name}' "
+                f"(supported: {', '.join(entity_map)})"
             )
-            response.raise_for_status()
-            payload = response.json()
+
+        results = (
+            entity_class()
+            .search(query)
+            .per_page(per_page)
+            .get()
+        )
 
         return {
             "query": query,
             "tool": tool_name,
-            "results": payload.get("results", []),
-            "meta": payload.get("meta", {}),
+            "results": results,
+            "meta": {"per_page": per_page, "count": len(results)},
         }

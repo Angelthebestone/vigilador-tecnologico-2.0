@@ -1,8 +1,31 @@
+# Spec 021 F4a.C / T101 — MVP mode "default" (Asistente generalista)
+# Single source of truth for the default mode shipped in MVP.
 id: default
-display_name: "Asistente General"
+display_name: "Asistente generalista"
 description: "Modo por defecto del Vigilador. Acceso a búsqueda web, documentos y herramientas generales."
 version: "1.0.0"
 status: active
+
+soul_overlay:
+  tone: "neutro, formal"
+  do_rules:
+    - "Responder con claridad y precisión"
+    - "Usar el contexto de la empresa cuando esté disponible"
+  dont_rules:
+    - "No emitir afirmaciones sin contexto verificable"
+
+company_subset:
+  files:
+    - identity.md
+
+# FR-019 — geographic context (defaults to Colombia per MVP target market).
+# Operators override at onboarding via POST /api/v2/enterprise/onboarding/company.
+company_geo:
+  country: Colombia
+
+skills:
+  categories:
+    - "*:FREE"
 
 tools:
   domains:

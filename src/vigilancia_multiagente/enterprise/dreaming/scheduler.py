@@ -1,9 +1,43 @@
-"""Dreaming scheduler — cron + idle trigger with pause-on-interaction."""
+"""Dreaming scheduler — cron + idle trigger with MVP phase allow-list.
+
+Spec 021 F5a.A / T124. The scheduler MVP only registers two phases on
+the orchestrator at boot:
+
+* ``memory_consolidation`` — frozen snapshot capture (FR-040).
+* ``ingestion_sync`` — incremental connector pulls (FR-040).
+
+The 8 extra phases under :mod:`...dreaming.phases` and the 7 loops
+under :mod:`...dreaming.loops` are intentionally left out of the
+allow-list — they remain in-tree for spec F5b but are NOT imported by
+the runtime composition. ``mvp_phase_names()`` is the single source of
+truth that the composition root consults to register phases.
+"""
 
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
+
+# ---------------------------------------------------------------------------
+# MVP allow-list (FR-039 / FR-040 — exactly 2 phases register at boot)
+# ---------------------------------------------------------------------------
+
+_MVP_PHASE_NAMES: tuple[str, ...] = ("memory_consolidation", "ingestion_sync")
+
+
+def mvp_phase_names() -> tuple[str, ...]:
+    """Return the explicit MVP phase allow-list.
+
+    Composition roots consult this function to decide which phases to
+    register on the :class:`DreamingOrchestrator`. Anything else stays
+    on the F5b roadmap.
+    """
+    return _MVP_PHASE_NAMES
+
+
+def is_mvp_phase(name: str) -> bool:
+    return name in _MVP_PHASE_NAMES
 
 
 @dataclass
@@ -56,3 +90,14 @@ class DreamingScheduler:
         if not self._config.enabled:
             return False
         return current_hour == self._config.cron_hour
+
+    @staticmethod
+    def filter_to_mvp(phase_names: Sequence[str]) -> list[str]:
+        """Return only the MVP-allowed phase names from ``phase_names``.
+
+        The order of the input is preserved, but any name not in the
+        allow-list is dropped silently. Use this when probing a
+        previously discovered phase list and wanting only the MVP subset.
+        """
+        allow = set(_MVP_PHASE_NAMES)
+        return [n for n in phase_names if n in allow]

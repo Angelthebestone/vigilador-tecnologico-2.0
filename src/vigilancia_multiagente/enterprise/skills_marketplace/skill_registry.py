@@ -14,6 +14,7 @@ from vigilancia_multiagente.enterprise.skills_marketplace.skill_models import (
     SkillState,
     SkillSummary,
 )
+from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +50,11 @@ class SkillRegistry:
         self,
         embedding_gateway: EmbeddingGateway,
         tool_registry: ToolRegistryPort,
+        embedding_cache: EmbeddingCache | None = None,
     ) -> None:
         self._embedding_gw = embedding_gateway
         self._tool_registry = tool_registry
+        self._embedding_cache = embedding_cache
         self._cards: dict[str, SkillCard] = {}
         self._summaries: dict[str, SkillSummary] = {}
         self._body_paths: dict[str, str] = {}
@@ -83,9 +86,23 @@ class SkillRegistry:
         if body_path:
             self._body_paths[card.id] = body_path
 
-        # Compute embedding for description+tags
+        # Compute embedding for description+tags (FR-003)
         embed_text = f"{card.description} {' '.join(card.tags)}"
-        self._embeddings[card.id] = await self._embedding_gw.embed(embed_text)
+        if self._embedding_cache:
+            cached_vec = self._embedding_cache.get(embed_text)
+            if cached_vec is not None:
+                self._embeddings[card.id] = cached_vec
+                return
+        
+        vec = await self._embedding_gw.embed(embed_text)
+        self._embeddings[card.id] = vec
+        if self._embedding_cache:
+            self._embedding_cache.set(embed_text, vec)
+
+    async def flush_cache(self) -> None:
+        """Flush skill embeddings cache to disk."""
+        if self._embedding_cache:
+            self._embedding_cache.flush_to_disk()
 
     def mark_unavailable(self, skill_id: str, reason: str) -> None:
         """Mark a skill as unavailable."""

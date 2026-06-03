@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Ports (abstractions) for the app-development playbook agents."""
 
 from __future__ import annotations

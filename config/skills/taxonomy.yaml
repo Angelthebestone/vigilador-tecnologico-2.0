@@ -1,0 +1,184 @@
+# Skills Taxonomy — Canonical SSOT
+#
+# Spec 021 D2/D3 — central organization for the 311 skills exposed by the
+# `enterprise/skills_marketplace/` layer. The same taxonomy applies to
+# every source (curated, learned, K-Dense, agency-agents) so the agent
+# sees a unified hierarchy regardless of upstream layout.
+#
+# At runtime, `SkillCatalog.category_for(skill_id, category_hint)` returns
+# the canonical category by looking up `category_hint` in `mapping`. The
+# loader then injects that category as the FIRST tag on the SkillCard so
+# discovery / filtering / UI grouping can use it.
+
+version: "1.0"
+
+# ---------------------------------------------------------------------
+# Top-level categories — order is presentation order in the UI/discover.
+# ---------------------------------------------------------------------
+categories:
+  - id: research
+    label: "Research & Science"
+    description: >
+      Scientific tooling: bioinformatics, ML/data-science research,
+      academic workflows, publication search, lab integrations. Most
+      K-Dense skills land here.
+    sub_categories:
+      - id: bioinformatics
+        label: "Bioinformatics"
+      - id: ml-data-science
+        label: "ML & Data Science"
+      - id: astrophysics
+        label: "Astrophysics"
+      - id: lab-integrations
+        label: "Lab Integrations"
+      - id: literature
+        label: "Literature & Citations"
+      - id: academic-services
+        label: "Academic Services"
+
+  - id: engineering
+    label: "Software Engineering"
+    description: >
+      Backend, frontend, mobile, embedded, DevOps, security, SRE,
+      architecture. Production-software roles.
+    sub_categories:
+      - id: backend
+        label: "Backend"
+      - id: frontend
+        label: "Frontend"
+      - id: mobile
+        label: "Mobile"
+      - id: embedded
+        label: "Embedded & Firmware"
+      - id: devops-sre
+        label: "DevOps / SRE"
+      - id: security
+        label: "Security"
+      - id: blockchain
+        label: "Blockchain & Web3"
+      - id: spatial
+        label: "Spatial Computing / XR"
+      - id: integrations
+        label: "Third-party Integrations"
+
+  - id: data
+    label: "Data Engineering"
+    description: >
+      Data pipelines, ETL, warehousing, schema design, data quality,
+      remediation, DBA-style optimization.
+
+  - id: ai-ml
+    label: "AI & Machine Learning"
+    description: >
+      Applied AI/ML beyond pure research: model integration, agent
+      design, retrieval, voice/vision tooling, optimization, ML ops.
+
+  - id: design
+    label: "Design"
+    description: >
+      UI, UX, brand identity, motion, visual systems, design ops.
+    sub_categories:
+      - id: ui-ux
+        label: "UI / UX"
+      - id: brand
+        label: "Brand & Visual"
+      - id: design-ops
+        label: "Design Ops"
+
+  - id: marketing
+    label: "Marketing"
+    description: >
+      Organic growth, SEO, content, social, lifecycle, partnerships.
+    sub_categories:
+      - id: seo
+        label: "SEO"
+      - id: content
+        label: "Content"
+      - id: social
+        label: "Social"
+      - id: lifecycle
+        label: "Lifecycle / CRM"
+
+  - id: paid-media
+    label: "Paid Media"
+    description: >
+      Performance / programmatic / CTV / search ads / paid social.
+
+  - id: business
+    label: "Business Operations"
+    description: >
+      Sales, finance, strategy, partnerships, customer ops, support.
+    sub_categories:
+      - id: sales
+        label: "Sales"
+      - id: finance
+        label: "Finance & Accounting"
+      - id: strategy
+        label: "Strategy"
+      - id: support
+        label: "Customer Support"
+      - id: project-mgmt
+        label: "Project Management"
+
+  - id: product
+    label: "Product"
+    description: >
+      Product management, discovery, research, roadmapping.
+
+  - id: creative
+    label: "Creative & Content Production"
+    description: >
+      Game development, video, audio, multimedia content production
+      that isn't pure design.
+
+  - id: quality
+    label: "Quality & Testing"
+    description: >
+      QA engineering, performance testing, security testing, test
+      automation, code review.
+
+  - id: specialized
+    label: "Specialized"
+    description: >
+      Cross-cutting niche roles that don't fit cleanly into the above
+      buckets (long-tail of agency-agents `specialized/` division).
+
+# ---------------------------------------------------------------------
+# Hint → canonical category mapping
+#
+# `category_hint` values come from the adapters:
+#   * K-Dense:        the parent directory name (or the slug if at root).
+#                     We default ALL to `research` and let the catalog
+#                     override individual skills if needed.
+#   * agency-agents:  the division directory name.
+# ---------------------------------------------------------------------
+mapping:
+  # K-Dense source
+  k_dense: research
+
+  # agency-agents divisions
+  academic: research
+  design: design
+  engineering: engineering
+  finance: business
+  game-development: creative
+  marketing: marketing
+  paid-media: paid-media
+  product: product
+  project-management: business
+  sales: business
+  spatial-computing: engineering
+  specialized: specialized
+  strategy: business
+  support: business
+  testing: quality
+
+  # Vigilador-managed sources
+  curated: specialized
+  learned: specialized
+
+# ---------------------------------------------------------------------
+# Default category when a hint is absent or unmapped.
+# Surfaced as `unknown` to make missing entries visible during review.
+# ---------------------------------------------------------------------
+default_category: specialized

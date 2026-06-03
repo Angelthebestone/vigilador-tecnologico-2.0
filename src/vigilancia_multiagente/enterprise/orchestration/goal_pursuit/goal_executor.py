@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """GoalExecutor: orchestrates decomposition, resolution, execution, and checkpoints."""
 
 from __future__ import annotations

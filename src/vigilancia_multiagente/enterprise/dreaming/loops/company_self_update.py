@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 5 — COMPANY self-update: detect gaps and propose config additions."""
 
 from __future__ import annotations

@@ -1,0 +1,110 @@
+# Skills Catalog — manual overrides
+#
+# Spec 021 D2/D3 — companion file to `taxonomy.yaml`. Holds ONLY exceptions
+# to the default taxonomy (recategorizations, disables, aliases). The
+# `SkillCatalog` class merges this on top of the auto-categorization
+# computed from the taxonomy mapping.
+#
+# Audit notes:
+# * The similarity analyzer (`scripts/analyze_skill_similarity.py`) found
+#   ZERO strong duplicates among the 311 skills — top "similar" pairs
+#   are platform variants (baidu-seo-specialist vs seo-specialist) or
+#   specializations (ai-engineer vs data-engineer), all kept distinct.
+#   Therefore the `aliases` section is empty.
+# * `disabled` is reserved for future opt-out (e.g. licensing concerns).
+# * `recategorize` carries a small set of manual fixes where the
+#   `category_hint` (= upstream directory) does not match the skill's
+#   actual subject matter.
+
+version: "1.0"
+
+# ---------------------------------------------------------------------
+# Aliases — `<alias_id>: <canonical_id>`
+#
+# Effect: SkillLoader skips registration of `alias_id` and the registry
+# only sees `canonical_id`. Empty by audit; entries here only when an
+# upstream merge or rename creates an actual duplicate.
+# ---------------------------------------------------------------------
+aliases: {}
+
+# ---------------------------------------------------------------------
+# Disabled — list of skill ids the loader must not register at all.
+# ---------------------------------------------------------------------
+disabled: []
+
+# ---------------------------------------------------------------------
+# Recategorize — `<skill_id>: <category_id>` where the inferred category
+# from the hint mapping is wrong for this specific entry.
+#
+# Examples are illustrative; concrete entries should be added when a
+# misclassification surfaces during agent use.
+# ---------------------------------------------------------------------
+recategorize:
+  # K-Dense skills that are AI/ML-specific rather than general "research":
+  k_dense.autoskill: ai-ml
+  k_dense.langchain: ai-ml
+  k_dense.langgraph: ai-ml
+  k_dense.openai: ai-ml
+  k_dense.transformers: ai-ml
+  k_dense.huggingface: ai-ml
+  k_dense.tensorflow: ai-ml
+  k_dense.pytorch: ai-ml
+
+  # K-Dense data-engineering / DB-tooling rather than research:
+  k_dense.duckdb: data
+  k_dense.polars: data
+  k_dense.polars-bio: data
+  k_dense.pandas: data
+  k_dense.numpy: data
+
+  # K-Dense literature / search tools:
+  k_dense.arxiv-paper-search: research
+  k_dense.bgpt-paper-search: research
+  k_dense.pubmed-paper-search: research
+
+  # Agency-agents engineering specialists that are clearly data:
+  agency_agents.engineering.engineering-data-engineer: data
+  agency_agents.engineering.engineering-database-optimizer: data
+  agency_agents.engineering.engineering-ai-data-remediation-engineer: data
+
+  # Agency-agents engineering specialists that are clearly AI/ML:
+  agency_agents.engineering.engineering-ai-engineer: ai-ml
+  agency_agents.engineering.engineering-voice-ai-integration-engineer: ai-ml
+
+  # Agency-agents specialized division — re-route obvious roles:
+  # (entries added per real-world misclassification — placeholder for now)
+
+# ---------------------------------------------------------------------
+# Sub-category overrides — `<skill_id>: <sub_category_id>`
+#
+# Optional finer placement within the chosen top-level category. The
+# loader emits both as tags: ["<category>", "sub:<sub_category>"].
+# ---------------------------------------------------------------------
+sub_category:
+  # K-Dense bio tooling
+  k_dense.adaptyv: bioinformatics
+  k_dense.anndata: bioinformatics
+  k_dense.benchling-integration: lab-integrations
+  k_dense.opentrons-integration: lab-integrations
+  k_dense.omero-integration: lab-integrations
+  k_dense.latchbio-integration: lab-integrations
+  k_dense.protocolsio-integration: lab-integrations
+  k_dense.astropy: astrophysics
+  k_dense.arxiv-paper-search: literature
+  k_dense.bgpt-paper-search: literature
+  k_dense.pubmed-paper-search: literature
+
+  # Agency engineering by specialty
+  agency_agents.engineering.engineering-backend-architect: backend
+  agency_agents.engineering.engineering-frontend-developer: frontend
+  agency_agents.engineering.engineering-mobile-app-builder: mobile
+  agency_agents.engineering.engineering-embedded-firmware-engineer: embedded
+  agency_agents.engineering.engineering-devops-automator: devops-sre
+  agency_agents.engineering.engineering-sre: devops-sre
+  agency_agents.engineering.engineering-security-engineer: security
+  agency_agents.engineering.engineering-threat-detection-engineer: security
+  agency_agents.engineering.engineering-incident-response-commander: security
+  agency_agents.engineering.engineering-solidity-smart-contract-engineer: blockchain
+
+  # Agency spatial-computing → spatial sub-category
+  # (handled by mapping; sub-category just makes it explicit)

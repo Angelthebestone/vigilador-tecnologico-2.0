@@ -1,3 +1,5 @@
+# ROADMAP F4c — fuera de MVP 021; no registrar en runtime
+# Spec 021 T104 — kept in tree as reference; loader skips `status: roadmap`.
 id: cfo
 display_name: "Director Financiero"
 description: "Modo para directores financieros. Enfoque en análisis financiero y presupuestario."

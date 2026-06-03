@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """ArtifactCoordinator — orchestrates 6 sequential phases (FR-001)."""
 
 from __future__ import annotations

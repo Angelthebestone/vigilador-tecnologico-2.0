@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 6 — Regulatory watcher: search by company_geo and propose with citations."""
 
 from __future__ import annotations

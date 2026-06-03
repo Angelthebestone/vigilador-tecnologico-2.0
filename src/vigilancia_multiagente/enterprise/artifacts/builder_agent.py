@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """BuilderAgent — constructs artifacts in sandbox (FR-004, FR-005, FR-009)."""
 
 from __future__ import annotations

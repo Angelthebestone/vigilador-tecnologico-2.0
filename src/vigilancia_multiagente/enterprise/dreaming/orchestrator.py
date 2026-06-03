@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
+import contextlib
 import time
 import uuid
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any
 
 from vigilancia_multiagente.enterprise.dreaming.models import (
     CycleReport,
@@ -17,6 +16,11 @@ from vigilancia_multiagente.enterprise.dreaming.models import (
     PhaseStatus,
 )
 from vigilancia_multiagente.enterprise.dreaming.phase_protocol import DreamingPhase
+from vigilancia_multiagente.enterprise.dreaming.reporter import (
+    DreamingReporter,
+    ReporterError,
+    ReporterPort,
+)
 
 
 class OrchestratorStatus(Enum):
@@ -28,12 +32,20 @@ class OrchestratorStatus(Enum):
 class DreamingOrchestrator:
     """Sequentially executes registered DreamingPhase instances."""
 
-    def __init__(self, audit_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        audit_dir: Path | None = None,
+        reporter: ReporterPort | None = None,
+    ) -> None:
         self._phases: list[DreamingPhase] = []
         self._status = OrchestratorStatus.IDLE
         self._pause_requested = False
         self._last_completed_index: int = 0
-        self._audit_dir = audit_dir or Path.home() / ".vigilador" / "audit" / "dreaming"
+        # T126 — delegate JSONL writing to a dedicated reporter.
+        if reporter is None:
+            default_dir = audit_dir or Path.home() / ".vigilador" / "audit" / "dreaming"
+            reporter = DreamingReporter(audit_dir=default_dir)
+        self._reporter = reporter
 
     @property
     def status(self) -> OrchestratorStatus:
@@ -41,6 +53,11 @@ class DreamingOrchestrator:
 
     def register_phase(self, phase: DreamingPhase) -> None:
         self._phases.append(phase)
+
+    @property
+    def registered_phase_names(self) -> tuple[str, ...]:
+        """Tuple of names in registration order — useful for tests/assertions."""
+        return tuple(p.name for p in self._phases)
 
     def pause(self) -> None:
         self._pause_requested = True
@@ -86,7 +103,11 @@ class DreamingOrchestrator:
             finished_at=finished_at,
             results=results,
         )
-        self._write_audit(report)
+        # Report persistence failures are logged inside the reporter; the
+        # orchestrator must not let an IO failure bubble up over a
+        # successfully completed cycle.
+        with contextlib.suppress(ReporterError):
+            self._reporter.report(report)
         return report
 
     async def _execute_phase(self, phase: DreamingPhase, context: DreamingContext) -> PhaseResult:
@@ -102,24 +123,3 @@ class DreamingOrchestrator:
                 error=f"{type(exc).__name__}: {exc}",
             )
         return result
-
-    def _write_audit(self, report: CycleReport) -> None:
-        self._audit_dir.mkdir(parents=True, exist_ok=True)
-        date_str = report.started_at.strftime("%Y-%m-%d")
-        path = self._audit_dir / f"{date_str}.jsonl"
-        entry: dict[str, Any] = {
-            "cycle_id": report.cycle_id,
-            "started_at": report.started_at.isoformat(),
-            "finished_at": report.finished_at.isoformat(),
-            "results": [
-                {
-                    "phase": r.phase_name,
-                    "status": r.status.value,
-                    "duration_ms": round(r.duration_ms, 2),
-                    "error": r.error,
-                }
-                for r in report.results
-            ],
-        }
-        with path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")

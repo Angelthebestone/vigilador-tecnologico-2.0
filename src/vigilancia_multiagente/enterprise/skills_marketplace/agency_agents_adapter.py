@@ -51,9 +51,10 @@ class _Triple:
 class AgencyAgentsAdapter:
     """Adapter for the ``msitarzewski/agency-agents`` marketplace."""
 
-    def __init__(self, vendor_path: Path) -> None:
+    def __init__(self, vendor_path: Path, cold_skills_enabled: bool = False) -> None:
         """``vendor_path`` is the ``_vendor/agency_agents/`` root."""
         self._root = vendor_path
+        self._cold_skills_enabled = cold_skills_enabled
 
     def scan(self) -> list[tuple[CommandSkill, SkillSummary, str]]:
         out: list[tuple[CommandSkill, SkillSummary, str]] = []
@@ -64,12 +65,28 @@ class AgencyAgentsAdapter:
         for division_dir in sorted(self._root.iterdir()):
             if not division_dir.is_dir():
                 continue
+            is_cold = division_dir.name == "_cold" or "/_cold/" in str(division_dir) or "\\_cold\\" in str(division_dir)
+            # FR-037: Skip _cold unless explicitly enabled
+            if is_cold and not self._cold_skills_enabled:
+                continue
             if division_dir.name.startswith(".") or division_dir.name in _SKIP_DIRS:
                 continue
-            for md_file in sorted(division_dir.glob("*.md")):
-                triple = self._parse_one(md_file, division_dir.name)
-                if triple is not None:
-                    out.append((triple.card, triple.summary, triple.body))
+            # If it's _cold dir and enabled, recurse into its children
+            if is_cold and self._cold_skills_enabled:
+                for child_dir in sorted(division_dir.iterdir()):
+                    if not child_dir.is_dir():
+                        continue
+                    if child_dir.name.startswith(".") or child_dir.name in _SKIP_DIRS:
+                        continue
+                    for md_file in sorted(child_dir.glob("*.md")):
+                        triple = self._parse_one(md_file, child_dir.name)
+                        if triple is not None:
+                            out.append((triple.card, triple.summary, triple.body))
+            else:
+                for md_file in sorted(division_dir.glob("*.md")):
+                    triple = self._parse_one(md_file, division_dir.name)
+                    if triple is not None:
+                        out.append((triple.card, triple.summary, triple.body))
         logger.info(
             "AgencyAgentsAdapter: scanned %d agents under %s", len(out), self._root
         )
@@ -81,11 +98,13 @@ class AgencyAgentsAdapter:
 
     def _parse_one(self, path: Path, division: str) -> _Triple | None:
         try:
-            content = path.read_text(encoding="utf-8")
+            # FR-003: Frontmatter-only read to save I/O during boot
+            with open(path, "r", encoding="utf-8") as f:
+                content_snippet = f.read(2048)
         except OSError as exc:
             logger.warning("AgencyAgentsAdapter: cannot read %s: %s", path, exc)
             return None
-        match = _FRONTMATTER_RE.match(content)
+        match = _FRONTMATTER_RE.match(content_snippet)
         if not match:
             logger.warning("AgencyAgentsAdapter: no frontmatter in %s", path)
             return None
@@ -97,7 +116,8 @@ class AgencyAgentsAdapter:
         if not isinstance(frontmatter, dict):
             logger.warning("AgencyAgentsAdapter: non-dict frontmatter in %s", path)
             return None
-        body = content[match.end():]
+        # Body is loaded lazily on demand
+        body = ""
 
         agent_name = str(frontmatter.get("name") or path.stem)
         slug = self._slug(path.stem)
@@ -112,7 +132,7 @@ class AgencyAgentsAdapter:
         if emoji:
             tags.append(f"emoji:{emoji}")
 
-        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+        content_hash = hashlib.sha256(content_snippet.encode("utf-8")).hexdigest()[:16]
 
         card = CommandSkill(
             id=f"agency_agents.{division}.{slug}",

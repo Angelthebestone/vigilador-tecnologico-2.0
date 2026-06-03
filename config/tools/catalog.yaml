@@ -448,3 +448,35 @@ tools:
   source_repo: https://github.com/nicholishen/google-workspace-mcp
   pinned_version: 0.1.0
   last_audit_date: '2026-05-01'
+- id: computer_use
+  domain: desktop
+  source: hermes
+  strategy: COPY-HERMES
+  runtime: python_internal
+  status: active
+  owner: vigilador-team
+  license: MIT
+  capabilities:
+  - capture
+  - click
+  - double_click
+  - right_click
+  - middle_click
+  - drag
+  - scroll
+  - type
+  - key
+  - set_value
+  - wait
+  - list_apps
+  - focus_app
+  requires_key: false
+  env_var: ''
+  healthcheck: internal
+  update_policy: manual
+  loc_count: 1125
+  loc_validated: true
+  language: python
+  mvp: true
+  source_repo: https://github.com/hermes-agent/hermes-agent
+  notes: Adapted from Hermes tools/computer_use/{schema,tool}.py with Win11 backend (pyautogui+pygetwindow+mss). Approval gate via callback + allowlist; backend port deferred-aware.

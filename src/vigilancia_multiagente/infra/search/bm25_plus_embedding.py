@@ -75,7 +75,7 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
 
 
 def _normalize(values: list[float]) -> list[float]:
-    if not values:
+    if len(values) == 0:
         return []
     arr = np.array(values, dtype=float)
     mn, mx = float(arr.min()), float(arr.max())

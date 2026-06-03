@@ -1,35 +1,61 @@
+# Spec 021 F4a.D / T108 — MVP playbook "technology-watch".
+# Hybrid YAML:
+#   * legacy ``agents`` (6 branches) — consumed by the existing 2.0
+#     PlaybookRegistry test suite.
+#   * new ``runner_agents`` (single coordinator) — consumed by spec-021
+#     PlaybookRunner; the wrapper (plugins/technology-watch) drives
+#     all 6 branches under the hood.
 id: technology-watch
 name: Technology Watch
+display_name: "Vigilancia tecnológica (2.0 wrapper)"
+description: "Delegates execution to the 2.0 BranchCoordinator + 6 branch agents without reimplementation."
 executor_type: branch_coordinator
 parallel: true
+mode_compatible:
+  - "vigilancia-tech"
+  - "CEO"
+  - "default"
+
+# Legacy 6-branch declaration (spec 011 PlaybookRegistry).
 agents:
   - id: avances
     role: avances_tecnologicos
-    skills_allowed:
-      - web_search
-      - document_analysis
+    skills_allowed: [web_search, document_analysis]
   - id: comercial
     role: inteligencia_comercial
-    skills_allowed:
-      - web_search
-      - document_analysis
-  - id: riesgo
-    role: analisis_riesgo
-    skills_allowed:
-      - web_search
-      - document_analysis
-  - id: pi_normativa
-    role: propiedad_intelectual
-    skills_allowed:
-      - web_search
-      - document_analysis
-  - id: competitivo
-    role: analisis_competitivo
-    skills_allowed:
-      - web_search
-      - document_analysis
-  - id: oportunidades
-    role: oportunidades_mercado
-    skills_allowed:
-      - web_search
-      - document_analysis
+    skills_allowed: [web_search, document_analysis]
+  - id: normativa
+    role: normativa
+    skills_allowed: [web_search, document_analysis]
+  - id: riesgos
+    role: riesgos
+    skills_allowed: [web_search, document_analysis]
+  - id: mercado
+    role: mercado
+    skills_allowed: [web_search, document_analysis]
+  - id: social
+    role: social
+    skills_allowed: [web_search, document_analysis]
+
+# Spec-021 PlaybookRunner sees only one agent — the wrapper coordinates
+# the 6 above via plugins/technology-watch/coordinator_wrapper.py.
+runner_agents:
+  - id: coordinator
+    skill: "plugin:technology-watch"
+    config:
+      branches:
+        - avances_tecnologicos
+        - inteligencia_comercial
+        - normativa
+        - riesgos
+        - mercado
+        - social
+
+flow:
+  type: sequential
+  steps:
+    - { agent: coordinator, input_key: "query" }
+
+guardrails:
+  max_total_llm_calls: 60
+  max_runtime_s: 900

@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """CheckpointReporter: reports progress at configured intervals."""
 
 from __future__ import annotations

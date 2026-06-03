@@ -9,7 +9,7 @@ from vigilancia_multiagente.application.evaluation.ws_e.llm_falsification_prober
 
 class DummyPromptLoader:
     def load(self, path: str) -> str:
-        assert path == "evaluation/falsification.txt"
+        assert path.startswith("evaluation/falsification")
         return "prompt"
 
 

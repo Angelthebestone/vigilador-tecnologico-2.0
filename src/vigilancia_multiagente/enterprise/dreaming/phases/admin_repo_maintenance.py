@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase 9 — Admin repo maintenance: check cloned repos against upstream."""
 
 from __future__ import annotations

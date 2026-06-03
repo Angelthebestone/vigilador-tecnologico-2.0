@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Ports (abstractions) for goal-pursuit components — DIP compliance."""
 
 from __future__ import annotations

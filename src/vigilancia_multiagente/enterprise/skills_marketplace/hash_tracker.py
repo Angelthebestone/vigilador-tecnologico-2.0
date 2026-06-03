@@ -41,8 +41,12 @@ class HashTracker:
         return previous != current_hash
 
     def update(self, skill_id: str, new_hash: str) -> None:
-        """Update stored hash for skill_id."""
+        """Update stored hash for skill_id in memory only (FR-003)."""
         self._hashes[skill_id] = new_hash
+        # Removed self._save() to avoid serial disk writes during boot
+
+    def save_all(self) -> None:
+        """Batch save all hashes to disk at the end of registry build (FR-003)."""
         self._save()
 
     def get(self, skill_id: str) -> str | None:

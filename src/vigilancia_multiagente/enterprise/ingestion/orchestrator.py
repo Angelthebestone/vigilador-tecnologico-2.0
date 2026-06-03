@@ -34,6 +34,14 @@ from uuid import UUID
 from vigilancia_multiagente.domain.ports.ingestion_connector import (
     IngestionConnector,
 )
+from vigilancia_multiagente.enterprise.governance.pi_quarantine_writer import (
+    PIQuarantineJSONLWriter,
+    PIQuarantineWriterError,
+    PIQuarantineWriterPort,
+)
+from vigilancia_multiagente.enterprise.governance.prompt_injection_detector import (
+    PromptInjectionDetector,
+)
 from vigilancia_multiagente.enterprise.ingestion.acl_resolver import ACLResolver
 from vigilancia_multiagente.enterprise.ingestion.chunking import Chunk, chunk_text
 from vigilancia_multiagente.enterprise.ingestion.dedup import dedup_chunks
@@ -77,6 +85,7 @@ class IngestionRunReport:
     indexed: int
     duration_s: float
     errors: list[str] = field(default_factory=list)
+    quarantined: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -92,6 +101,16 @@ class IngestionOrchestrator:
     vector_index: _IndexLike
     acl_resolver: ACLResolver
     chunk_id_counter: int = 0  # process-wide counter (deterministic per session)
+    # Spec 021 F5a.C / T133 — every external input flows through the PI
+    # detector before being embedded. Documents flagged as suspicious are
+    # written to the JSONL audit trail and skipped (FR-044). Tests can
+    # disable by passing ``pi_detector=None``.
+    pi_detector: PromptInjectionDetector | None = field(
+        default_factory=PromptInjectionDetector
+    )
+    pi_writer: PIQuarantineWriterPort | None = field(
+        default_factory=PIQuarantineJSONLWriter
+    )
 
     async def run_for_connector(
         self,
@@ -106,6 +125,7 @@ class IngestionOrchestrator:
         chunked = 0
         deduped = 0
         indexed = 0
+        quarantined = 0
 
         try:
             refs = await connector.discover()
@@ -126,6 +146,35 @@ class IngestionOrchestrator:
             except Exception as exc:
                 errors.append(f"extract({ref.external_id}) failed: {exc}")
                 continue
+
+            # Spec 021 F5a.C T133 — PI gate before chunking/embedding.
+            if self.pi_detector is not None:
+                detection = self.pi_detector.detect(raw.text, source=connector.name)
+                if detection.is_suspicious:
+                    quarantined += 1
+                    if self.pi_writer is not None:
+                        try:
+                            self.pi_writer.write(
+                                detection,
+                                content_excerpt=raw.text,
+                                tenant_id=str(tenant_id),
+                                ref_id=ref.external_id,
+                            )
+                        except PIQuarantineWriterError as exc:
+                            logger.warning(
+                                "PI writer failed for %s: %s — continuing without "
+                                "audit line", ref.external_id, exc,
+                            )
+                    logger.warning(
+                        "Quarantined %s from %s (severity=%s, patterns=%d) — "
+                        "skipped chunking/embedding",
+                        ref.external_id,
+                        connector.name,
+                        detection.severity,
+                        len(detection.patterns_matched),
+                    )
+                    continue
+
             try:
                 scope = await connector.acl_for(ref)
             except Exception as exc:
@@ -189,6 +238,7 @@ class IngestionOrchestrator:
             indexed=indexed,
             duration_s=time.monotonic() - t0,
             errors=errors,
+            quarantined=quarantined,
         )
 
     async def run_all(

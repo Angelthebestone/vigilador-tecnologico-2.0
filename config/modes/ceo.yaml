@@ -1,3 +1,5 @@
+# Spec 021 F4a.C / T103 — MVP mode "CEO" (Director Ejecutivo)
+# playbooks.default = deep-research per FR-021 (decision-debate is roadmap F4b).
 id: ceo
 display_name: "Director Ejecutivo"
 description: "Modo para directores ejecutivos. Enfoque estratégico y de toma de decisiones."
@@ -17,19 +19,32 @@ soul_overlay:
   dont_rules:
     - "No incluir detalles técnicos excesivos sin contexto de negocio"
 
+company_subset:
+  files:
+    - identity.md
+    - strategy.md
+
+company_geo:
+  country: Colombia
+
 tools:
   domains:
     - search
     - research
     - productivity
+    - communication
+    - analytics
   excluded: []
 
 playbooks:
-  default: general
+  # FR-021 — MVP default for CEO mode is deep-research; decision-debate
+  # roadmap F4b (kept in the YAML but intentionally absent from `allowed`
+  # so the runtime does not surface it).
+  default: deep-research
   allowed:
-    - decision-debate
     - deep-research
     - general
+    # roadmap F4b: decision-debate, market-research, goal-pursuit
 
 mode_settings:
   language_default: es

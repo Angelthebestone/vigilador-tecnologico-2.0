@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """PipelinePlanner — generates technical data flow plan (FR-004, helper for coordinator)."""
 
 from __future__ import annotations

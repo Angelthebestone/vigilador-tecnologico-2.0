@@ -1,4 +1,4 @@
-"""Thread-safe MCP result cache with per-tool TTLs.
+"""Thread-safe MCP result cache with per-tool TTLs and LRU eviction.
 
 Reduces redundant MCP calls and API costs by caching results
 keyed by ``(tool_name, normalized_query)``.
@@ -10,7 +10,9 @@ Notable exclusions (never cached):
 from __future__ import annotations
 
 import hashlib
+import os
 import time
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from threading import Lock
@@ -25,7 +27,7 @@ class _CacheEntry:
 
 @dataclass(slots=True)
 class MCPSmartCache:
-    """Thread-safe MCP cache with configurable per-tool TTLs.
+    """Thread-safe MCP cache with configurable per-tool TTLs and LRU eviction.
 
     Usage:
         cache = MCPSmartCache()
@@ -35,9 +37,10 @@ class MCPSmartCache:
             cache.set("tavily_search", "latest AI news", result)
     """
 
-    _store: dict[str, _CacheEntry] = field(default_factory=dict, repr=False)
+    _store: OrderedDict[str, _CacheEntry] = field(default_factory=OrderedDict, repr=False)
     _tool_index: dict[str, set[str]] = field(default_factory=dict, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
+    _max_entries: int = field(default_factory=lambda: int(os.environ.get("VT_MCP_CACHE_MAX_ENTRIES", "1000")), repr=False)
 
     # Default TTLs per tool (in seconds)
     _ttls: dict[str, float] = field(
@@ -89,8 +92,10 @@ class MCPSmartCache:
             if entry is None:
                 return None
             if time.monotonic() > entry.expires_at:
-                del self._store[key]
+                self._remove_entry(key, tool)
                 return None
+            # Move to end for LRU
+            self._store.move_to_end(key)
             return entry.data
 
     def set(
@@ -116,6 +121,18 @@ class MCPSmartCache:
                 expires_at=time.monotonic() + max(ttl, 1.0),
             )
             self._tool_index.setdefault(tool, set()).add(key)
+            # LRU eviction: remove oldest entries if over max
+            while len(self._store) > self._max_entries:
+                evicted_key, _ = self._store.popitem(last=False)
+                # Remove from tool index
+                for keys in self._tool_index.values():
+                    keys.discard(evicted_key)
+
+    def _remove_entry(self, key: str, tool: str) -> None:
+        """Remove a single entry from store and tool index."""
+        self._store.pop(key, None)
+        if tool in self._tool_index:
+            self._tool_index[tool].discard(key)
 
     def invalidate(self, tool: str, query: str | None = None) -> None:
         """Remove cache entries for the given *tool*.
@@ -126,9 +143,7 @@ class MCPSmartCache:
         with self._lock:
             if query is not None:
                 key = self._normalize(tool, query)
-                self._store.pop(key, None)
-                if tool in self._tool_index:
-                    self._tool_index[tool].discard(key)
+                self._remove_entry(key, tool)
                 return
             keys = self._tool_index.pop(tool, set())
             for k in keys:
@@ -148,7 +163,7 @@ class MCPSmartCache:
             now = time.monotonic()
             expired = [k for k, v in self._store.items() if now > v.expires_at]
             for k in expired:
-                del self._store[k]
+                self._store.pop(k, None)
             if expired:
                 expired_keys = set(expired)
                 for keys in self._tool_index.values():

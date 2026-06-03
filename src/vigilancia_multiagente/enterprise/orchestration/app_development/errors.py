@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Explicit error types for the app-development playbook."""
 
 from __future__ import annotations

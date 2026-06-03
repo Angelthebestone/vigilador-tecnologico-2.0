@@ -1,11 +1,30 @@
+# Spec 021 F4a.D / T105 — MVP playbook "general" (single-agent generalist).
+# Hybrid YAML: keeps legacy fields (name/executor_type/parallel/agents.role/skills_allowed)
+# for the existing PlaybookRegistry + adds new spec-021 fields
+# (display_name/mode_compatible/flow/guardrails) for PlaybookRunner.
 id: general
 name: General Assistant
+display_name: "General assistant"
+description: "Single-agent generalist with progressive tool discovery."
 executor_type: single_agent
 parallel: false
+mode_compatible:
+  - "*"
+
 agents:
-  - id: general_assistant
+  - id: lead
     role: general_assistant
+    skill: ""
     skills_allowed:
       - web_search
       - document_analysis
       - report_generation
+
+flow:
+  type: sequential
+  steps:
+    - { agent: lead, input_key: "query" }
+
+guardrails:
+  max_total_llm_calls: 8
+  max_runtime_s: 120

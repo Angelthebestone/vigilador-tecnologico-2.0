@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 2 — Writing style learning: analyze approved emails and update style profile."""
 
 from __future__ import annotations

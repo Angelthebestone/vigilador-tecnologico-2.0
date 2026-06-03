@@ -1,16 +1,50 @@
+# Spec 021 F4a.D / T106 — MVP playbook "deep-research".
+# Hybrid YAML — see config/playbooks/general.yaml header for rationale.
 id: deep-research
 name: Deep Research
+display_name: "Deep research"
+description: "Six-stage research pipeline: clarify -> plan -> approve -> execute -> fuse -> report."
 executor_type: crewai
 parallel: false
+mode_compatible:
+  - "*"
+
 agents:
-  - id: researcher
-    role: deep_researcher
-    skills_allowed:
-      - web_search
-      - document_analysis
-      - deep_research
-  - id: synthesizer
-    role: research_synthesizer
-    skills_allowed:
-      - report_generation
-      - document_analysis
+  - id: clarifier
+    role: research_clarifier
+    skill: "agency_agents.specialized.research-question-clarifier"
+    skills_allowed: [web_search, document_analysis]
+  - id: planner
+    role: research_planner
+    skill: "agency_agents.specialized.research-planner"
+    skills_allowed: [web_search, document_analysis]
+  - id: approver
+    role: human_in_the_loop
+    skill: ""
+    skills_allowed: []
+  - id: executor
+    role: research_executor
+    skill: "agency_agents.specialized.research-executor"
+    skills_allowed: [web_search, document_analysis, deep_research]
+  - id: fuser
+    role: synthesizer
+    skill: "agency_agents.specialized.synthesizer"
+    skills_allowed: [document_analysis, report_generation]
+  - id: reporter
+    role: report_writer
+    skill: "agency_agents.specialized.report-writer"
+    skills_allowed: [report_generation]
+
+flow:
+  type: sequential
+  steps:
+    - { agent: clarifier, input_key: "query" }
+    - { agent: planner,   input_key: "clarifier.value" }
+    - { agent: approver,  input_key: "planner.value" }
+    - { agent: executor,  input_key: "planner.value" }
+    - { agent: fuser,     input_key: "executor.value" }
+    - { agent: reporter,  input_key: "fuser.value" }
+
+guardrails:
+  max_total_llm_calls: 30
+  max_runtime_s: 600

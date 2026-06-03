@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase 10 — Dreaming Report: generate end-of-cycle summary report."""
 
 from __future__ import annotations

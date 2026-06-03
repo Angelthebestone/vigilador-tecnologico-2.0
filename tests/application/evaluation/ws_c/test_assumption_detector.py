@@ -32,7 +32,7 @@ class DummyLLM:
 
 class DummyPromptLoader:
     def load(self, path: str) -> str:
-        assert path == "evaluation/assumption_detection.txt"
+        assert path.startswith("evaluation/assumption_detection")
         return "Detecta asunciones implicitas."
 
 

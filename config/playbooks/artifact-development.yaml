@@ -1,3 +1,5 @@
+# ROADMAP F4b — fuera de MVP 021; no registrar en runtime
+# Spec 021 T110 — kept in tree as reference; loader/runner skip status: roadmap.
 id: artifact-development
 name: Artifact Development
 display_name: "Desarrollo de Artefactos (Dashboards, Pipelines, Métricas)"

@@ -186,6 +186,19 @@ predictibilidad del sistema y alinean el codigo con expectativas del dominio.
    MUST reescribirse.
 9. Cada linea modificada MUST trazar directamente al objetivo declarado.
 
+## Practicas de Codigo (Generales)
+
+- Priorizar legibilidad y simplicidad sobre ingenio; el codigo debe leerse en una pasada.
+- Mantener funciones pequenas y con una sola responsabilidad; separar logica pura de I/O.
+- Limitar efectos secundarios: concentrarlos en los bordes del sistema y documentarlos.
+- Evitar estado global mutable; cuando sea inevitable, encapsularlo y justificarlo.
+- Validar entradas en los limites del sistema; mantener invariantes internas sin revalidar en cada capa.
+- Manejar errores con contexto util; evitar capturas amplias o silenciosas.
+- Escribir tests deterministas y repetibles; aislar dependencias externas con dobles de prueba.
+- Registrar logs utiles y minimales; nunca exponer secretos, PII o credenciales.
+- Medir antes de optimizar; optimizar solo rutas calientes con evidencia.
+- Documentar decisiones no obvias y contratos de interfaz con ejemplos breves.
+
 ## Proceso de Desarrollo
 
 1. Declarar supuestos y decisiones de diseno antes de implementar.

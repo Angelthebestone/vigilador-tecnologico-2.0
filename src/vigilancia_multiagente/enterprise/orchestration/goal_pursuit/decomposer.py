@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """GoalDecomposer: breaks complex objectives into a DAG of sub-goals."""
 
 from __future__ import annotations

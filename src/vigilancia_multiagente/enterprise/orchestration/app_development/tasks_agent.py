@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Tasks agent: generates tasks.md with ordered task list."""
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """SourceInventoryAgent — inventories available data sources (FR-002, EC-01)."""
 
 from __future__ import annotations

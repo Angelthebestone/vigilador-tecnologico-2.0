@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase 4 — Config refresher: detect COMPANY gaps and propose updates."""
 
 from __future__ import annotations

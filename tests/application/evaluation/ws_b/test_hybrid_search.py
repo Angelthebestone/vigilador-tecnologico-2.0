@@ -22,8 +22,12 @@ pytestmark = pytest.mark.asyncio
 
 class SimpleEmbeddingGateway:
     async def embed(self, text: str, task_type=None) -> list[float]:
-        words = text.lower().split()
-        vec = [hash(w) % 1000 / 1000.0 for w in words[:8]]
+        # Return a semantically meaningful vector: 1.0 if query words are present, 0.0 otherwise
+        text_lower = text.lower()
+        vec = [
+            1.0 if word in text_lower else 0.0
+            for word in ["machine", "learning", "neural", "networks", "deep", "transformers"]
+        ]
         return (vec + [0.0] * 8)[:8]
 
     async def embed_document(self, text: str) -> list[float]:

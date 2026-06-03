@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase 6 — Regulatory/local watch: search official sources by company_geo."""
 
 from __future__ import annotations

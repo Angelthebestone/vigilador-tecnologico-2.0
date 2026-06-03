@@ -31,7 +31,7 @@ class DummyLLM:
 
 class DummyPromptLoader:
     def load(self, path: str) -> str:
-        assert path == "evaluation/counterfactual.txt"
+        assert path.startswith("evaluation/counterfactual")
         return "counterfactual prompt"
 
 

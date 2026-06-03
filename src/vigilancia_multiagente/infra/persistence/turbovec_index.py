@@ -67,6 +67,10 @@ class TurboVecIndex:
         self._home = base.expanduser()
         self._home.mkdir(parents=True, exist_ok=True)
         self._handles: dict[UUID, _IndexHandle] = {}
+        # FR-007: Per-tenant locks for concurrent write safety
+        self._tenant_write_locks: dict[UUID, asyncio.Lock] = {}
+        self._tenant_persist_locks: dict[UUID, asyncio.Lock] = {}
+        self._master_lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
     # Healthcheck
@@ -84,11 +88,24 @@ class TurboVecIndex:
     # IngestionVectorIndex contract
     # ------------------------------------------------------------------
 
+    def _get_write_lock(self, tenant_id: UUID) -> asyncio.Lock:
+        """Get or create a write lock for a tenant (lazy with master lock)."""
+        if tenant_id not in self._tenant_write_locks:
+            self._tenant_write_locks[tenant_id] = asyncio.Lock()
+        return self._tenant_write_locks[tenant_id]
+
+    def _get_persist_lock(self, tenant_id: UUID) -> asyncio.Lock:
+        """Get or create a persist lock for a tenant (lazy with master lock)."""
+        if tenant_id not in self._tenant_persist_locks:
+            self._tenant_persist_locks[tenant_id] = asyncio.Lock()
+        return self._tenant_persist_locks[tenant_id]
+
     async def add(self, tenant_id: UUID, chunks: list[Any]) -> int:
         """Index ``chunks`` (each must expose ``chunk_id``, ``embedding``)."""
         if not chunks:
             return 0
-        return await asyncio.to_thread(self._add_sync, tenant_id, chunks)
+        async with self._get_write_lock(tenant_id):
+            return await asyncio.to_thread(self._add_sync, tenant_id, chunks)
 
     async def query(
         self,
@@ -104,7 +121,8 @@ class TurboVecIndex:
         )
 
     async def persist(self, tenant_id: UUID) -> None:
-        await asyncio.to_thread(self._persist_sync, tenant_id)
+        async with self._get_persist_lock(tenant_id):
+            await asyncio.to_thread(self._persist_sync, tenant_id)
 
     async def rebuild(self, tenant_id: UUID) -> None:
         await asyncio.to_thread(self._rebuild_sync, tenant_id)

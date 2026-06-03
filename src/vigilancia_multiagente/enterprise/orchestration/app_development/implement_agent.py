@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Implement agent: generates code in sandbox from tasks."""
 
 from __future__ import annotations

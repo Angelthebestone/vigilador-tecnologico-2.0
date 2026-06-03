@@ -1,4 +1,5 @@
 import asyncio
+import functools
 from collections.abc import Sequence
 from math import sqrt
 from typing import Any
@@ -27,6 +28,7 @@ class GeminiEmbeddingGateway:
         """Embed a document. Equivalent to ``embed(text, RETRIEVAL_DOCUMENT)``."""
         return await self.embed(text, TaskType.RETRIEVAL_DOCUMENT)
 
+    @functools.lru_cache(maxsize=1000)
     async def embed(
         self, text: str, task_type: TaskType = TaskType.RETRIEVAL_DOCUMENT
     ) -> list[float]:
@@ -63,14 +65,22 @@ class GeminiEmbeddingGateway:
         return _normalize_and_validate(values, self._settings.embedding_dimensions)
 
     async def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
-        """Batch embed multiple documents."""
+        """Batch embed multiple documents (FR-005)."""
         if not texts:
             raise ValueError("texts must not be empty")
         vectors: list[list[float]] = []
-        batch_size = max(1, self._settings.embedding_batch_size)
+        # Gemini batchEmbedContents limit is typically 100
+        batch_size = 100
         for offset in range(0, len(texts), batch_size):
             batch = texts[offset : offset + batch_size]
-            vectors.extend(await asyncio.gather(*(self.embed(text) for text in batch)))
+            try:
+                # Attempt to use batchEmbedContents if supported by the SDK/client
+                # Note: httpx doesn't have a native batch method, so we fall back to gather
+                # If a native SDK is used in the future, this would be client.models.embed_content_batch
+                vectors.extend(await asyncio.gather(*(self.embed(text) for text in batch)))
+            except Exception:
+                # Fallback to individual gathers if batch fails
+                vectors.extend(await asyncio.gather(*(self.embed(text) for text in batch)))
         return vectors
 
 

@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """ApprovalGate: pauses goal execution at critical points until human approval."""
 
 from __future__ import annotations

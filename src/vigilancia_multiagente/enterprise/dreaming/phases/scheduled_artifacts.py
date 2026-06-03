@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase 8 — Scheduled artifacts: generate programmed reports/dashboards."""
 
 from __future__ import annotations

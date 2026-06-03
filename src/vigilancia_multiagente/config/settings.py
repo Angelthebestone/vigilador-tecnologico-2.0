@@ -107,6 +107,14 @@ class Settings(BaseSettings):
     # OAuth & credentials (Fernet). Vacío resuelve a ~/.vigilador/credentials/.
     credentials_dir: str | None = None
 
+    # Spec 021 — Google Workspace OAuth (read-only Drive scope; spec 021 F2.C
+    # connector + F4a.G onboarding endpoint). Both are SecretStr-friendly when
+    # configured; if unset the connector / onboarding route surface a clear
+    # 503 (constitución #4 explicit error).
+    google_client_id: str | None = None
+    google_client_secret: SecretStr | None = None
+    google_redirect_uri: str | None = None
+
     # Tenant (single-tenant en MVP; schema preparado para multi-tenancy)
     default_tenant_id: str = "00000000-0000-0000-0000-000000000001"
 
@@ -150,6 +158,8 @@ class Settings(BaseSettings):
     skills_vendor_dir: str = (
         "src/vigilancia_multiagente/enterprise/skills_marketplace/_vendor"
     )
+    # Spec 022 FR-037 — cold skills activation
+    cold_skills_enabled: bool = False
 
     # Spec 013 — goal pursuit
     goal_pursuit_max_depth: int = 5

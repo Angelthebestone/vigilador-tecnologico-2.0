@@ -72,6 +72,20 @@ class ToolHealthRepository:
             )
             return [_row_to_dataclass(row) for row in result.mappings().all()]
 
+    async def get_statuses_batch(self, names: list[str], tenant_id: UUID) -> dict[str, str]:
+        """Get status for multiple tools in a single query (FR-002)."""
+        if not names:
+            return {}
+        async with self._database.session() as db:
+            result = await db.execute(
+                text(
+                    "SELECT name, status FROM tool_health "
+                    "WHERE tenant_id = :tenant_id AND name = ANY(:names)"
+                ),
+                {"tenant_id": tenant_id, "names": names},
+            )
+            return {str(row["name"]): str(row["status"]) for row in result.mappings().all()}
+
     async def upsert(self, row: ToolHealthRow) -> None:
         """Uso EXCLUSIVO del HealthMonitor (CQS write)."""
         async with self._database.session() as db:

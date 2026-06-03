@@ -1,3 +1,5 @@
+# Spec 021 F4a.C / T102 — MVP mode "vigilancia-tech".
+# Wraps the 2.0 BranchCoordinator via plugins/technology-watch (T107).
 id: vigilancia-tech
 display_name: "Vigilancia Tecnológica"
 description: "Modo especializado en vigilancia tecnológica. Compatible con el flujo 2.0 (BranchCoordinator + 6 agentes de rama)."
@@ -17,6 +19,13 @@ soul_overlay:
   dont_rules:
     - "No emitir opiniones sin respaldo de datos"
 
+company_subset:
+  files:
+    - identity.md
+
+company_geo:
+  country: Colombia
+
 tools:
   domains:
     - search
@@ -29,6 +38,7 @@ playbooks:
   default: technology-watch
   allowed:
     - technology-watch
+    - general
 
 mode_settings:
   language_default: es

@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 4 — Tool composition: detect repeated tool sequences and compose skills."""
 
 from __future__ import annotations

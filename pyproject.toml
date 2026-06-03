@@ -40,6 +40,12 @@ dependencies = [
   "python-docx>=1.1",
   # Spec 021 D1-revisada — TurboVec native vector index
   "turbovec>=0.6.0",
+  # Spec 022 Ola 4 — SDK migrations for research providers
+  "tavily-python>=0.5.0,<1.0.0",
+  "exa-py>=1.5.0,<2.0.0",
+  "firecrawl-py>=2.0.0,<3.0.0",
+  "pyalex>=0.18.0,<1.0.0",
+  "arxiv>=2.1.0,<3.0.0",
 ]
 
 [project.scripts]
@@ -61,6 +67,8 @@ markitdown = ["markitdown>=0.0.1"]
 scholar = ["scholarly>=1.7"]
 sandbox = ["e2b>=0.16"]
 browser = ["playwright>=1.40"]
+# Spec 021 F3a — Computer use Win11 backend (pyautogui + pygetwindow + mss)
+desktop = ["pyautogui>=0.9.54", "pygetwindow>=0.0.9", "mss>=9.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -71,15 +79,6 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-# Ruleset ampliado: además del set por defecto (E, F) se activan familias
-# de alto valor — bugs probables (B), simplificación (SIM), modernización
-# (UP), reglas ruff (RUF), perf (PERF, C4, PIE), orden de imports (I),
-# returns (RET).
-#
-# Quedaron fuera por ser ruidosas o contextuales en este codebase:
-#   ARG  → handlers FastAPI / callbacks con firma fija (no es código muerto)
-#   N    → NetworkX usa G, B como convención (no son malos nombres)
-#   TC   → mover imports a TYPE_CHECKING aporta poco aquí
 select = [
     "E",
     "F",
@@ -94,19 +93,12 @@ select = [
     "RET",
 ]
 ignore = [
-    # El formateador ya gestiona el ancho razonable; forzarlo en
-    # strings/URLs largas genera ruido sin valor.
     "E501",
-    # PERF401/403: reescribir loops con lógica condicional como
-    # comprehensions en código crítico (graph service) añade riesgo
-    # de regresión por una ganancia de microsegundos. No vale la pena.
     "PERF401",
     "PERF403",
 ]
 
 [tool.ruff.lint.flake8-bugbear]
-# Depends/Query/Path/Body en defaults es el patrón idiomático de FastAPI,
-# no un bug (B008).
 extend-immutable-calls = [
     "fastapi.Depends",
     "fastapi.Query",
@@ -115,15 +107,10 @@ extend-immutable-calls = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Script de exploración manual: intercala print() con import a propósito
-# para separar cada función bajo prueba en la salida de consola.
 "tests/debug_functions.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"
-# Adopción gradual: chequeo pragmático en código de dominio/lógica.
-# No se exigen anotaciones completas (no disallow_untyped_defs) para no
-# bloquear el desarrollo; el foco es detectar errores de tipo reales.
 ignore_missing_imports = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -138,20 +125,13 @@ exclude = ["tests", "scripts", "mock_server.py", "specs", "docs"]
 reportMissingTypeStubs = false
 reportMissingImports = false
 
-# executionEnvironments permite rutas específicas por módulo
-# (el equivalente funcional a mypy [[tool.mypy.overrides]])
 [[tool.basedpyright.executionEnvironments]]
 root = "src/vigilancia_multiagente"
 extraPaths = ["src"]
 
 [[tool.mypy.overrides]]
-# Capa de infraestructura: SQLAlchemy/asyncpg devuelven RowMapping y
-# columnas tipadas como `object`. mypy las marca como incompatibles aunque
-# en runtime son correctas — es ruido de librería sin stubs precisos, no
-# bugs. Se relaja el chequeo nominal aquí.
 module = [
     "vigilancia_multiagente.infra.persistence.*",
     "vigilancia_multiagente.infra.mcp.provider_registry",
 ]
 disable_error_code = ["arg-type", "attr-defined", "call-overload", "assignment"]
-

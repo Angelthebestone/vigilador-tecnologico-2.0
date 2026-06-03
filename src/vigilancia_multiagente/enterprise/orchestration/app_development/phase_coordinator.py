@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Phase coordinator: orchestrates the app-development pipeline."""
 
 from __future__ import annotations

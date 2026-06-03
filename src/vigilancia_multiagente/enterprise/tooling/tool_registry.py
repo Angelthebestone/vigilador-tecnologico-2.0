@@ -5,17 +5,22 @@ Responsabilidades:
 - Listado filtrado por rol con gating (API key faltante oculta tool).
 - Fichas progresivas: ToolCard → ToolSummary → ToolDocs.
 - Descubrimiento semántico por similitud coseno via EmbeddingGateway.
+- Spec 021 F5a.D / T136: orquesta `execute()` con auditoría JSONL opcional.
 """
 
 from __future__ import annotations
 
 import math
 import os
+import time
+from typing import Any
 from uuid import UUID
 
 from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
+from vigilancia_multiagente.enterprise.governance.audit_log import AuditLogPort
 from vigilancia_multiagente.enterprise.tooling.tool_card import ToolCard, ToolDocs, ToolSummary
 from vigilancia_multiagente.enterprise.tooling.tool_wrapper import ToolWrapper
+from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 from vigilancia_multiagente.infra.persistence.tool_health_repository import (
     ToolHealthRepository,
 )
@@ -37,16 +42,29 @@ class ToolRegistry:
         self,
         tool_health_repo: ToolHealthRepository,
         embedding_gateway: EmbeddingGateway,
+        audit_log: AuditLogPort | None = None,
+        embedding_cache: EmbeddingCache | None = None,
     ) -> None:
         self._health_repo = tool_health_repo
         self._embedding_gw = embedding_gateway
         self._tools: dict[str, ToolWrapper] = {}
+        self._audit_log = audit_log
+        self._embedding_cache = embedding_cache
+        self._tool_embeddings: dict[str, list[float]] = {}
 
     async def register(self, tool: ToolWrapper) -> None:
         """Registra una tool. Falla si el name ya existe."""
         if tool.name in self._tools:
             raise ValueError(f"Tool '{tool.name}' already registered")
         self._tools[tool.name] = tool
+        
+        # Pre-compute embedding for tool description (FR-001)
+        desc = getattr(tool, "description", tool.name)
+        if self._embedding_gw:
+            vec = await self._embedding_gw.embed(desc)
+            self._tool_embeddings[tool.name] = vec
+            if self._embedding_cache:
+                self._embedding_cache.set(desc, vec)
 
     async def is_capability_available(self, name: str) -> bool:
         """Retorna True si `name` está registrado y pasa gating (spec 015 A-01).
@@ -83,9 +101,18 @@ class ToolRegistry:
         """Retorna documentación completa de la tool."""
         summary = await self.get_summary(name)
         tool = self._tools[name]
+        # FR-034: Load long_description from prompts/tools/{name}.txt
+        long_description = getattr(tool, "long_description", "")
+        if not long_description:
+            try:
+                from vigilancia_multiagente.infra.prompts.loader import FilesystemPromptLoader
+                loader = FilesystemPromptLoader()
+                long_description = loader.load(f"tools/{name}")
+            except (FileNotFoundError, Exception):
+                long_description = ""
         return ToolDocs(
             summary=summary,
-            long_description=getattr(tool, "long_description", ""),
+            long_description=long_description,
             full_examples=getattr(tool, "full_examples", []),
         )
 
@@ -93,16 +120,71 @@ class ToolRegistry:
         """Descubre tools ordenadas por similitud semántica al intent."""
         intent_vec = await self._embedding_gw.embed(intent)
         scored: list[tuple[float, ToolCard]] = []
-        for tool in self._tools.values():
-            if not self._passes_gating(tool):
-                continue
-            desc = getattr(tool, "description", tool.name)
-            tool_vec = await self._embedding_gw.embed(desc)
+        
+        # Get all valid tool names first
+        valid_tools = [tool for tool in self._tools.values() if self._passes_gating(tool)]
+        valid_names = [tool.name for tool in valid_tools]
+        
+        # Batch fetch statuses (FR-002)
+        statuses = await self._health_repo.get_statuses_batch(valid_names, tenant_id)
+        
+        for tool in valid_tools:
+            # Use pre-computed embedding (FR-001)
+            tool_vec = self._tool_embeddings.get(tool.name)
+            if tool_vec is None:
+                # Fallback if not pre-computed
+                desc = getattr(tool, "description", tool.name)
+                tool_vec = await self._embedding_gw.embed(desc)
+                
             sim = _cosine_similarity(intent_vec, tool_vec)
-            status = await self._get_status(tool.name, tenant_id)
+            status = statuses.get(tool.name, "UNKNOWN")
             scored.append((sim, self._to_card(tool, status)))
+            
         scored.sort(key=lambda x: x[0], reverse=True)
         return [card for _, card in scored]
+
+    async def execute(
+        self,
+        name: str,
+        args: dict[str, Any],
+        operation: str = "execute",
+        agent_id: str | None = None,
+        session_id: str | None = None,
+    ) -> dict[str, object]:
+        """Spec 021 F5a.D / T136 — central tool dispatch with audit JSONL.
+
+        Looks up the registered ``ToolWrapper`` and delegates to its
+        ``execute(name, args)``. Around the call, when an
+        :class:`AuditLogPort` is configured, emits a ``tool_invocation``
+        event capturing outcome, duration, and any error.
+
+        Raises ``KeyError`` if ``name`` is not registered.
+        """
+        tool = self._tools.get(name)
+        if tool is None:
+            raise KeyError(f"Tool '{name}' is not registered")
+
+        t0 = time.perf_counter()
+        outcome = "success"
+        error: str | None = None
+        try:
+            return await tool.execute(name, args)
+        except Exception as exc:
+            outcome = "error"
+            error = f"{type(exc).__name__}: {exc}"
+            raise
+        finally:
+            if self._audit_log is not None:
+                duration_ms = (time.perf_counter() - t0) * 1000
+                self._audit_log.log_tool_invocation(
+                    tool_id=name,
+                    operation=operation,
+                    outcome=outcome,
+                    duration_ms=duration_ms,
+                    agent_id=agent_id,
+                    session_id=session_id,
+                    error=error,
+                )
 
     # --- private helpers ---
 

@@ -1,12 +1,11 @@
-"""Firecrawl tool — native WRAP-SDK over the Firecrawl REST API.
+"""Firecrawl tool — WRAP-SDK over the official firecrawl-py package.
 
 Spec 021 FR-053/054: native-first, universal Tool abstraction.
 Catalog: ``firecrawl`` / domain ``research`` / capabilities
 ``[crawl_url, scrape_page, map_site]``.
 
-Strategy: WRAP-SDK using ``httpx``. The ``firecrawl-py`` SDK is a thin
-wrapper around the same endpoints; we use ``httpx`` directly to avoid
-adding another optional dependency.
+Strategy: WRAP-SDK using the official ``firecrawl_py`` package.
+Constitución #2 KISS — minimal client wrapper.
 """
 
 from __future__ import annotations
@@ -14,13 +13,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
-import httpx
+from firecrawl import FirecrawlApp
 
 from vigilancia_multiagente.enterprise.governance.url_safety import is_safe_url
 from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
-
-_FIRECRAWL_BASE_URL = "https://api.firecrawl.dev/v1"
-_DEFAULT_TIMEOUT_S = 120.0  # crawl jobs can be slow
 
 
 @dataclass(frozen=True)
@@ -34,6 +30,9 @@ class FirecrawlTool:
 
     def _api_key(self) -> str | None:
         return os.getenv("VT_FIRECRAWL_API_KEY") or None
+
+    def _client(self) -> FirecrawlApp:
+        return FirecrawlApp(api_key=self._api_key())
 
     async def healthcheck(self) -> HealthcheckResult:
         if not self._api_key():
@@ -54,6 +53,11 @@ class FirecrawlTool:
         * ``crawl_url`` — args: ``url`` (str), ``limit`` (int, default 10).
           Returns crawl-job submission payload (caller polls).
         * ``map_site`` — args: ``url`` (str). Returns the site URL list.
+
+        Raises:
+            ValueError: unsupported tool_name or invalid args.
+            RuntimeError: missing API key.
+            PermissionError: URL safety check failed.
         """
         api_key = self._api_key()
         if not api_key:
@@ -68,40 +72,35 @@ class FirecrawlTool:
                 f"FirecrawlTool: URL safety check rejected '{url}'"
             )
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
+        client = self._client()
+
         if tool_name == "scrape_page":
-            return await self._post(headers, "/scrape", {"url": url}, key="data")
+            return self._scrape(client, url)
         if tool_name == "crawl_url":
             limit = args.get("limit", 10)
             if not isinstance(limit, int) or limit <= 0:
                 limit = 10
-            return await self._post(
-                headers, "/crawl", {"url": url, "limit": limit}, key=None
-            )
+            return self._crawl(client, url, limit)
         if tool_name == "map_site":
-            return await self._post(headers, "/map", {"url": url}, key="links")
+            return self._map(client, url)
         raise ValueError(
             f"FirecrawlTool: unknown tool_name '{tool_name}' "
             f"(supported: scrape_page, crawl_url, map_site)"
         )
 
-    async def _post(
-        self,
-        headers: dict[str, str],
-        path: str,
-        body: dict[str, object],
-        *,
-        key: str | None,
-    ) -> dict[str, object]:
-        async with httpx.AsyncClient(timeout=_DEFAULT_TIMEOUT_S) as client:
-            response = await client.post(
-                f"{_FIRECRAWL_BASE_URL}{path}", json=body, headers=headers
-            )
-            response.raise_for_status()
-            payload = response.json()
-        if key is None:
-            return payload
-        return {"url": body.get("url"), key: payload.get(key, payload)}
+    def _scrape(self, client: FirecrawlApp, url: str) -> dict[str, object]:
+        result = client.scrape_url(url, formats=["markdown", "html"])
+        return {
+            "url": url,
+            "markdown": result.get("markdown", ""),
+            "html": result.get("html", ""),
+            "metadata": result.get("metadata", {}),
+        }
+
+    def _crawl(self, client: FirecrawlApp, url: str, limit: int) -> dict[str, object]:
+        result = client.crawl_url(url, params={"limit": limit, "scrapeOptions": {"formats": ["markdown"]}})
+        return {"url": url, "id": result.get("id", ""), "status": result.get("status", "")}
+
+    def _map(self, client: FirecrawlApp, url: str) -> dict[str, object]:
+        result = client.map_url(url)
+        return {"url": url, "links": result.get("links", [])}

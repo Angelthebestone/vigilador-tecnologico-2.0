@@ -1,3 +1,5 @@
+# ROADMAP F4b — fuera de MVP 021; no registrar en runtime
+# Spec 021 T110 — kept in tree as reference; loader/runner skip status: roadmap.
 id: goal-pursuit
 name: Goal Pursuit - Autonomous Long-Running Execution
 executor_type: single_agent

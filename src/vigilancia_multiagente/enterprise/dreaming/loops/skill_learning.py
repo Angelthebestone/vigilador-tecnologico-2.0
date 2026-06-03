@@ -1,3 +1,4 @@
+# ROADMAP F5b - fuera de MVP 021; no registrar en runtime
 """Loop 1 — Skill learning: detect successful demonstrations and generate skills."""
 
 from __future__ import annotations
