@@ -85,8 +85,8 @@ tools:
 - id: tavily
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: tavily
   license: MIT
@@ -95,7 +95,7 @@ tools:
   - news_search
   requires_key: true
   env_var: TAVILY_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 8200
   loc_validated: true
@@ -107,8 +107,8 @@ tools:
 - id: exa
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: exa-labs
   license: MIT
@@ -117,7 +117,7 @@ tools:
   - find_similar
   requires_key: true
   env_var: EXA_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 6100
   loc_validated: true
@@ -129,8 +129,8 @@ tools:
 - id: jina
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: jina-ai
   license: Apache-2.0
@@ -139,7 +139,7 @@ tools:
   - extract_content
   requires_key: true
   env_var: JINA_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 5500
   loc_validated: true
@@ -151,8 +151,8 @@ tools:
 - id: brave
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: brave
   license: MIT
@@ -161,7 +161,7 @@ tools:
   - local_search
   requires_key: true
   env_var: BRAVE_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 7800
   loc_validated: true
@@ -173,8 +173,8 @@ tools:
 - id: firecrawl
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: mendable
   license: MIT
@@ -184,7 +184,7 @@ tools:
   - map_site
   requires_key: true
   env_var: FIRECRAWL_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 9200
   loc_validated: true
@@ -196,8 +196,8 @@ tools:
 - id: serper
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: serper-dev
   license: MIT
@@ -208,7 +208,7 @@ tools:
   - news_search
   requires_key: true
   env_var: SERPER_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 5200
   loc_validated: true
@@ -221,17 +221,17 @@ tools:
 - id: google_scholar
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: CLONE-UPSTREAM
+  runtime: python_internal
   status: active
   owner: community
   license: MIT
   capabilities:
   - search_papers
   - get_citations
-  requires_key: true
-  env_var: SERPER_API_KEY
-  healthcheck: mcp_ping
+  requires_key: false
+  env_var: ''
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 284
   loc_validated: true
@@ -245,8 +245,8 @@ tools:
 - id: arxiv
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: CLONE-UPSTREAM
+  runtime: python_internal
   status: active
   owner: community
   license: MIT
@@ -256,7 +256,7 @@ tools:
   - list_categories
   requires_key: false
   env_var: ''
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 2956
   loc_validated: true
@@ -268,8 +268,8 @@ tools:
 - id: fetch
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: modelcontextprotocol
   license: MIT
@@ -278,7 +278,7 @@ tools:
   - extract_text
   requires_key: false
   env_var: ''
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 5200
   loc_validated: true
@@ -290,8 +290,8 @@ tools:
 - id: sandbox
   domain: execution
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: e2b
   license: MIT
@@ -300,7 +300,7 @@ tools:
   - execute_command
   requires_key: true
   env_var: E2B_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 11000
   loc_validated: true
@@ -312,8 +312,8 @@ tools:
 - id: markitdown
   domain: documents
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: microsoft
   license: MIT
@@ -322,7 +322,7 @@ tools:
   - extract_text
   requires_key: false
   env_var: ''
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 7500
   loc_validated: true
@@ -334,8 +334,8 @@ tools:
 - id: minimax_image
   domain: creative
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_http
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: minimax
   license: proprietary
@@ -344,7 +344,7 @@ tools:
   - edit_image
   requires_key: true
   env_var: MINIMAX_API_KEY
-  healthcheck: http_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 5500
   loc_validated: true
@@ -356,8 +356,8 @@ tools:
 - id: openalex
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: community
   license: MIT
@@ -367,7 +367,7 @@ tools:
   - get_institutions
   requires_key: false
   env_var: ''
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 5800
   loc_validated: true
@@ -379,8 +379,8 @@ tools:
 - id: playwright
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: microsoft
   license: Apache-2.0
@@ -391,7 +391,7 @@ tools:
   - fill
   requires_key: false
   env_var: ''
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 15000
   loc_validated: true
@@ -403,8 +403,8 @@ tools:
 - id: serper_patents
   domain: research
   source: preservado_2.0
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: serper-dev
   license: MIT
@@ -413,7 +413,7 @@ tools:
   - patent_details
   requires_key: true
   env_var: SERPER_API_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 5200
   loc_validated: true
@@ -427,8 +427,8 @@ tools:
 - id: google_workspace
   domain: productivity
   source: nuevo
-  strategy: MCP-EXTERNO
-  runtime: process_stdio
+  strategy: WRAP-SDK
+  runtime: python_internal
   status: active
   owner: google
   license: Apache-2.0
@@ -439,7 +439,7 @@ tools:
   - send_email
   requires_key: true
   env_var: GOOGLE_WORKSPACE_KEY
-  healthcheck: mcp_ping
+  healthcheck: internal
   update_policy: upstream-watch
   loc_count: 12000
   loc_validated: true

@@ -61,11 +61,19 @@ async def build_enterprise_services(settings: Any, database: Any) -> dict[str, A
 
 
 async def _build_tool_registry(settings, database, embedding_gateway, tool_health_repo_cls):
+    # Documents tools (spec 009 + spec 018 — already shipped)
+    # Spec 021 D5 native-first WRAP-SDK + CLONE-UPSTREAM tools (T015-T031).
+    from vigilancia_multiagente.enterprise.tooling.builtin.creative.minimax_image import (
+        MiniMaxImageTool,
+    )
     from vigilancia_multiagente.enterprise.tooling.builtin.documents.docx_generate import (
         DocxGenerateTool,
     )
     from vigilancia_multiagente.enterprise.tooling.builtin.documents.file_system import (
         FileSystemTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.documents.markitdown import (
+        MarkitdownTool,
     )
     from vigilancia_multiagente.enterprise.tooling.builtin.documents.pdf_generate import (
         PdfGenerateTool,
@@ -73,18 +81,87 @@ async def _build_tool_registry(settings, database, embedding_gateway, tool_healt
     from vigilancia_multiagente.enterprise.tooling.builtin.documents.template_render import (
         TemplateRenderTool,
     )
+    from vigilancia_multiagente.enterprise.tooling.builtin.execution.sandbox import (
+        SandboxTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.productivity.google_workspace import (
+        GoogleWorkspaceTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.arxiv import (
+        ArxivTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.brave import (
+        BraveTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.exa import ExaTool
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.firecrawl import (
+        FirecrawlTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.google_scholar import (
+        GoogleScholarTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.jina import JinaTool
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.openalex import (
+        OpenAlexTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.serper import (
+        SerperTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.serper_patents import (
+        SerperPatentsTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.research.tavily import (
+        TavilyTool,
+    )
+    from vigilancia_multiagente.enterprise.tooling.builtin.web.fetch import FetchTool
+    from vigilancia_multiagente.enterprise.tooling.builtin.web.playwright import (
+        PlaywrightTool,
+    )
     from vigilancia_multiagente.enterprise.tooling.tool_registry import ToolRegistry
 
     registry = ToolRegistry(tool_health_repo_cls(database), embedding_gateway)
     workspace = _resolve(settings.file_system_root) if settings.file_system_root else PROJECT_ROOT
-    for tool in (
+
+    # OAuthManager is wired ad-hoc by enterprise_onboarding for now; pass None
+    # so GoogleWorkspaceTool reports UNCONFIGURED until tenant onboarding.
+    from uuid import UUID
+    tenant_id = UUID(settings.default_tenant_id)
+
+    builtin_tools = (
+        # Documents (5)
         TemplateRenderTool(),
         DocxGenerateTool(),
         PdfGenerateTool(),
         FileSystemTool(root=workspace),
-    ):
+        MarkitdownTool(),
+        # Research / search (10)
+        TavilyTool(),
+        BraveTool(),
+        ExaTool(),
+        JinaTool(),
+        FirecrawlTool(),
+        SerperTool(),
+        SerperPatentsTool(),
+        OpenAlexTool(),
+        ArxivTool(),
+        GoogleScholarTool(),
+        # Web (2)
+        FetchTool(),
+        PlaywrightTool(),
+        # Creative (1)
+        MiniMaxImageTool(),
+        # Productivity (1) — OAuthManager wired by tenant onboarding
+        GoogleWorkspaceTool(oauth_manager=None, tenant_id=tenant_id),
+        # Execution (1)
+        SandboxTool(),
+    )
+    for tool in builtin_tools:
         await registry.register(tool)
-    logger.info("ToolRegistry wired with 4 builtin tools")
+    logger.info(
+        "ToolRegistry wired with %d builtin tools (5 documents + 10 research + "
+        "2 web + 1 creative + 1 productivity + 1 execution)",
+        len(builtin_tools),
+    )
     return registry
 
 
@@ -122,13 +199,17 @@ async def _build_skills(settings, embedding_gateway, tool_registry, services: di
     from vigilancia_multiagente.enterprise.skills_marketplace import SkillLoader, SkillRegistry
 
     skill_registry = SkillRegistry(embedding_gateway, tool_registry)
+    # Spec 021 D2/D3 — vendor paths inside src/, no .claude/skills/ at runtime.
+    src_root = Path(__file__).resolve().parents[1]
+    vendor_root = src_root / "enterprise" / "skills_marketplace" / "_vendor"
     loader = SkillLoader(
         registry=skill_registry,
         tool_registry=tool_registry,
         sources_enabled=list(settings.skills_sources_enabled),
         curated_path=_resolve(settings.skills_curated_path),
         learned_path=_resolve(settings.skills_learned_path),
-        claude_local_path=_resolve(settings.skills_claude_local_path),
+        k_dense_vendor_path=vendor_root / "k_dense",
+        agency_agents_vendor_path=vendor_root / "agency_agents",
     )
     result = await loader.load_all()
     services["skill_registry"] = skill_registry

@@ -1,0 +1,34 @@
+# config/mcp/external.yaml
+# ============================================================================
+# Manifest for fallback external MCP processes.
+#
+# Spec 021 D5 (native-first) defines the strategy ladder:
+#   1. WRAP-SDK         — native Python tool over the provider's SDK/REST.
+#   2. CLONE-UPSTREAM   — clone the Python MCP repo and refactor into src/.
+#   3. MCP-EXTERNO      — process-level fallback declared in this file.
+#
+# `scripts/audit_mcp_strategy.py` (FR-055) classifies every catalog provider.
+# At the time of this writing the audit reports:
+#   WRAP-SDK         (14): brave, exa, fetch, firecrawl, google_workspace,
+#                          jina, markitdown, minimax_image, openalex,
+#                          playwright, sandbox, serper, serper_patents, tavily
+#   CLONE-UPSTREAM   ( 2): arxiv, google_scholar
+#   MCP-EXTERNO      ( 0): (none)
+#
+# Therefore this manifest is intentionally empty. `MCPProcessSupervisor`
+# treats a missing/empty manifest as 0 supervised processes (logged at INFO).
+#
+# To declare a fallback MCP server, add an entry under `mcps:`:
+#
+#   mcps:
+#     - name: example-mcp
+#       command: npx
+#       args: ["-y", "@example/mcp-server"]
+#       env:
+#         EXAMPLE_API_KEY: "${VT_EXAMPLE_API_KEY}"
+#       healthcheck_interval_sec: 60
+#       restart_policy: on-failure
+#       log_file: ~/.vigilador/mcp-logs/example.jsonl
+# ============================================================================
+
+mcps: []

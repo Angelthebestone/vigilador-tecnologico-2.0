@@ -38,6 +38,8 @@ dependencies = [
   "click>=8.1",
   "jinja2>=3.1",
   "python-docx>=1.1",
+  # Spec 021 D1-revisada — TurboVec native vector index
+  "turbovec>=0.6.0",
 ]
 
 [project.scripts]
@@ -54,6 +56,11 @@ dev = [
   "respx>=0.21",
 ]
 pdf = ["weasyprint>=61.0"]
+# Spec 021 — optional native tools (each declared as opt-in for size control)
+markitdown = ["markitdown>=0.0.1"]
+scholar = ["scholarly>=1.7"]
+sandbox = ["e2b>=0.16"]
+browser = ["playwright>=1.40"]
 
 [build-system]
 requires = ["hatchling"]

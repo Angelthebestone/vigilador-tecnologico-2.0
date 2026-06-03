@@ -66,7 +66,8 @@ async def test_load_curated_skills():
             sources_enabled=["curated"],
             curated_path=curated,
             learned_path=Path(tmp) / "learned",
-            claude_local_path=Path(tmp) / "claude",
+            k_dense_vendor_path=Path(tmp) / "k_dense",
+            agency_agents_vendor_path=Path(tmp) / "agency",
         )
         result = await loader.load_all()
         assert result.total_registered == 2
@@ -87,7 +88,8 @@ async def test_capability_missing_marks_unavailable():
             sources_enabled=["curated"],
             curated_path=curated,
             learned_path=Path(tmp) / "learned",
-            claude_local_path=Path(tmp) / "claude",
+            k_dense_vendor_path=Path(tmp) / "k_dense",
+            agency_agents_vendor_path=Path(tmp) / "agency",
         )
         result = await loader.load_all()
         assert result.total_unavailable == 1
@@ -110,7 +112,8 @@ async def test_empty_capabilities_always_available():
             sources_enabled=["curated"],
             curated_path=curated,
             learned_path=Path(tmp) / "learned",
-            claude_local_path=Path(tmp) / "claude",
+            k_dense_vendor_path=Path(tmp) / "k_dense",
+            agency_agents_vendor_path=Path(tmp) / "agency",
         )
         result = await loader.load_all()
         assert result.total_registered == 1
@@ -132,7 +135,8 @@ async def test_disabled_source_not_loaded():
             sources_enabled=[],  # Nothing enabled
             curated_path=curated,
             learned_path=Path(tmp) / "learned",
-            claude_local_path=Path(tmp) / "claude",
+            k_dense_vendor_path=Path(tmp) / "k_dense",
+            agency_agents_vendor_path=Path(tmp) / "agency",
         )
         result = await loader.load_all()
         assert result.total_registered == 0
@@ -146,10 +150,11 @@ async def test_all_sources_empty_no_error():
         loader = SkillLoader(
             registry=registry,
             tool_registry=tool_reg,
-            sources_enabled=["curated", "learned", "external:claude-local"],
+            sources_enabled=["curated", "learned", "external:k-dense", "external:agency-agents"],
             curated_path=Path(tmp) / "curated",
             learned_path=Path(tmp) / "learned",
-            claude_local_path=Path(tmp) / "claude",
+            k_dense_vendor_path=Path(tmp) / "k_dense",
+            agency_agents_vendor_path=Path(tmp) / "agency",
         )
         result = await loader.load_all()
         assert result.total_registered == 0
@@ -158,9 +163,11 @@ async def test_all_sources_empty_no_error():
 
 @pytest.mark.asyncio
 async def test_hash_change_marks_pending_revalidation():
+    """K-Dense skill with stale hash → pending_revalidation (parallel to claude-local previous behavior, FR-031)."""
     with tempfile.TemporaryDirectory() as tmp:
-        base = Path(tmp) / "skills"
-        skill_dir = base / "my-skill"
+        # K-Dense layout: <vendor>/skills/<id>/SKILL.md
+        base = Path(tmp) / "k_dense_vendor"
+        skill_dir = base / "skills" / "my-skill"
         skill_dir.mkdir(parents=True)
         skill_content = """\
 ---
@@ -172,45 +179,50 @@ Body.
 """
         (skill_dir / "SKILL.md").write_text(skill_content, encoding="utf-8")
 
-        # Pre-populate hash tracker with a DIFFERENT hash
+        # Pre-populate hash tracker with a DIFFERENT hash so the loader will
+        # mark the skill as PENDING_REVALIDATION on the next scan.
         tracker = HashTracker(Path(tmp) / "hashes.json")
-        tracker.update("my-skill", "old_hash_that_differs")
+        tracker.update("k_dense.my-skill", "old_hash_that_differs")
 
         tool_reg = FakeToolRegistry()
         registry = SkillRegistry(FakeEmbeddingGateway(), tool_reg)
         loader = SkillLoader(
             registry=registry,
             tool_registry=tool_reg,
-            sources_enabled=["external:claude-local"],
+            sources_enabled=["external:k-dense"],
             curated_path=Path(tmp) / "curated",
             learned_path=Path(tmp) / "learned",
-            claude_local_path=base,
+            k_dense_vendor_path=base,
+            agency_agents_vendor_path=Path(tmp) / "agency",
             hash_tracker=tracker,
         )
         await loader.load_all()
-        # The skill should be pending revalidation
         all_cards = list(registry._cards.values())
         assert len(all_cards) == 1
         assert all_cards[0].state == SkillState.PENDING_REVALIDATION
 
 
 @pytest.mark.asyncio
-async def test_load_real_claude_skills():
-    """Integration: load real .claude/skills/ — expects >= 14."""
+async def test_load_real_kdense_marketplace():
+    """Integration: load real ``_vendor/k_dense`` (D2) — expects >= 1 skill."""
     repo_root = Path(__file__).resolve().parents[3]
-    skills_path = repo_root / ".claude" / "skills"
-    if not skills_path.is_dir():
-        return
+    vendor_path = (
+        repo_root / "src" / "vigilancia_multiagente" / "enterprise"
+        / "skills_marketplace" / "_vendor" / "k_dense"
+    )
+    if not vendor_path.is_dir():
+        return  # vendor not cloned in this checkout
 
     tool_reg = FakeToolRegistry()
     registry = SkillRegistry(FakeEmbeddingGateway(), tool_reg)
     loader = SkillLoader(
         registry=registry,
         tool_registry=tool_reg,
-        sources_enabled=["external:claude-local"],
+        sources_enabled=["external:k-dense"],
         curated_path=repo_root / "config" / "skills" / "curated",
         learned_path=repo_root / "config" / "skills" / "learned",
-        claude_local_path=skills_path,
+        k_dense_vendor_path=vendor_path,
+        agency_agents_vendor_path=repo_root / "no-agency-here",
     )
     result = await loader.load_all()
-    assert result.total_registered >= 14
+    assert result.total_registered >= 1

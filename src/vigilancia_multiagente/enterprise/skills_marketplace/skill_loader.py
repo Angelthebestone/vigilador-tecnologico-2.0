@@ -1,4 +1,9 @@
-"""SkillLoader — orchestrates loading from multiple sources and validates capabilities."""
+"""SkillLoader — orchestrates loading from curated/learned/k-dense/agency-agents.
+
+Spec 021 D3 (FR-033): ``.claude/skills/`` is no longer a runtime source.
+The 4 canonical sources are:
+``[curated, learned, external:k-dense, external:agency-agents]``.
+"""
 
 from __future__ import annotations
 
@@ -6,10 +11,13 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from vigilancia_multiagente.enterprise.skills_marketplace.claude_local_adapter import (
-    ClaudeLocalAdapter,
+from vigilancia_multiagente.enterprise.skills_marketplace.agency_agents_adapter import (
+    AgencyAgentsAdapter,
 )
 from vigilancia_multiagente.enterprise.skills_marketplace.hash_tracker import HashTracker
+from vigilancia_multiagente.enterprise.skills_marketplace.k_dense_adapter import (
+    KDenseAdapter,
+)
 from vigilancia_multiagente.enterprise.skills_marketplace.skill_models import (
     SkillCard,
     SkillSource,
@@ -38,7 +46,7 @@ class LoadResult:
 
 
 class SkillLoader:
-    """Orchestrates skill loading from enabled sources."""
+    """Orchestrates skill loading from enabled sources (Spec 021 D3)."""
 
     def __init__(
         self,
@@ -47,7 +55,8 @@ class SkillLoader:
         sources_enabled: list[str],
         curated_path: Path,
         learned_path: Path,
-        claude_local_path: Path,
+        k_dense_vendor_path: Path,
+        agency_agents_vendor_path: Path,
         hash_tracker: HashTracker | None = None,
     ) -> None:
         self._registry = registry
@@ -55,11 +64,12 @@ class SkillLoader:
         self._sources_enabled = sources_enabled
         self._curated_path = curated_path
         self._learned_path = learned_path
-        self._claude_local_path = claude_local_path
+        self._k_dense_path = k_dense_vendor_path
+        self._agency_agents_path = agency_agents_vendor_path
         self._hash_tracker = hash_tracker or HashTracker()
 
     async def load_all(self) -> LoadResult:
-        """Load skills from all enabled sources."""
+        """Load skills from all enabled sources (no-op for unknown sources)."""
         result = LoadResult()
 
         if "curated" in self._sources_enabled:
@@ -68,8 +78,32 @@ class SkillLoader:
         if "learned" in self._sources_enabled:
             await self._load_directory(self._learned_path, SkillSource.LEARNED, result)
 
-        if "external:claude-local" in self._sources_enabled:
-            await self._load_external_claude_local(result)
+        if "external:k-dense" in self._sources_enabled:
+            await self._load_marketplace(
+                KDenseAdapter(self._k_dense_path),
+                "external:k-dense",
+                result,
+            )
+
+        if "external:agency-agents" in self._sources_enabled:
+            await self._load_marketplace(
+                AgencyAgentsAdapter(self._agency_agents_path),
+                "external:agency-agents",
+                result,
+            )
+
+        # Any explicitly-unknown source is a config bug — surface explicitly.
+        known = {
+            "curated", "learned",
+            "external:k-dense", "external:agency-agents",
+        }
+        for source in self._sources_enabled:
+            if source not in known:
+                result.errors.append(
+                    f"SkillLoader: unknown source '{source}' "
+                    "(supported: curated, learned, external:k-dense, "
+                    "external:agency-agents)"
+                )
 
         return result
 
@@ -133,19 +167,27 @@ class SkillLoader:
                 result.errors.append(str(exc))
                 result.total_skipped += 1
 
-    async def _load_external_claude_local(self, result: LoadResult) -> None:
-        """Load skills from .claude/skills/ via adapter."""
-        adapter = ClaudeLocalAdapter(self._claude_local_path)
-        entries = adapter.scan()
+    async def _load_marketplace(
+        self,
+        adapter: object,  # KDenseAdapter | AgencyAgentsAdapter
+        source_label: str,
+        result: LoadResult,
+    ) -> None:
+        """Common loader path for the cloned in-tree marketplaces (FR-031/032)."""
+        scanner = getattr(adapter, "scan", None)
+        if scanner is None:
+            result.errors.append(
+                f"SkillLoader: adapter for '{source_label}' missing scan() method"
+            )
+            return
 
-        for card, summary, _body in entries:
-            # Check hash changes
+        for card, summary, _body in scanner():
+            # Track content_hash so revalidation triggers on upstream bumps.
             if self._hash_tracker.has_changed(card.id, card.content_hash):
                 card.state = SkillState.PENDING_REVALIDATION
             else:
                 self._hash_tracker.update(card.id, card.content_hash)
 
-            # Validate capabilities
             available = await self._validate_capabilities(summary)
             if not available and card.state == SkillState.AVAILABLE:
                 card.state = SkillState.UNAVAILABLE

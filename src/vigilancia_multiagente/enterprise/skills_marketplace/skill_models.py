@@ -10,6 +10,9 @@ class SkillSource(StrEnum):
     CURATED = "curated"
     LEARNED = "learned"
     EXTERNAL_CLAUDE_LOCAL = "external:claude-local"
+    # Spec 021 D2 — repos clonados in-tree (`_vendor/`)
+    EXTERNAL_K_DENSE = "external:k-dense"
+    EXTERNAL_AGENCY_AGENTS = "external:agency-agents"
 
 
 class SkillState(StrEnum):
@@ -57,7 +60,22 @@ class SkillBody:
 
 @dataclass
 class CommandSkill(SkillCard):
-    """Skill from .claude/skills with command-specific attributes."""
+    """Skill that executes a deterministic command (Spec 021 FR-052).
 
+    Inherits ``requires_sandbox`` and ``content_hash`` from :class:`SkillCard`.
+    Adds the command-specific attributes the runner consults before
+    invocation:
+
+    * ``parameters`` — declared input schema (``name → type/desc``).
+    * ``permissions`` — capabilities the command needs at execution time.
+    * ``preconditions`` — Boolean expressions evaluated before run; failure
+      surfaces as :class:`PreconditionError` from the runner.
+    * ``argument_hint`` / ``user_invocable`` — UI hints carried over from
+      the original ``.claude/skills`` schema.
+    """
+
+    parameters: dict[str, str] = field(default_factory=dict)
+    permissions: list[str] = field(default_factory=list)
+    preconditions: list[str] = field(default_factory=list)
     argument_hint: str = ""
     user_invocable: bool = True
