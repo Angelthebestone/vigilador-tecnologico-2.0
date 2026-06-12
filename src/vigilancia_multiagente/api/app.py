@@ -73,12 +73,20 @@ async def lifespan(app: FastAPI):
                 )
                 health_monitor.start()
         except Exception:
-            pass
+            logging.getLogger(__name__).exception(
+                "HealthMonitor startup failed; continuing without monitoring"
+            )
 
     yield
 
     if health_monitor:
         health_monitor.stop()
+
+    if hasattr(app.state, "tool_registry"):
+        try:
+            await app.state.tool_registry.aclose_all()
+        except Exception:
+            logging.getLogger(__name__).exception("tool_registry cleanup failed")
 
 
 def create_app() -> FastAPI:
@@ -101,6 +109,14 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router)
     app.include_router(api_v2_router)
+
+    if settings.enterprise_enabled:
+        try:
+            from vigilancia_multiagente.enterprise.observability.metrics import metrics_app
+
+            app.mount("/metrics", metrics_app)
+        except Exception:
+            pass
 
     return app
 

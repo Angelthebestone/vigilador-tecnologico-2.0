@@ -60,11 +60,26 @@ class ToolRegistry:
 
         # Pre-compute embedding for tool description (FR-001)
         desc = getattr(tool, "description", tool.name)
+        vec: list[float] | None = None
         if self._embedding_gw:
             vec = await self._embedding_gw.embed(desc)
             self._tool_embeddings[tool.name] = vec
-            if self._embedding_cache:
-                self._embedding_cache.set(desc, vec)
+        if self._embedding_cache and vec is not None:
+            self._embedding_cache.set(desc, vec)
+
+    async def aclose_all(self) -> None:
+        """Close all tools that have an aclose() method (BaseHTTPProvider, etc.)."""
+        import inspect
+
+        for tool in self._tools.values():
+            closer = getattr(tool, "aclose", None)
+            if callable(closer):
+                try:
+                    result = closer()
+                    if inspect.isawaitable(result):
+                        await result
+                except Exception:
+                    pass
 
     async def is_capability_available(self, name: str) -> bool:
         """Retorna True si `name` está registrado y pasa gating (spec 015 A-01).

@@ -127,8 +127,10 @@ pythonVersion = "3.11"
 include = ["src/vigilancia_multiagente"]
   exclude = ["tests", "scripts", "mock_server.py", "specs", "docs", "**/_cold/**", "**/_roadmap/**"]
 reportMissingTypeStubs = false
+# Optional deps (pyautogui, e2b, weasyprint, playwright, etc.) aren't installed
+# in all environments. Per-file type: ignore would be cleaner but too verbose for
+# 20+ optional imports across the codebase.
 reportMissingImports = false
-reportMissingModuleSource = false
 
 [[tool.basedpyright.executionEnvironments]]
 root = "src/vigilancia_multiagente"

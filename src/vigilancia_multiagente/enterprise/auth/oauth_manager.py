@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
+import httpx
 from cryptography.fernet import Fernet
 
 from vigilancia_multiagente.infra.persistence.oauth_credentials_repository import (
@@ -19,6 +20,10 @@ from vigilancia_multiagente.infra.persistence.oauth_credentials_repository impor
 )
 
 logger = logging.getLogger(__name__)
+
+_PROVIDER_REFRESH_URLS: dict[str, str] = {
+    "google_workspace": "https://oauth2.googleapis.com/token",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,15 +106,90 @@ class OAuthManager:
             scopes=row.scopes,
         )
 
-    async def refresh_if_needed(self, provider: str, tenant_id: UUID) -> None:
+    async def refresh_if_needed(self, provider: str, tenant_id: UUID) -> OAuthCredential | None:
+        """Refresh the token if it expires within 7 days. Returns new credential or None."""
         row = await self._repo.get(provider, tenant_id)
         if row is None or row.expires_at is None:
-            return
+            return None
         remaining = row.expires_at - datetime.now(UTC)
-        if remaining < timedelta(days=7):
+        if remaining >= timedelta(days=7):
+            return None
+
+        refresh_token = (
+            self._fernet.decrypt(row.refresh_token_encrypted.encode()).decode()
+            if row.refresh_token_encrypted
+            else None
+        )
+        if not refresh_token:
             logger.warning(
-                "Token for provider=%s tenant=%s expiring in %s - refresh needed",
+                "Token for provider=%s tenant=%s expiring in %s but no refresh_token stored",
                 provider,
                 tenant_id,
                 remaining,
             )
+            return None
+
+        refresh_url = _PROVIDER_REFRESH_URLS.get(provider)
+        if not refresh_url:
+            logger.warning(
+                "No refresh endpoint known for provider=%s; token will expire",
+                provider,
+            )
+            return None
+
+        new_tokens = await self._do_refresh(refresh_url, provider, refresh_token)
+        if new_tokens is None:
+            return None
+
+        new_access, new_refresh, new_expires = new_tokens
+        await self.store(
+            provider=provider,
+            access_token=new_access,
+            refresh_token=new_refresh or refresh_token,
+            expires_at=new_expires,
+            scopes=row.scopes,
+            tenant_id=tenant_id,
+        )
+        logger.info(
+            "Refreshed token for provider=%s tenant=%s (new expires=%s)",
+            provider,
+            tenant_id,
+            new_expires,
+        )
+        return await self.get(provider, tenant_id)
+
+    async def _do_refresh(
+        self, refresh_url: str, provider: str, refresh_token: str
+    ) -> tuple[str, str | None, datetime | None] | None:
+        """Call the provider's refresh endpoint. Returns (access_token, refresh_token|None, expires_at|None)."""
+        client_id = os.environ.get("VT_GOOGLE_CLIENT_ID", "")
+        client_secret = os.environ.get("VT_GOOGLE_CLIENT_SECRET", "")
+        if not client_id or not client_secret:
+            logger.error("Missing VT_GOOGLE_CLIENT_ID or VT_GOOGLE_CLIENT_SECRET for refresh")
+            return None
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    refresh_url,
+                    data={
+                        "client_id": client_id,
+                        "client_secret": client_secret,
+                        "refresh_token": refresh_token,
+                        "grant_type": "refresh_token",
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                new_access = data["access_token"]
+                new_refresh = data.get("refresh_token")
+                expires_in = data.get("expires_in")
+                new_expires = (
+                    datetime.now(UTC) + timedelta(seconds=expires_in)
+                    if expires_in
+                    else None
+                )
+                return new_access, new_refresh, new_expires
+        except Exception as exc:
+            logger.error("OAuth refresh failed for provider=%s: %s", provider, exc)
+            return None
