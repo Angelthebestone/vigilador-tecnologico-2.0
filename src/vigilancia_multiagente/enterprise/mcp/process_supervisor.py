@@ -73,6 +73,11 @@ class MCPProcessSupervisor:
     """Spawn/restart loop for fallback MCP servers (FR-004..008)."""
 
     def __init__(self, manifest_path: Path | str | None = None) -> None:
+        if manifest_path is None:
+            from vigilancia_multiagente.config.settings import get_settings
+
+            settings = get_settings()
+            manifest_path = settings.mcp_external_config
         self._manifest_path = (
             Path(manifest_path) if manifest_path else Path("config/mcp/external.yaml")
         )
@@ -150,6 +155,10 @@ class MCPProcessSupervisor:
         if name not in self._status:
             raise KeyError(f"MCPProcessSupervisor: unknown mcp '{name}'")
         return self._status[name]
+
+    def get_process(self, name: str) -> asyncio.subprocess.Process | None:
+        """Return the subprocess for *name* or None if not running."""
+        return self._procs.get(name)
 
     def list_status(self) -> dict[str, McpProcessStatus]:
         """Return a copy of every MCP's status."""

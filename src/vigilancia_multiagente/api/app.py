@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI):
             )
 
     health_monitor = None
+    mcp_supervisor = None
     if settings.health_monitor_enabled:
         try:
             from vigilancia_multiagente.enterprise.observability.health_monitor import HealthMonitor
@@ -64,7 +65,6 @@ async def lifespan(app: FastAPI):
             )
 
             tool_health_repo = ToolHealthRepository(database)
-            # tool_registry may be set externally; use a lazy ref
             if hasattr(app.state, "tool_registry"):
                 health_monitor = HealthMonitor(
                     tool_registry=app.state.tool_registry,
@@ -77,7 +77,24 @@ async def lifespan(app: FastAPI):
                 "HealthMonitor startup failed; continuing without monitoring"
             )
 
+    if settings.mcp_supervisor_enabled:
+        try:
+            from vigilancia_multiagente.enterprise.mcp.process_supervisor import (
+                MCPProcessSupervisor,
+            )
+
+            mcp_supervisor = MCPProcessSupervisor()
+            await mcp_supervisor.start_all()
+            app.state.mcp_supervisor = mcp_supervisor
+        except Exception:
+            logging.getLogger(__name__).exception(
+                "MCP supervisor startup failed; continuing without fallback MCPs"
+            )
+
     yield
+
+    if mcp_supervisor:
+        await mcp_supervisor.stop_all()
 
     if health_monitor:
         health_monitor.stop()
