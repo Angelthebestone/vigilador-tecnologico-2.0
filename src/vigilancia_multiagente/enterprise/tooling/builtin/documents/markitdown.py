@@ -83,7 +83,7 @@ class MarkitdownTool:
 
     async def _convert(self, path: Path) -> str:
         try:
-            from markitdown import MarkItDown
+            from markitdown import MarkItDown  # type: ignore[reportAttributeAccessIssue]
         except ImportError as exc:
             raise RuntimeError("MarkitdownTool: markitdown package not installed") from exc
 

@@ -128,6 +128,7 @@ include = ["src/vigilancia_multiagente"]
   exclude = ["tests", "scripts", "mock_server.py", "specs", "docs", "**/_cold/**", "**/_roadmap/**"]
 reportMissingTypeStubs = false
 reportMissingImports = false
+reportMissingModuleSource = false
 
 [[tool.basedpyright.executionEnvironments]]
 root = "src/vigilancia_multiagente"
