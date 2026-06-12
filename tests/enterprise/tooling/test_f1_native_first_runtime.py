@@ -99,7 +99,8 @@ async def test_mcp_tool_wrapper_healthcheck_unknown_returns_unknown(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_mcp_tool_wrapper_execute_is_explicit_not_implemented(tmp_path):
+async def test_mcp_tool_wrapper_execute_returns_error_when_process_not_running(tmp_path):
+    """When MCP process is not running, execute() returns an error dict."""
     from vigilancia_multiagente.enterprise.mcp.process_supervisor import (
         MCPProcessSupervisor,
     )
@@ -115,8 +116,9 @@ async def test_mcp_tool_wrapper_execute_is_explicit_not_implemented(tmp_path):
         requires_auth=True,
         supervisor=sup,
     )
-    with pytest.raises(NotImplementedError, match="MCP client port is deferred"):
-        await wrapper.execute("any_capability", {"q": "x"})
+    result = await wrapper.execute("any_capability", {"q": "x"})
+    assert "error" in result
+    assert "not running" in result["error"]
 
 
 def test_mcp_tool_wrapper_implements_protocol_attributes(tmp_path):

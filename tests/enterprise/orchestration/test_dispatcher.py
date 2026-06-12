@@ -25,7 +25,7 @@ from vigilancia_multiagente.enterprise.orchestration.dispatcher import (
     DispatcherDeps,
     DispatcherUnavailableError,
     DispatchRequest,
-    StubAgentExecutor,
+    LLMAgentExecutor,
 )
 
 # ---------------------------------------------------------------------------
@@ -150,7 +150,7 @@ async def test_dispatch_falls_back_to_default_when_mode_hint_unknown(dispatcher)
 
 @pytest.mark.asyncio
 async def test_dispatch_uses_custom_executor_when_registered(playbook_dir, fake_registry):
-    custom = StubAgentExecutor(label="custom")
+    custom = LLMAgentExecutor(label="custom")
     cascade = CascadeResolver(registry=fake_registry, default_mode="default")
     deps = DispatcherDeps(
         cascade_resolver=cascade,

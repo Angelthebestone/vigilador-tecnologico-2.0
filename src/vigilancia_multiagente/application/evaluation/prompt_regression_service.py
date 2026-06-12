@@ -1,4 +1,4 @@
-"""Evalua regresion de prompts en branches.
+"""DEPRECATED: Evalua regresion de prompts en branches.
 
 Sub-componente del `GoldenCaseRunner` (WS-E): cuando un golden case define
 `expected_prompts`, este servicio compara salidas LLM contra baseline

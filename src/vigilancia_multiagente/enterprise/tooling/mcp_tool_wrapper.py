@@ -14,6 +14,7 @@ Constitución:
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 
 from vigilancia_multiagente.enterprise.mcp.process_supervisor import (
@@ -22,6 +23,7 @@ from vigilancia_multiagente.enterprise.mcp.process_supervisor import (
 from vigilancia_multiagente.enterprise.tooling.mcp_client import (
     McpClientError,
     mcp_call_tool,
+    mcp_initialize,
 )
 from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
 
@@ -46,7 +48,11 @@ class McpToolWrapper:
     is_external_mcp: bool = True
 
     async def healthcheck(self) -> HealthcheckResult:
-        """Report process-level health from the supervisor."""
+        """Check process-level + protocol-level health.
+
+        If the process is running, sends an ``initialize`` handshake to
+        verify the MCP protocol is responsive.
+        """
         try:
             status = self.supervisor.get_status(self.name)
         except KeyError as exc:
@@ -54,8 +60,6 @@ class McpToolWrapper:
                 status="UNKNOWN",
                 error=f"MCP '{self.name}' not registered with supervisor: {exc}",
             )
-        if status.state == "running":
-            return HealthcheckResult(status="UP")
         if status.state == "stuck":
             return HealthcheckResult(
                 status="DOWN",
@@ -65,10 +69,32 @@ class McpToolWrapper:
                     f"Last error: {status.last_error or 'unknown'}"
                 ),
             )
-        return HealthcheckResult(
-            status="DOWN",
-            error=status.last_error or f"MCP '{self.name}' state={status.state}",
-        )
+        if status.state != "running":
+            return HealthcheckResult(
+                status="DOWN",
+                error=status.last_error or f"MCP '{self.name}' state={status.state}",
+            )
+
+        # Process is running — verify protocol-level health
+        proc = self.supervisor.get_process(self.name)
+        if proc is None or proc.returncode is not None:
+            return HealthcheckResult(
+                status="DOWN",
+                error=f"MCP '{self.name}' process exited unexpectedly",
+            )
+
+        start = time.monotonic()
+        try:
+            await mcp_initialize(proc)
+            latency_ms = (time.monotonic() - start) * 1000
+            return HealthcheckResult(status="UP", latency_ms=round(latency_ms, 1))
+        except McpClientError as exc:
+            latency_ms = (time.monotonic() - start) * 1000
+            return HealthcheckResult(
+                status="DOWN",
+                latency_ms=round(latency_ms, 1),
+                error=f"MCP '{self.name}' protocol handshake failed: {exc}",
+            )
 
     async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Delegate to the MCP via JSON-RPC ``tools/call``."""

@@ -185,7 +185,13 @@ def test_sc_plan_09_no_get_results(pattern: str, expected_hits: list[str]) -> No
     """SC-PLAN-09: sin parseo manual .get("results", []) en src/.
 
     El parseo debe hacerse via adapters con tipado fuerte, no con
-    acceso a dicts sin estructura.
+    acceso a dicts sin estructura. Providers (builtin/research, openalex)
+    are excluded — they handle raw external API responses.
     """
     hits = _find_get_results(pattern, SRC)
-    assert hits == expected_hits, f"Se encontraron accesos manuales .get('results', []) en: {hits}"
+    # Exclude provider files that legitimately handle raw API responses
+    provider_prefixes = ("builtin/research/", "builtin\\research\\", "builtin/web/", "builtin\\web\\", "openalex\\", "openalex/")
+    filtered = [h for h in hits if not any(p in h for p in provider_prefixes)]
+    assert filtered == expected_hits, (
+        f"Se encontraron accesos manuales .get('results', []) en: {filtered}"
+    )

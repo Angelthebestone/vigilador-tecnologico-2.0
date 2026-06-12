@@ -52,11 +52,10 @@ async def mcp_call_tool(
     arguments: dict[str, Any],
 ) -> dict[str, Any]:
     """Call a tool and return the result content."""
-    resp = await _send_request(proc, "tools/call", {
+    return await _send_request(proc, "tools/call", {
         "name": tool_name,
         "arguments": arguments,
     })
-    return resp
 
 
 async def _send_request(
@@ -82,7 +81,7 @@ async def _send_request(
 
     try:
         raw = await asyncio.wait_for(proc.stdout.readline(), timeout=_MCP_TIMEOUT_S)
-    except asyncio.TimeoutError as exc:
+    except TimeoutError as exc:
         raise McpClientError(f"MCP request {method} timed out after {_MCP_TIMEOUT_S}s") from exc
 
     if not raw:

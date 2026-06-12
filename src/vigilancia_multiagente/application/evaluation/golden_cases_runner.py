@@ -1,4 +1,4 @@
-"""Thin adapter sobre el GoldenCaseRunner Protocol (spec 007).
+"""DEPRECATED: Thin adapter sobre el GoldenCaseRunner Protocol (spec 007).
 
 Conserva la API historica `GoldenCasesRunner.run(list[(case_id, branch_type)])`
 para compat con el wiring existente (`dependencies.py`). Cuando WS-E esta

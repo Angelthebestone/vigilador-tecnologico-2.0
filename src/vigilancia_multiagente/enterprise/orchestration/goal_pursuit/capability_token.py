@@ -23,10 +23,14 @@ class CapabilityToken:
     def issue(
         cls,
         goal_id: UUID,
-        ttl_seconds: int,
-        scopes: frozenset[str],
+        ttl_seconds: int | None = None,
+        scopes: frozenset[str] = frozenset(),
     ) -> CapabilityToken:
         """Issue a new capability token with the given TTL."""
+        if ttl_seconds is None:
+            from vigilancia_multiagente.config.settings import get_settings
+
+            ttl_seconds = get_settings().goal_pursuit_token_ttl_sec
         now = datetime.now(tz=UTC)
         from datetime import timedelta
 

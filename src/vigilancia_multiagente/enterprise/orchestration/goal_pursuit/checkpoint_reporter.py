@@ -24,7 +24,11 @@ class ReportChannelPort:
 class CheckpointReporter:
     """Monitors progress and generates reports every N steps or on blockers."""
 
-    def __init__(self, channel: ReportChannelPort, checkpoint_every_n: int = 3) -> None:
+    def __init__(self, channel: ReportChannelPort, checkpoint_every_n: int | None = None) -> None:
+        if checkpoint_every_n is None:
+            from vigilancia_multiagente.config.settings import get_settings
+
+            checkpoint_every_n = get_settings().goal_pursuit_checkpoint_every
         self._channel = channel
         self._checkpoint_every_n = checkpoint_every_n
         self._steps_since_last_report = 0

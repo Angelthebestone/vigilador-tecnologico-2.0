@@ -1,4 +1,4 @@
-"""KPIs por rama (cobertura, precision, latencia, costo).
+"""DEPRECATED: KPIs por rama (cobertura, precision, latencia, costo).
 
 Sub-componente de observabilidad que `ReportQualityGate` (WS-E) usa para
 poblar `FinalReport.assurance.kpis`. Mantiene el API estable del spec 006.

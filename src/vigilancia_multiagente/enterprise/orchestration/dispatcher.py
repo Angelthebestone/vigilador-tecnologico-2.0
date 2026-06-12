@@ -7,15 +7,14 @@ Spec 021 F4a.H / T121. Wires:
     ModeContext (frozen snapshot) →
     ComplexityClassifier (1 LLM call) →
     PlaybookRunner (loads YAML + runs agents) →
-    (TechnologyWatchExecutor | StubAgentExecutor) →
+    (TechnologyWatchExecutor | LLMAgentExecutor) →
     ToolRegistry (universal Tool abstraction)
 
-The dispatcher is **MVP-shaped**: agents for ``general`` and ``deep-research``
-are :class:`StubAgentExecutor` instances that emit a structured placeholder
-response (constitución #4 — explicit stub, not a silent no-op). The
-``technology-watch`` agent is the real :class:`TechnologyWatchExecutor`
-wrapping ``BranchCoordinator``. Real LLM-driven agents for the other two
-land in subsequent specs without changing this composition's shape.
+The dispatcher uses :class:`LLMAgentExecutor` for ``general`` and ``deep-research``
+playbook agents, which calls the LLM when available and falls back to a structured
+response when the LLM client is not configured.
+The ``technology-watch`` agent uses :class:`TechnologyWatchExecutor`
+wrapping ``BranchCoordinator``.
 
 Constitución:
 * SRP: one module = composition + dispatch glue.
@@ -33,6 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from vigilancia_multiagente.domain.system_base import MiniMaxMessage
 from vigilancia_multiagente.enterprise.modes.mode_resolver import (
     ModeResolver,
 )
@@ -49,6 +49,7 @@ from vigilancia_multiagente.enterprise.orchestration.playbook_runner import (
     PlaybookRunResult,
     load_playbook,
 )
+from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 
 logger = logging.getLogger(__name__)
 
@@ -67,24 +68,40 @@ class DispatcherInputError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# Stub executor (used by general / deep-research until real agents land)
+# LLM executor (real agent execution via MiniMaxClient)
 # ---------------------------------------------------------------------------
 
 
-class StubAgentExecutor:
-    """Placeholder executor — returns a structured stub response.
+class LLMAgentExecutor:
+    """LLM-backed executor that generates real responses via MiniMaxClient.
 
-    Real LLM-driven agents replace this in F4b/F5 without changing the
-    public ``AgentExecutor`` shape so the dispatcher composition stays
-    untouched.
+    Falls back to stub behavior when llm_client is None.
     """
 
-    def __init__(self, label: str = "stub") -> None:
+    def __init__(self, llm_client: MiniMaxClient | None = None, label: str = "llm") -> None:
+        self.llm_client = llm_client
         self.label = label
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
     async def execute(self, agent_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
         self.calls.append((agent_id, dict(inputs)))
+        if self.llm_client is not None:
+            try:
+                messages = [MiniMaxMessage(role="user", content=str(inputs))]
+                response = await self.llm_client.complete(messages)
+                return {
+                    "agent": agent_id,
+                    "label": self.label,
+                    "value": response.content,
+                    "_llm_calls": 1,
+                }
+            except Exception as exc:
+                logger.warning(
+                    "LLMAgentExecutor: LLM call failed for agent %s: %s — falling back to stub",
+                    agent_id,
+                    exc,
+                )
+        # Fallback to stub behavior
         return {
             "agent": agent_id,
             "label": self.label,
@@ -111,6 +128,8 @@ class DispatcherDeps:
     playbook_dir: Path
     executor_by_playbook: dict[str, Any] = field(default_factory=dict)
     """playbook_id → AgentExecutor."""
+    llm_client: Any = None
+    """Optional LLM client for LLMAgentExecutor fallback."""
 
 
 @dataclass(frozen=True)
@@ -176,9 +195,12 @@ class Dispatcher:
         # 4. Pick executor for this playbook
         executor = self._deps.executor_by_playbook.get(playbook_id)
         if executor is None:
-            executor = StubAgentExecutor(label=playbook_id)
+            executor = LLMAgentExecutor(
+                llm_client=self._deps.llm_client,
+                label=playbook_id,
+            )
             logger.info(
-                "Dispatcher: no executor for '%s' — falling back to stub",
+                "Dispatcher: no executor for '%s' — using LLMAgentExecutor",
                 playbook_id,
             )
 

@@ -95,10 +95,14 @@ class GoalExecutor:
         objective: str,
         context: dict[str, object],
         token: CapabilityToken,
-        max_depth: int = 5,
+        max_depth: int | None = None,
         critical_steps: frozenset[str] = frozenset(),
     ) -> GoalState:
         """Execute a goal end-to-end. Returns final state."""
+        if max_depth is None:
+            from vigilancia_multiagente.config.settings import get_settings
+
+            max_depth = get_settings().goal_pursuit_max_depth
         context_with_id = {**context, "goal_id": str(goal_id)}
         dag = self._decomposer.decompose(objective, context_with_id, max_depth)
         plan = self._resolver.resolve(dag)
