@@ -21,9 +21,7 @@ class BranchKPI:
 
 
 class BranchKPIService:
-    def compute(
-        self, branch_result: BranchResult, latency_ms: int, cost_kpi: float
-    ) -> BranchKPI:
+    def compute(self, branch_result: BranchResult, latency_ms: int, cost_kpi: float) -> BranchKPI:
         coverage = branch_result.coverage_score or 0.0
         precision = branch_result.confidence_score or 0.0
         return BranchKPI(

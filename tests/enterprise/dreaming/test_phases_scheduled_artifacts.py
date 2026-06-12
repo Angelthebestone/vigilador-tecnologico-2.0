@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 
-from vigilancia_multiagente.enterprise.dreaming.models import DreamingContext, PhaseStatus
+from vigilancia_multiagente.enterprise.dreaming.models import DreamingContext
 from vigilancia_multiagente.enterprise.dreaming.phases.scheduled_artifacts import (
     ScheduledArtifactsPhase,
 )
@@ -32,7 +32,7 @@ class FakeGenerator:
 
 def _ctx() -> DreamingContext:
     return DreamingContext(
-        cycle_id="c1", started_at=datetime.now(timezone.utc), tenant_id="t1", llm_available=True
+        cycle_id="c1", started_at=datetime.now(UTC), tenant_id="t1", llm_available=True
     )
 
 

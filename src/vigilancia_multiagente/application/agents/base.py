@@ -232,9 +232,7 @@ class BaseBranchAgent:
 
     # ── Datos estructurados (OpenAlex) ────────────────────────────────────
 
-    async def fetch_scholarly_works(
-        self, query: str, limit: int = 10
-    ) -> list[ScholarlyWork]:
+    async def fetch_scholarly_works(self, query: str, limit: int = 10) -> list[ScholarlyWork]:
         """Datos bibliométricos duros (citas, instituciones, año).
 
         Si no se inyectó un :class:`ScholarlyWorksGateway`, devuelve [] —

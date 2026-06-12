@@ -1,4 +1,5 @@
 """Assurance services — WS-E Output Assurance."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -8,9 +9,7 @@ from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
 
 
-def build_assurance_services(
-    s: dict[str, Any], e: dict[str, Any]
-) -> dict[str, Any]:
+def build_assurance_services(s: dict[str, Any], e: dict[str, Any]) -> dict[str, Any]:
     """ReportQualityGate + dependencias WS-E."""
     settings_local = get_settings()
     errors_sink: list[Any] = []

@@ -51,9 +51,7 @@ class CheckpointReport:
 class GoalDecomposerPort(Protocol):
     """Decomposes a natural-language goal into a DAG of sub-goals."""
 
-    def decompose(
-        self, objective: str, context: dict[str, object], max_depth: int
-    ) -> GoalDAG: ...
+    def decompose(self, objective: str, context: dict[str, object], max_depth: int) -> GoalDAG: ...
 
 
 class DependencyResolverPort(Protocol):

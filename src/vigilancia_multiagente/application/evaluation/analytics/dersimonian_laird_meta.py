@@ -124,7 +124,9 @@ class DerSimonianLairdMetaAnalyzer:
         if effects:
             effect_min = min(effects)
             effect_max = max(effects)
-            consensus = float(np.mean(effects)) if len(effects) > 1 else (effects[0] if effects else 0.0)
+            consensus = (
+                float(np.mean(effects)) if len(effects) > 1 else (effects[0] if effects else 0.0)
+            )
         else:
             effect_min = effect_max = consensus = 0.0
         return MetaAnalysisResult(

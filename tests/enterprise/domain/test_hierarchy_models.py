@@ -15,12 +15,20 @@ from vigilancia_multiagente.domain.skill import SkillDefinition
 
 class TestCapabilitySchema:
     def test_frozen(self) -> None:
-        cap = CapabilitySchema(id="c1", verb="search", input_schema={}, output_schema={}, tool_id="t1")
+        cap = CapabilitySchema(
+            id="c1", verb="search", input_schema={}, output_schema={}, tool_id="t1"
+        )
         with pytest.raises(dataclasses.FrozenInstanceError):
             cap.id = "c2"  # type: ignore[misc]
 
     def test_fields(self) -> None:
-        cap = CapabilitySchema(id="c1", verb="search", input_schema={"q": "str"}, output_schema={"r": "list"}, tool_id="t1")
+        cap = CapabilitySchema(
+            id="c1",
+            verb="search",
+            input_schema={"q": "str"},
+            output_schema={"r": "list"},
+            tool_id="t1",
+        )
         assert cap.id == "c1"
         assert cap.verb == "search"
         assert cap.tool_id == "t1"
@@ -28,12 +36,24 @@ class TestCapabilitySchema:
 
 class TestSkillDefinition:
     def test_frozen(self) -> None:
-        skill = SkillDefinition(id="s1", name="Web Search", domain="research", capabilities_required=("c1",), preconditions=())
+        skill = SkillDefinition(
+            id="s1",
+            name="Web Search",
+            domain="research",
+            capabilities_required=("c1",),
+            preconditions=(),
+        )
         with pytest.raises(dataclasses.FrozenInstanceError):
             skill.name = "X"  # type: ignore[misc]
 
     def test_fields(self) -> None:
-        skill = SkillDefinition(id="s1", name="Web Search", domain="research", capabilities_required=("c1", "c2"), preconditions=("auth",))
+        skill = SkillDefinition(
+            id="s1",
+            name="Web Search",
+            domain="research",
+            capabilities_required=("c1", "c2"),
+            preconditions=("auth",),
+        )
         assert skill.capabilities_required == ("c1", "c2")
         assert skill.preconditions == ("auth",)
 
@@ -48,7 +68,9 @@ class TestAgentDeclaration:
 class TestPlaybookDefinition:
     def test_frozen(self) -> None:
         pb = PlaybookDefinition(
-            id="pb1", name="Test", executor_type="single_agent",
+            id="pb1",
+            name="Test",
+            executor_type="single_agent",
             agents=(AgentDeclaration(id="a1", role="r", skills_allowed=frozenset()),),
             parallel=False,
         )
@@ -57,7 +79,9 @@ class TestPlaybookDefinition:
 
     def test_composition(self) -> None:
         agent = AgentDeclaration(id="a1", role="researcher", skills_allowed=frozenset(["s1", "s2"]))
-        pb = PlaybookDefinition(id="pb1", name="Deep", executor_type="crewai", agents=(agent,), parallel=True)
+        pb = PlaybookDefinition(
+            id="pb1", name="Deep", executor_type="crewai", agents=(agent,), parallel=True
+        )
         assert pb.agents[0].skills_allowed == frozenset(["s1", "s2"])
         assert pb.parallel is True
 
@@ -65,7 +89,9 @@ class TestPlaybookDefinition:
 class TestMode:
     def test_frozen(self) -> None:
         mode = Mode(
-            id="m1", name="Default", soul_overlay_path="x.md",
+            id="m1",
+            name="Default",
+            soul_overlay_path="x.md",
             company_subset_paths=("a.yaml",),
             skills_allowlist=frozenset(["s1"]),
             playbooks_allowed=frozenset(["pb1"]),
@@ -76,7 +102,9 @@ class TestMode:
 
     def test_frozensets(self) -> None:
         mode = Mode(
-            id="m1", name="Default", soul_overlay_path="x.md",
+            id="m1",
+            name="Default",
+            soul_overlay_path="x.md",
             company_subset_paths=(),
             skills_allowlist=frozenset(["s1", "s2"]),
             playbooks_allowed=frozenset(["pb1"]),

@@ -102,9 +102,7 @@ class MCPProcessSupervisor:
         specs: dict[str, McpProcessSpec] = {}
         for entry in entries:
             if not isinstance(entry, dict):
-                raise ValueError(
-                    f"{self._manifest_path}: each mcp entry must be a mapping"
-                )
+                raise ValueError(f"{self._manifest_path}: each mcp entry must be a mapping")
             name = entry.get("name")
             command = entry.get("command")
             if not name or not command:
@@ -209,9 +207,7 @@ class MCPProcessSupervisor:
             )
         except (OSError, ValueError) as exc:
             # Constitución #4: error transformation with explicit context.
-            self._record_failure(
-                spec, f"failed to spawn {shlex.join(cmd)}: {exc}"
-            )
+            self._record_failure(spec, f"failed to spawn {shlex.join(cmd)}: {exc}")
             return
 
         self._procs[spec.name] = proc
@@ -228,9 +224,7 @@ class MCPProcessSupervisor:
         )
 
         # Background task: watch for exit and trigger backoff restart.
-        self._restart_tasks[spec.name] = asyncio.create_task(
-            self._watch_and_restart(spec, proc)
-        )
+        self._restart_tasks[spec.name] = asyncio.create_task(self._watch_and_restart(spec, proc))
 
     async def _watch_and_restart(
         self, spec: McpProcessSpec, proc: asyncio.subprocess.Process

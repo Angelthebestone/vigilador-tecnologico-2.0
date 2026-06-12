@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 
-from vigilancia_multiagente.enterprise.dreaming.models import DreamingContext, PhaseStatus
+from vigilancia_multiagente.enterprise.dreaming.models import DreamingContext
 from vigilancia_multiagente.enterprise.dreaming.phases.regulatory_watch import (
     RegulatoryWatchPhase,
 )
@@ -55,7 +55,7 @@ class FakeProposalStore:
 
 def _ctx() -> DreamingContext:
     return DreamingContext(
-        cycle_id="c1", started_at=datetime.now(timezone.utc), tenant_id="t1", llm_available=True
+        cycle_id="c1", started_at=datetime.now(UTC), tenant_id="t1", llm_available=True
     )
 
 
@@ -72,7 +72,9 @@ async def test_builds_queries_by_geo() -> None:
 
 @pytest.mark.asyncio
 async def test_searches_official_sources() -> None:
-    searcher = FakeSearcher(results=[{"source": "alcaldia", "citation": "Decreto 123", "summary": "x"}])
+    searcher = FakeSearcher(
+        results=[{"source": "alcaldia", "citation": "Decreto 123", "summary": "x"}]
+    )
     store = FakeProposalStore()
     phase = RegulatoryWatchPhase(FakeGeoConfig(), searcher, store)
     await phase.execute(_ctx())
@@ -81,7 +83,9 @@ async def test_searches_official_sources() -> None:
 
 @pytest.mark.asyncio
 async def test_generates_proposal_with_citations() -> None:
-    searcher = FakeSearcher(results=[{"source": "gobernacion", "citation": "Res 456", "summary": "y"}])
+    searcher = FakeSearcher(
+        results=[{"source": "gobernacion", "citation": "Res 456", "summary": "y"}]
+    )
     store = FakeProposalStore()
     phase = RegulatoryWatchPhase(FakeGeoConfig(), searcher, store)
     await phase.execute(_ctx())

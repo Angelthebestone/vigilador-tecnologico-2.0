@@ -26,9 +26,20 @@ _MIN_REQUEST_INTERVAL_S: Final[float] = 3.0  # arXiv polite-policy floor.
 
 # arXiv top-level subject classes (subset of common cs/* tags published).
 _TOP_CATEGORIES: Final[tuple[str, ...]] = (
-    "cs.AI", "cs.CL", "cs.CV", "cs.LG", "cs.NE", "cs.RO",
-    "stat.ML", "math.ST", "math.OC", "physics.comp-ph",
-    "q-bio", "q-fin", "econ", "eess.SP",
+    "cs.AI",
+    "cs.CL",
+    "cs.CV",
+    "cs.LG",
+    "cs.NE",
+    "cs.RO",
+    "stat.ML",
+    "math.ST",
+    "math.OC",
+    "physics.comp-ph",
+    "q-bio",
+    "q-fin",
+    "econ",
+    "eess.SP",
 )
 
 # Module-level rate limiter (matches upstream behavior).
@@ -49,9 +60,7 @@ class ArxivTool:
         """arXiv is anonymous-public; always reports UP."""
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -89,15 +98,17 @@ class ArxivTool:
         search = arxiv.Search(query=query, max_results=max_results)
         results = []
         for paper in client.results(search):
-            results.append({
-                "id": paper.entry_id,
-                "title": paper.title,
-                "summary": paper.summary,
-                "published": paper.published.isoformat() if paper.published else "",
-                "authors": [str(a) for a in paper.authors],
-                "categories": paper.categories,
-                "pdf_url": paper.pdf_url or "",
-            })
+            results.append(
+                {
+                    "id": paper.entry_id,
+                    "title": paper.title,
+                    "summary": paper.summary,
+                    "published": paper.published.isoformat() if paper.published else "",
+                    "authors": [str(a) for a in paper.authors],
+                    "categories": paper.categories,
+                    "pdf_url": paper.pdf_url or "",
+                }
+            )
 
         return {"query": query, "results": results}
 

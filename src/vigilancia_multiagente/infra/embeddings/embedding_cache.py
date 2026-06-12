@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import os
 from collections import OrderedDict
 from pathlib import Path
 from typing import Protocol
@@ -38,7 +37,7 @@ class EmbeddingCache:
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._filepath = self._cache_dir / filename
         self._max_memory_entries = max_memory_entries
-        
+
         # L1: In-memory LRU cache
         self._l1_cache: OrderedDict[str, list[float]] = OrderedDict()
         # L2: Disk cache (loaded into memory on boot)
@@ -54,18 +53,18 @@ class EmbeddingCache:
     def get(self, content: str) -> list[float] | None:
         """Get embedding vector for content. Returns None if not found."""
         key = self._compute_key(content)
-        
+
         # Check L1
         if key in self._l1_cache:
             self._l1_cache.move_to_end(key)
             return self._l1_cache[key]
-        
+
         # Check L2
         if key in self._l2_cache:
             vector = self._l2_cache[key]
             self._set_l1(key, vector)
             return vector
-            
+
         return None
 
     def set(self, content: str, vector: list[float]) -> None:
@@ -96,20 +95,22 @@ class EmbeddingCache:
         """Load L2 cache from disk."""
         if not self._filepath.exists():
             return
-            
+
         try:
-            with open(self._filepath, "r", encoding="utf-8") as f:
+            with open(self._filepath, encoding="utf-8") as f:
                 self._l2_cache = json.load(f)
             logger.info(f"Loaded {len(self._l2_cache)} embeddings from {self._filepath}")
         except (json.JSONDecodeError, OSError) as e:
-            logger.warning(f"Failed to load embedding cache from {self._filepath}: {e}. Starting fresh.")
+            logger.warning(
+                f"Failed to load embedding cache from {self._filepath}: {e}. Starting fresh."
+            )
             self._l2_cache = {}
 
     def flush_to_disk(self) -> None:
         """Flush L2 cache to disk atomically."""
         if not self._l2_cache:
             return
-            
+
         try:
             tmp_path = self._filepath.with_suffix(".tmp")
             with open(tmp_path, "w", encoding="utf-8") as f:
@@ -118,4 +119,4 @@ class EmbeddingCache:
             logger.info(f"Flushed {len(self._l2_cache)} embeddings to {self._filepath}")
         except OSError as e:
             logger.error(f"Failed to flush embedding cache to {self._filepath}: {e}")
-            raise EmbeddingCacheError(f"Failed to write cache to disk: {e}")
+            raise EmbeddingCacheError(f"Failed to write cache to disk: {e}") from e

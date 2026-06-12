@@ -83,12 +83,15 @@ class BaseHTTPProvider:
         raise ProviderResponseError(f"Unexpected response: {response.status_code}")
 
     @retry_with_policy()
-    async def post(self, path: str, json: dict[str, Any] | None = None, **kwargs: Any) -> dict[str, Any]:
+    async def post(
+        self, path: str, json: dict[str, Any] | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         api_key = await self._api_key()
         if self.requires_auth and not api_key:
             raise ProviderUnconfiguredError(f"Missing required API key for {self.name}")
 
-        headers = {**(kwargs.pop("headers", {})), **self._auth_headers(api_key)}
+        resolved_key = api_key or ""
+        headers = {**(kwargs.pop("headers", {})), **self._auth_headers(resolved_key)}
         try:
             response = await self.client.post(path, json=json, headers=headers, **kwargs)
             response.raise_for_status()
@@ -107,7 +110,8 @@ class BaseHTTPProvider:
         if self.requires_auth and not api_key:
             raise ProviderUnconfiguredError(f"Missing required API key for {self.name}")
 
-        headers = {**(kwargs.pop("headers", {})), **self._auth_headers(api_key)}
+        resolved_key = api_key or ""
+        headers = {**(kwargs.pop("headers", {})), **self._auth_headers(resolved_key)}
         try:
             response = await self.client.get(path, headers=headers, **kwargs)
             response.raise_for_status()

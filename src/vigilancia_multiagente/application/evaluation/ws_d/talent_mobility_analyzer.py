@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from vigilancia_multiagente.domain.evaluation_entities import Affiliation, TalentMobility
 from vigilancia_multiagente.domain.ports.provider_registry import ProviderRegistry
@@ -102,21 +102,21 @@ class TalentMobilityAnalyzerImpl(TalentMobilityAnalyzer):
             except Exception as exc:
                 logger.debug("Serper patent search failed for %s: %s", author_id, exc)
 
-        now = datetime.now(timezone.utc)
+        datetime.now(UTC)
         academic.append(
             Affiliation(
-                institution=f"University",
+                institution="University",
                 role="researcher",
-                started_at=datetime(2015, 1, 1, tzinfo=timezone.utc),
-                ended_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+                started_at=datetime(2015, 1, 1, tzinfo=UTC),
+                ended_at=datetime(2020, 1, 1, tzinfo=UTC),
             )
         )
         if patents:
             industry.append(
                 Affiliation(
-                    institution=f"Industry",
+                    institution="Industry",
                     role="inventor",
-                    started_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+                    started_at=datetime(2020, 1, 1, tzinfo=UTC),
                     ended_at=None,
                 )
             )

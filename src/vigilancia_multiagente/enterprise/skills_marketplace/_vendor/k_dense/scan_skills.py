@@ -3,7 +3,7 @@
 
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -32,7 +32,7 @@ def build_scanner() -> SkillScanner:
     llm_model = os.getenv("SKILL_SCANNER_LLM_MODEL", "anthropic/claude-sonnet-4-6")
     llm_key = os.getenv("SKILL_SCANNER_LLM_API_KEY")
 
-    scanner = SkillScanner(
+    return SkillScanner(
         analyzers=[
             BehavioralAnalyzer(),
             TriggerAnalyzer(),
@@ -40,7 +40,6 @@ def build_scanner() -> SkillScanner:
         ],
         policy=policy,
     )
-    return scanner
 
 
 def severity_badge(sev: str) -> str:
@@ -56,7 +55,7 @@ def severity_badge(sev: str) -> str:
 
 
 def generate_report(report) -> str:
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     lines: list[str] = []
 
     lines.append("# Security Scan Report")
@@ -64,7 +63,9 @@ def generate_report(report) -> str:
     lines.append(f"**Generated:** {now}  ")
     lines.append(f"**Skills scanned:** {report.total_skills_scanned}  ")
     lines.append(f"**Total findings:** {report.total_findings}  ")
-    lines.append(f"**Critical:** {report.critical_count} | **High:** {report.high_count} | **Safe skills:** {report.safe_count}/{report.total_skills_scanned}")
+    lines.append(
+        f"**Critical:** {report.critical_count} | **High:** {report.high_count} | **Safe skills:** {report.safe_count}/{report.total_skills_scanned}"
+    )
     lines.append("")
 
     # Summary table
@@ -81,10 +82,16 @@ def generate_report(report) -> str:
     )
 
     for result in sorted_results:
-        sev = result.max_severity.value if hasattr(result.max_severity, "value") else str(result.max_severity)
+        sev = (
+            result.max_severity.value
+            if hasattr(result.max_severity, "value")
+            else str(result.max_severity)
+        )
         safe = "✅" if result.is_safe else "❌"
         duration = f"{result.scan_duration_seconds:.1f}s"
-        lines.append(f"| {result.skill_name} | {severity_badge(sev)} | {len(result.findings)} | {safe} | {duration} |")
+        lines.append(
+            f"| {result.skill_name} | {severity_badge(sev)} | {len(result.findings)} | {safe} | {duration} |"
+        )
 
     lines.append("")
 
@@ -95,12 +102,20 @@ def generate_report(report) -> str:
         lines.append("")
 
         for result in flagged:
-            sev = result.max_severity.value if hasattr(result.max_severity, "value") else str(result.max_severity)
+            sev = (
+                result.max_severity.value
+                if hasattr(result.max_severity, "value")
+                else str(result.max_severity)
+            )
             lines.append(f"### {result.skill_name} — {severity_badge(sev)}")
             lines.append("")
 
             for finding in result.findings:
-                fsev = finding.severity.value if hasattr(finding.severity, "value") else str(finding.severity)
+                fsev = (
+                    finding.severity.value
+                    if hasattr(finding.severity, "value")
+                    else str(finding.severity)
+                )
                 lines.append(f"- **{severity_badge(fsev)}** `{finding.rule_id}` — {finding.title}")
                 if finding.description:
                     lines.append(f"  > {finding.description}")
@@ -160,7 +175,11 @@ def scan_with_progress(scanner: SkillScanner, skills_dir: str) -> Report:
             loaded_skills.append(skill)
 
             elapsed = time.time() - t0
-            sev = result.max_severity.value if hasattr(result.max_severity, "value") else str(result.max_severity)
+            sev = (
+                result.max_severity.value
+                if hasattr(result.max_severity, "value")
+                else str(result.max_severity)
+            )
             tag = severity_badge(sev)
             n_findings = len(result.findings)
             detail = f"{n_findings} finding{'s' if n_findings != 1 else ''}" if n_findings else ""
@@ -211,7 +230,9 @@ def main():
     report = scan_with_progress(scanner, SKILLS_DIR)
 
     print(f"\nResults: {report.total_skills_scanned} skills, {report.total_findings} findings")
-    print(f"  Critical: {report.critical_count}  High: {report.high_count}  Safe: {report.safe_count}")
+    print(
+        f"  Critical: {report.critical_count}  High: {report.high_count}  Safe: {report.safe_count}"
+    )
 
     md = generate_report(report)
     with open(OUTPUT_FILE, "w") as f:

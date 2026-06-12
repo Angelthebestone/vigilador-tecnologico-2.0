@@ -1,17 +1,16 @@
 """T050: Verify SkillRegistry uses EmbeddingCache."""
-import asyncio
+
 import tempfile
-from pathlib import Path
 
 import pytest
 
-from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
-from vigilancia_multiagente.enterprise.skills_marketplace.skill_registry import SkillRegistry
 from vigilancia_multiagente.enterprise.skills_marketplace.skill_models import (
     SkillCard,
     SkillSource,
     SkillSummary,
 )
+from vigilancia_multiagente.enterprise.skills_marketplace.skill_registry import SkillRegistry
+from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 
 
 class FakeEmbeddingGateway:

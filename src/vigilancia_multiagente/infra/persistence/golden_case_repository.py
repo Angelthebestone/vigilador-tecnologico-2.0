@@ -60,9 +60,7 @@ class PostgresGoldenCaseRepository:
             )
             await db.commit()
 
-    async def recent_runs(
-        self, case_id: UUID, limit: int = 20
-    ) -> list[GoldenCaseRun]:
+    async def recent_runs(self, case_id: UUID, limit: int = 20) -> list[GoldenCaseRun]:
         async with self._database.session() as db:
             result = await db.execute(
                 text(
@@ -77,8 +75,10 @@ class PostgresGoldenCaseRepository:
 
 def _row_to_case(row: tuple[object, ...]) -> GoldenCase:
     raw_findings = row[4]
-    findings_data = raw_findings if isinstance(raw_findings, list) else json.loads(
-        str(raw_findings) if raw_findings else "[]"
+    findings_data = (
+        raw_findings
+        if isinstance(raw_findings, list)
+        else json.loads(str(raw_findings) if raw_findings else "[]")
     )
     return GoldenCase(
         id=UUID(str(row[0])),

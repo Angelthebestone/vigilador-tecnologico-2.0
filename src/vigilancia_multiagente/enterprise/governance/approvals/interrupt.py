@@ -44,6 +44,8 @@ def set_interrupt(active: bool, thread_id: int | None = None) -> None:
         thread_id: Target thread ident. When None, targets the current thread.
     """
     tid = thread_id if thread_id is not None else threading.current_thread().ident
+    if tid is None:
+        return
     with _lock:
         if active:
             _interrupted_threads.add(tid)

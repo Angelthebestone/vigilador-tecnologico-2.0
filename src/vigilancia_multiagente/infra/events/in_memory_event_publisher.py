@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
-
 
 class InMemoryEventPublisher:
     """Adapter over the module-level event_log dict used at composition root."""

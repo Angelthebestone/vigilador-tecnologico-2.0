@@ -13,6 +13,7 @@ _PROMPTS_ROOT = Path(vigilancia_multiagente.__file__).resolve().parent / "prompt
 
 def _overrides_root() -> Path:
     from vigilancia_multiagente.config.settings import get_settings
+
     return Path(get_settings().prompt_overrides_dir)
 
 

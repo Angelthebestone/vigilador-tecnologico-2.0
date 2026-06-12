@@ -33,7 +33,9 @@ class ClarifyRequest(BaseModel):
 @router.post("/start")
 async def start_research(payload: StartRequest) -> dict[str, object]:
     session = await orchestrator.start_session(payload.user_query, payload.scope)
-    audit_logger.debug("SessionStarted: session_id=%s, user_query=%s", session.id, payload.user_query)
+    audit_logger.debug(
+        "SessionStarted: session_id=%s, user_query=%s", session.id, payload.user_query
+    )
     questions = await clarification_service.generate_questions(
         payload.user_query, llm=minimax_client
     )

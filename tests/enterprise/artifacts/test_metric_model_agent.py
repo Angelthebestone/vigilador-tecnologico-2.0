@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
 from vigilancia_multiagente.enterprise.artifacts.metric_model_agent import MetricModelAgent
 from vigilancia_multiagente.enterprise.artifacts.ports import DataSource
 
 
 def _make_sources(*names: str) -> tuple[DataSource, ...]:
     return tuple(
-        DataSource(name=n, source_type="CSV", location=f"/data/{n}", available=True)
-        for n in names
+        DataSource(name=n, source_type="CSV", location=f"/data/{n}", available=True) for n in names
     )
 
 
@@ -20,10 +17,20 @@ def test_kpis_generated_with_complete_fields() -> None:
     agent = MetricModelAgent()
     sources = _make_sources("ventas.csv", "clientes.csv")
     kpis_input = [
-        {"name": "Ventas Totales", "formula": "SUM(monto)", "source": "ventas.csv",
-         "granularity": "mensual", "display_format": "bar_chart"},
-        {"name": "Clientes Nuevos", "formula": "COUNT(id)", "source": "clientes.csv",
-         "granularity": "semanal", "display_format": "line_chart"},
+        {
+            "name": "Ventas Totales",
+            "formula": "SUM(monto)",
+            "source": "ventas.csv",
+            "granularity": "mensual",
+            "display_format": "bar_chart",
+        },
+        {
+            "name": "Clientes Nuevos",
+            "formula": "COUNT(id)",
+            "source": "clientes.csv",
+            "granularity": "semanal",
+            "display_format": "line_chart",
+        },
     ]
 
     result = agent.model_metrics("dashboard de ventas", sources, kpis_input)
@@ -43,8 +50,13 @@ def test_data_gap_detected_and_reported() -> None:
     agent = MetricModelAgent()
     sources = _make_sources("ventas.csv")
     kpis_input = [
-        {"name": "Margen", "formula": "SUM(ganancia)/SUM(costo)", "source": "costos.csv",
-         "granularity": "mensual", "display_format": "gauge"},
+        {
+            "name": "Margen",
+            "formula": "SUM(ganancia)/SUM(costo)",
+            "source": "costos.csv",
+            "granularity": "mensual",
+            "display_format": "gauge",
+        },
     ]
 
     result = agent.model_metrics("dashboard financiero", sources, kpis_input)
@@ -70,8 +82,13 @@ def test_refresh_policy_declared_per_artifact() -> None:
     agent = MetricModelAgent()
     sources = _make_sources("ventas.csv", "inventario.csv")
     kpis_input = [
-        {"name": "Stock", "formula": "SUM(cantidad)", "source": "inventario.csv",
-         "granularity": "diario", "display_format": "table"},
+        {
+            "name": "Stock",
+            "formula": "SUM(cantidad)",
+            "source": "inventario.csv",
+            "granularity": "diario",
+            "display_format": "table",
+        },
     ]
 
     result = agent.model_metrics("dashboard de inventario con refresh diario", sources, kpis_input)

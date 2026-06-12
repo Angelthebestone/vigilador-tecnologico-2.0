@@ -163,9 +163,7 @@ def test_sse_events_sequence(client: httpx.Client) -> None:
 
     # --- BranchStarted x6 ---
     branch_starts = [e for e in events if e["event"] == "BranchStarted"]
-    assert len(branch_starts) == 6, (
-        f"Expected 6 BranchStarted events, got {len(branch_starts)}"
-    )
+    assert len(branch_starts) == 6, f"Expected 6 BranchStarted events, got {len(branch_starts)}"
     seen_types = {e["data"]["branch"] for e in branch_starts}
     assert seen_types == BRANCH_TYPES, f"Missing branch types: {BRANCH_TYPES - seen_types}"
 
@@ -257,9 +255,7 @@ def test_sse_event_data_types(client: httpx.Client) -> None:
         events = _read_all_sse_events(response)
 
     for event in events:
-        assert event["data"] is not None, (
-            f"Event {event['event']} has null data"
-        )
+        assert event["data"] is not None, f"Event {event['event']} has null data"
         assert isinstance(event["data"], dict), (
             f"Event {event['event']} data is not a dict: {type(event['data'])}"
         )

@@ -62,9 +62,7 @@ def list_dir(root: Path, path: str = ".") -> dict[str, object]:
     return {"entries": entries}
 
 
-def patch_file(
-    root: Path, path: str, old_text: str, new_text: str
-) -> dict[str, object]:
+def patch_file(root: Path, path: str, old_text: str, new_text: str) -> dict[str, object]:
     """Replace first occurrence of old_text with new_text in a file.
 
     Returns dict with 'patched_path' and 'replacements', or 'error'.

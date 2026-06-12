@@ -202,9 +202,7 @@ _FORM_BODY_RE = re.compile(
 )
 
 # Compile known prefix patterns into one alternation.
-_PREFIX_RE = re.compile(
-    r"(?<![A-Za-z0-9_-])(" + "|".join(_PREFIX_PATTERNS) + r")(?![A-Za-z0-9_-])"
-)
+_PREFIX_RE = re.compile(r"(?<![A-Za-z0-9_-])(" + "|".join(_PREFIX_PATTERNS) + r")(?![A-Za-z0-9_-])")
 
 
 def mask_secret(
@@ -377,9 +375,7 @@ def redact_sensitive_text(
 
     # Database connection string passwords.
     if "://" in text:
-        text = _DB_CONNSTR_RE.sub(
-            lambda m: f"{m.group(1)}***{m.group(3)}", text
-        )
+        text = _DB_CONNSTR_RE.sub(lambda m: f"{m.group(1)}***{m.group(3)}", text)
 
     # JWT tokens.
     if "eyJ" in text:
@@ -396,9 +392,7 @@ def redact_sensitive_text(
 
     # Discord mentions.
     if "<@" in text:
-        text = _DISCORD_MENTION_RE.sub(
-            lambda m: f"<@{'!' if '!' in m.group(0) else ''}***>", text
-        )
+        text = _DISCORD_MENTION_RE.sub(lambda m: f"<@{'!' if '!' in m.group(0) else ''}***>", text)
 
     # E.164 phone numbers.
     if "+" in text:
@@ -454,7 +448,7 @@ class RedactingFormatter(logging.Formatter):
     """Log formatter that redacts secrets from all log messages."""
 
     def __init__(self, fmt=None, datefmt=None, style="%", **kwargs):
-        super().__init__(fmt, datefmt, style, **kwargs)
+        super().__init__(fmt, datefmt, style=style, **kwargs)  # type: ignore[arg-type]
 
     def format(self, record: logging.LogRecord) -> str:
         original = super().format(record)

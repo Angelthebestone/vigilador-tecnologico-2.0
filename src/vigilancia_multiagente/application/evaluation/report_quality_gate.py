@@ -58,9 +58,7 @@ class QualityGateBlocked(Exception):
     """
 
     def __init__(self, audit: BiasAudit) -> None:
-        super().__init__(
-            f"critical bias detected: {', '.join(audit.bias_categories) or 'unknown'}"
-        )
+        super().__init__(f"critical bias detected: {', '.join(audit.bias_categories) or 'unknown'}")
         self.audit = audit
 
 

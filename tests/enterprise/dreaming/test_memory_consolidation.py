@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -51,7 +51,7 @@ class FailingSummarizer:
 def _make_context() -> DreamingContext:
     return DreamingContext(
         cycle_id="test-001",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         tenant_id="tenant-1",
         llm_available=True,
     )

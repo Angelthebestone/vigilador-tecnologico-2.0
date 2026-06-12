@@ -24,6 +24,7 @@ class DocxGenerateTool:
         """Verifica que python-docx está disponible."""
         try:
             import docx  # noqa: F401
+
             return HealthcheckResult(status="UP")
         except ImportError:
             return HealthcheckResult(status="DOWN", error="python-docx not installed")
@@ -46,7 +47,9 @@ class DocxGenerateTool:
 
         sections = args.get("sections")
         if not isinstance(sections, list) or len(sections) == 0:
-            return {"error": "'sections' must be a non-empty list of dicts with 'heading' and 'body'"}
+            return {
+                "error": "'sections' must be a non-empty list of dicts with 'heading' and 'body'"
+            }
 
         output_path = args.get("output_path")
         if not output_path or not isinstance(output_path, str):

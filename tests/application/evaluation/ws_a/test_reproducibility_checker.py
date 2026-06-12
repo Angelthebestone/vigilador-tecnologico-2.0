@@ -47,6 +47,7 @@ async def test_repo_exists_with_all_features() -> None:
     with (
         patch.object(checker._client, "get", new_callable=AsyncMock) as mock_get,
     ):
+
         async def mock_response(url: str, **kwargs):
             del kwargs
             resp = AsyncMock()
@@ -76,11 +77,10 @@ async def test_repo_exists_with_all_features() -> None:
 @pytest.mark.asyncio
 async def test_repo_exists_but_no_env() -> None:
     checker = GithubBasedReproducibilityChecker()
-    finding = _make_finding(
-        statement="Code at https://github.com/user/minimal"
-    )
+    finding = _make_finding(statement="Code at https://github.com/user/minimal")
 
     with patch.object(checker._client, "get", new_callable=AsyncMock) as mock_get:
+
         async def mock_response(url: str, **kwargs):
             del kwargs
             resp = AsyncMock()
@@ -106,9 +106,7 @@ async def test_repo_exists_but_no_env() -> None:
 @pytest.mark.asyncio
 async def test_repo_not_found() -> None:
     checker = GithubBasedReproducibilityChecker()
-    finding = _make_finding(
-        statement="https://github.com/ghost/deleted-repo"
-    )
+    finding = _make_finding(statement="https://github.com/ghost/deleted-repo")
 
     with patch.object(checker._client, "get", new_callable=AsyncMock) as mock_get:
         mock_response = AsyncMock()

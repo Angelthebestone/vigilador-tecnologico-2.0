@@ -415,7 +415,10 @@ def _plan_from_row(row: dict[str, object]) -> ResearchPlan:
         id=UUID(str(row["id"])),
         session_id=UUID(str(row["session_id"])),
         version=cast(int, row["version"]),
-        branches=[_branch_from_dict(payload) for payload in cast(list[dict[str, object]], branches_payload)],
+        branches=[
+            _branch_from_dict(payload)
+            for payload in cast(list[dict[str, object]], branches_payload)
+        ],
         global_constraints=cast(dict, _json_load_dict(row.get("global_constraints")) or {}),
         requires_approval=bool(row["requires_approval"]),
         approved_at=_optional_datetime(row.get("approved_at")),
@@ -444,8 +447,14 @@ def _branch_result_from_row(row: dict[str, object]) -> BranchResult:
         session_id=UUID(str(row["session_id"])),
         branch_type=BranchType(str(row["branch_type"])),
         queries_executed=[str(item) for item in _json_load_list(row["queries_executed"])],
-        findings=[_finding_from_dict(item) for item in cast(list[dict[str, object]], _json_load_list(row["findings"]))],
-        sources=[_source_from_dict(item) for item in cast(list[dict[str, object]], _json_load_list(row["sources"]))],
+        findings=[
+            _finding_from_dict(item)
+            for item in cast(list[dict[str, object]], _json_load_list(row["findings"]))
+        ],
+        sources=[
+            _source_from_dict(item)
+            for item in cast(list[dict[str, object]], _json_load_list(row["sources"]))
+        ],
         started_at=_optional_datetime(row.get("started_at")),
         completed_at=_optional_datetime(row.get("completed_at")),
         coverage_score=_optional_float(row.get("coverage_score")),
@@ -494,7 +503,9 @@ def _finding_from_dict(payload: dict[str, object]) -> Finding:
         topic=str(payload["topic"]),
         statement=str(payload["statement"]),
         confidence=cast(float, payload["confidence"]),
-        source_ids=[UUID(str(source_id)) for source_id in cast(list, payload.get("source_ids", []))],
+        source_ids=[
+            UUID(str(source_id)) for source_id in cast(list, payload.get("source_ids", []))
+        ],
         tags=[str(tag) for tag in cast(list, payload.get("tags", []))],
     )
 
@@ -624,9 +635,12 @@ def _final_report_to_dict(report: FinalReport) -> dict[str, object]:
 def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
     return FinalReport(
         session_id=UUID(str(data["session_id"])),
-        generated_at=cast(datetime, _ensure_datetime(data["generated_at"])
-        if isinstance(data.get("generated_at"), str)
-        else data.get("generated_at")),
+        generated_at=cast(
+            datetime,
+            _ensure_datetime(data["generated_at"])
+            if isinstance(data.get("generated_at"), str)
+            else data.get("generated_at"),
+        ),
         markdown=cast(str, data.get("markdown", "")),
         executive_summary=cast(str, data.get("executive_summary", "")),
         technical_section=cast(str, data.get("technical_section", "")),
@@ -641,7 +655,10 @@ def _final_report_from_dict(data: dict[str, object]) -> FinalReport:
             )
             for r in cast(list, data.get("recommendations") or [])
         ],
-        all_sources=[_source_from_dict(cast(dict[str, object], s)) for s in cast(list, data.get("all_sources") or [])],
+        all_sources=[
+            _source_from_dict(cast(dict[str, object], s))
+            for s in cast(list, data.get("all_sources") or [])
+        ],
         total_sources_consulted=cast(int, data.get("total_sources_consulted", 0)),
         total_learnings=cast(int, data.get("total_learnings", 0)),
         confidence_score=cast(float, data.get("confidence_score", 0.0)),
@@ -669,7 +686,9 @@ def _step_error_from_dict(data: dict[str, object]) -> StepError:
     occurred = (
         datetime.fromisoformat(str(occurred_raw))
         if isinstance(occurred_raw, str)
-        else cast(datetime, occurred_raw) if occurred_raw is not None else datetime.now()
+        else cast(datetime, occurred_raw)
+        if occurred_raw is not None
+        else datetime.now()
     )
     return StepError(
         workstream=Workstream(str(data.get("workstream", "WS-E"))),

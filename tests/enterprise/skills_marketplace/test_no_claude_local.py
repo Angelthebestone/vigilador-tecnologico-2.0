@@ -33,9 +33,7 @@ def test_skill_loader_supports_k_dense_and_agency_agents_branches():
 
     src = inspect.getsource(skill_loader)
     assert "external:k-dense" in src, "skill_loader must wire external:k-dense source"
-    assert "external:agency-agents" in src, (
-        "skill_loader must wire external:agency-agents source"
-    )
+    assert "external:agency-agents" in src, "skill_loader must wire external:agency-agents source"
 
 
 def test_settings_default_skills_sources_matches_d3():
@@ -45,9 +43,7 @@ def test_settings_default_skills_sources_matches_d3():
     s = Settings()
     sources = list(s.skills_sources_enabled)
     expected = ["curated", "learned", "external:k-dense", "external:agency-agents"]
-    assert sources == expected, (
-        f"D3: skills_sources_enabled must be {expected}, got {sources}"
-    )
+    assert sources == expected, f"D3: skills_sources_enabled must be {expected}, got {sources}"
 
 
 @pytest.mark.asyncio
@@ -82,7 +78,10 @@ async def test_skill_loader_load_all_with_external_branches_does_not_call_claude
         registry=registry,
         tool_registry=_StubToolReg(),
         sources_enabled=[
-            "curated", "learned", "external:k-dense", "external:agency-agents",
+            "curated",
+            "learned",
+            "external:k-dense",
+            "external:agency-agents",
         ],
         curated_path=tmp_path / "curated",
         learned_path=tmp_path / "learned",

@@ -6,7 +6,7 @@ SC-B04: distribucion correcta de 3 idiomas, traduccion deterministica con mock.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -24,9 +24,7 @@ class MockLLMClient:
         self.complete = AsyncMock()
 
     def set_response(self, content: str) -> None:
-        self.complete.return_value = {
-            "choices": [{"message": {"content": content}}]
-        }
+        self.complete.return_value = {"choices": [{"message": {"content": content}}]}
 
 
 @pytest.fixture

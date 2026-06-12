@@ -12,9 +12,7 @@ class ModeNotAvailableError(Exception):
     def __init__(self, mode_id: str, available: list[str]) -> None:
         self.mode_id = mode_id
         self.available = available
-        super().__init__(
-            f"Mode '{mode_id}' not available. Available modes: {available}"
-        )
+        super().__init__(f"Mode '{mode_id}' not available. Available modes: {available}")
 
 
 class ModeResolver:

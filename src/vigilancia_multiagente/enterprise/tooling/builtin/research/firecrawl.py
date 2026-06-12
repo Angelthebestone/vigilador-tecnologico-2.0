@@ -42,9 +42,7 @@ class FirecrawlTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -61,16 +59,12 @@ class FirecrawlTool:
         """
         api_key = self._api_key()
         if not api_key:
-            raise RuntimeError(
-                "FirecrawlTool: VT_FIRECRAWL_API_KEY not configured"
-            )
+            raise RuntimeError("FirecrawlTool: VT_FIRECRAWL_API_KEY not configured")
         url = args.get("url")
         if not isinstance(url, str) or not url.strip():
             raise ValueError("FirecrawlTool: 'url' must be a non-empty string")
         if not is_safe_url(url):
-            raise PermissionError(
-                f"FirecrawlTool: URL safety check rejected '{url}'"
-            )
+            raise PermissionError(f"FirecrawlTool: URL safety check rejected '{url}'")
 
         client = self._client()
 
@@ -90,17 +84,22 @@ class FirecrawlTool:
 
     def _scrape(self, client: FirecrawlApp, url: str) -> dict[str, object]:
         result = client.scrape_url(url, formats=["markdown", "html"])
+        getter = result.get if isinstance(result, dict) else lambda k, d=None: getattr(result, k, d)
         return {
             "url": url,
-            "markdown": result.get("markdown", ""),
-            "html": result.get("html", ""),
-            "metadata": result.get("metadata", {}),
+            "markdown": getter("markdown", ""),
+            "html": getter("html", ""),
+            "metadata": getter("metadata", {}),
         }
 
     def _crawl(self, client: FirecrawlApp, url: str, limit: int) -> dict[str, object]:
-        result = client.crawl_url(url, params={"limit": limit, "scrapeOptions": {"formats": ["markdown"]}})
-        return {"url": url, "id": result.get("id", ""), "status": result.get("status", "")}
+        result = client.crawl_url(
+            url, params={"limit": limit, "scrapeOptions": {"formats": ["markdown"]}}
+        )
+        getter = result.get if isinstance(result, dict) else lambda k, d=None: getattr(result, k, d)
+        return {"url": url, "id": getter("id", ""), "status": getter("status", "")}
 
     def _map(self, client: FirecrawlApp, url: str) -> dict[str, object]:
         result = client.map_url(url)
-        return {"url": url, "links": result.get("links", [])}
+        getter = result.get if isinstance(result, dict) else lambda k, d=None: getattr(result, k, d)
+        return {"url": url, "links": getter("links", [])}

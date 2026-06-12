@@ -41,9 +41,7 @@ class ExaTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -60,8 +58,7 @@ class ExaTool:
         api_key = self._api_key()
         if not api_key:
             raise RuntimeError(
-                "ExaTool: VT_EXA_API_KEY not configured (tool-gating "
-                "should have hidden this tool)"
+                "ExaTool: VT_EXA_API_KEY not configured (tool-gating should have hidden this tool)"
             )
 
         client = self._client()
@@ -112,9 +109,5 @@ class ExaTool:
         if not isinstance(urls, list) or not urls:
             raise ValueError("ExaTool: 'urls' must be a non-empty list")
         response = client.get_contents(urls)
-        results = [
-            {"url": r.url, "text": r.text}
-            for r in response.results
-            if r.text
-        ]
+        results = [{"url": r.url, "text": r.text} for r in response.results if r.text]
         return {"urls": urls, "results": results}

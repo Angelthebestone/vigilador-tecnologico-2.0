@@ -63,9 +63,7 @@ class DreamingReporter:
         try:
             self.audit_dir.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            raise ReporterError(
-                f"Cannot create audit directory {self.audit_dir}: {exc}"
-            ) from exc
+            raise ReporterError(f"Cannot create audit directory {self.audit_dir}: {exc}") from exc
 
         date_str = report.started_at.strftime("%Y-%m-%d")
         path = self.audit_dir / f"{date_str}.jsonl"
@@ -87,9 +85,7 @@ class DreamingReporter:
             with path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
         except OSError as exc:
-            raise ReporterError(
-                f"Cannot write cycle report to {path}: {exc}"
-            ) from exc
+            raise ReporterError(f"Cannot write cycle report to {path}: {exc}") from exc
 
         logger.info(
             "Dreaming cycle %s reported (%d phases) → %s",

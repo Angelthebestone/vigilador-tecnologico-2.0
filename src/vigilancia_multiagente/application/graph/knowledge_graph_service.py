@@ -195,7 +195,9 @@ class KnowledgeGraphService:
             if len(in_reach) > 1:
                 for i in range(len(in_reach)):
                     for j in range(i + 1, len(in_reach)):
-                        cast(list[dict[str, object]], result.setdefault("competes_with", [])).append(
+                        cast(
+                            list[dict[str, object]], result.setdefault("competes_with", [])
+                        ).append(
                             {
                                 "source_id": source_id,
                                 "finding_a": in_reach[i],

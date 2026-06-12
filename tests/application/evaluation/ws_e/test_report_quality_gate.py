@@ -63,7 +63,7 @@ class FakeTraceWriter:
         self.finalized.append(claim_id)
 
         class Trace:
-            chain = [object()]
+            chain: list = [object()]  # noqa: RUF012 — test fixture, intentional
 
         return Trace()
 

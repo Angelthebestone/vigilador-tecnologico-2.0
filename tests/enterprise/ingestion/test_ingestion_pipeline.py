@@ -46,9 +46,7 @@ def test_chunk_text_returns_empty_for_blank_input():
 
 def test_chunk_text_windows_with_overlap():
     text = "a" * (4 * 512 + 100)  # 2148 chars → 2 windows w/ overlap
-    chunks = chunk_text(
-        document_id="d", text=text, tokens_per_chunk=512, overlap_tokens=64
-    )
+    chunks = chunk_text(document_id="d", text=text, tokens_per_chunk=512, overlap_tokens=64)
     assert len(chunks) >= 2
     # Overlap means chunk2 starts before chunk1 ends.
     if len(chunks) >= 2:
@@ -62,8 +60,11 @@ def test_chunk_text_invalid_overlap_raises():
 
 def test_chunk_text_assigns_sequential_chunk_ids():
     chunks = chunk_text(
-        document_id="d", text="x" * 4000, base_chunk_id=100,
-        tokens_per_chunk=128, overlap_tokens=16,
+        document_id="d",
+        text="x" * 4000,
+        base_chunk_id=100,
+        tokens_per_chunk=128,
+        overlap_tokens=16,
     )
     ids = [c.chunk_id for c in chunks]
     assert ids == list(range(100, 100 + len(chunks)))
@@ -76,8 +77,12 @@ def test_chunk_text_assigns_sequential_chunk_ids():
 
 def _mk_chunk(cid: int, text: str) -> Chunk:
     return Chunk(
-        chunk_id=cid, document_id="d", text=text,
-        char_start=0, char_end=len(text), metadata={},
+        chunk_id=cid,
+        document_id="d",
+        text=text,
+        char_start=0,
+        char_end=len(text),
+        metadata={},
     )
 
 
@@ -127,9 +132,7 @@ def test_acl_allowlist_honors_role_membership():
     r = ACLResolver()
     r.register_chunk(1, ACLScope(tenant_id=_TENANT, roles=frozenset({"admin"})))
     r.register_chunk(2, ACLScope(tenant_id=_TENANT, roles=frozenset({"viewer"})))
-    out = r.allowlist_for(
-        Principal(tenant_id=_TENANT, user="alice", roles=frozenset({"viewer"}))
-    )
+    out = r.allowlist_for(Principal(tenant_id=_TENANT, user="alice", roles=frozenset({"viewer"})))
     assert out == [2]
 
 
@@ -227,10 +230,20 @@ async def test_orchestrator_extract_failure_records_error_and_continues():
     """A failure on one doc must not abort the whole run."""
     now = datetime.now(UTC)
     docs = [
-        DocumentRef(connector="fake_drive", external_id="bad", title="bad",
-                    mime_type="text/plain", last_modified=now),
-        DocumentRef(connector="fake_drive", external_id="ok", title="ok",
-                    mime_type="text/plain", last_modified=now),
+        DocumentRef(
+            connector="fake_drive",
+            external_id="bad",
+            title="bad",
+            mime_type="text/plain",
+            last_modified=now,
+        ),
+        DocumentRef(
+            connector="fake_drive",
+            external_id="ok",
+            title="ok",
+            mime_type="text/plain",
+            last_modified=now,
+        ),
     ]
     connector = _FakeConnector(
         docs=docs,

@@ -1,4 +1,5 @@
 """Source Quality services — WS-A."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -22,9 +23,6 @@ def build_source_quality_services(
     from vigilancia_multiagente.infra.openalex.openalex_author_gateway import (
         OpenAlexAuthorReputationGateway,
     )
-    from vigilancia_multiagente.infra.persistence.author_reputation_repository import (
-        PostgresAuthorReputationRepository,
-    )
     from vigilancia_multiagente.infra.persistence.temporal_decay_repository import (
         PostgresTemporalDecayConfigRepository,
     )
@@ -41,7 +39,8 @@ def build_source_quality_services(
     temporal_repo = PostgresTemporalDecayConfigRepository(s["database"])
     sq["author_gateway"] = OpenAlexAuthorReputationGateway(errors_sink=errors_sink)
     sq["conflict_analyzer"] = LlmConflictOfInterestAnalyzer(
-        llm=s["llm_client"], errors_sink=errors_sink,
+        llm=s["llm_client"],
+        errors_sink=errors_sink,
     )
     sq["fact_checker_google"] = GoogleFactCheckAdapter(errors_sink=errors_sink)
     sq["fact_checker_wikidata"] = WikidataFactCheckAdapter()

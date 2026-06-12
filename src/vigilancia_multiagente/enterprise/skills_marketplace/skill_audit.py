@@ -6,6 +6,7 @@ import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def log_skill_blocked(skill_id: str, reason: str) -> None:
     _write_record(record)
 
 
-def _write_record(record: dict[str, object]) -> None:
+def _write_record(record: dict[str, Any]) -> None:
     _AUDIT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with _AUDIT_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record) + "\n")

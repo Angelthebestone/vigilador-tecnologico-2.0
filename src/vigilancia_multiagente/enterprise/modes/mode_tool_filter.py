@@ -23,9 +23,7 @@ class ToolNotAllowedError(Exception):
     def __init__(self, tool_name: str, mode_id: str) -> None:
         self.tool_name = tool_name
         self.mode_id = mode_id
-        super().__init__(
-            f"Tool '{tool_name}' is not allowed in mode '{mode_id}'"
-        )
+        super().__init__(f"Tool '{tool_name}' is not allowed in mode '{mode_id}'")
 
 
 class ToolListProvider(Protocol):
@@ -57,7 +55,9 @@ class ModeToolFilter:
                 result.append(card)
         return result
 
-    def check_tool_allowed(self, mode: ModeConfig, tool_name: str, cards: list[ToolCardLike]) -> bool:
+    def check_tool_allowed(
+        self, mode: ModeConfig, tool_name: str, cards: list[ToolCardLike]
+    ) -> bool:
         """Check if a specific tool is allowed in the mode.
 
         Raises ToolNotAllowedError if not permitted (FR-017).

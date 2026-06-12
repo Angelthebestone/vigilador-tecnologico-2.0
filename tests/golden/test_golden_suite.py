@@ -139,4 +139,3 @@ async def test_golden_suite_runs_all_active_cases(golden_case_repository) -> Non
     assert len(runs) == len(cases)
     assert all(run.success for run in runs)
     assert all(abs(run.delta_vs_expected) <= 0.05 for run in runs)
-

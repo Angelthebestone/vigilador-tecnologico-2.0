@@ -50,7 +50,9 @@ async def patch_workstreams(body: dict) -> dict:
                 detail=f"Value for {key} must be boolean, got {type(body[key]).__name__}",
             )
     current = load_overrides()
-    current.update({k: v for k, v in body.items() if k in VALID_WORKSTREAM_KEYS and isinstance(v, bool)})
+    current.update(
+        {k: v for k, v in body.items() if k in VALID_WORKSTREAM_KEYS and isinstance(v, bool)}
+    )
     try:
         save_overrides(current)
     except OSError as exc:

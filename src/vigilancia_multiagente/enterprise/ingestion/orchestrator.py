@@ -105,12 +105,8 @@ class IngestionOrchestrator:
     # detector before being embedded. Documents flagged as suspicious are
     # written to the JSONL audit trail and skipped (FR-044). Tests can
     # disable by passing ``pi_detector=None``.
-    pi_detector: PromptInjectionDetector | None = field(
-        default_factory=PromptInjectionDetector
-    )
-    pi_writer: PIQuarantineWriterPort | None = field(
-        default_factory=PIQuarantineJSONLWriter
-    )
+    pi_detector: PromptInjectionDetector | None = field(default_factory=PromptInjectionDetector)
+    pi_writer: PIQuarantineWriterPort | None = field(default_factory=PIQuarantineJSONLWriter)
 
     async def run_for_connector(
         self,
@@ -134,7 +130,11 @@ class IngestionOrchestrator:
             return IngestionRunReport(
                 connector=connector.name,
                 tenant_id=tenant_id,
-                discovered=0, extracted=0, chunked=0, deduped=0, indexed=0,
+                discovered=0,
+                extracted=0,
+                chunked=0,
+                deduped=0,
+                indexed=0,
                 duration_s=time.monotonic() - t0,
                 errors=[f"discover failed: {exc}"],
             )
@@ -162,8 +162,9 @@ class IngestionOrchestrator:
                             )
                         except PIQuarantineWriterError as exc:
                             logger.warning(
-                                "PI writer failed for %s: %s — continuing without "
-                                "audit line", ref.external_id, exc,
+                                "PI writer failed for %s: %s — continuing without audit line",
+                                ref.external_id,
+                                exc,
                             )
                     logger.warning(
                         "Quarantined %s from %s (severity=%s, patterns=%d) — "
@@ -199,11 +200,11 @@ class IngestionOrchestrator:
 
             # Register ACL for every kept chunk.
             self.acl_resolver.register_many(
-                [(c.chunk_id, scope) for c in dedup_result.kept]
+                [(c.chunk_id, scope) for c in dedup_result.kept]  # type: ignore[union-attr]
             )
 
             # Embed in a single batch.
-            kept_chunks: list[Chunk] = list(dedup_result.kept)
+            kept_chunks: list[Chunk] = list(dedup_result.kept)  # type: ignore[assignment]
             if kept_chunks:
                 texts = [c.text for c in kept_chunks]
                 try:
@@ -224,7 +225,7 @@ class IngestionOrchestrator:
                     )
                     for c, emb in zip(kept_chunks, embeddings, strict=False)
                 ]
-                added = await self.vector_index.add(tenant_id, paired)
+                added = await self.vector_index.add(tenant_id, paired)  # type: ignore[arg-type]
                 indexed += added
 
         await self.vector_index.persist(tenant_id)
@@ -253,14 +254,16 @@ class IngestionOrchestrator:
                 report = await self.run_for_connector(c, tenant_id)
                 out.append(report)
             except Exception as exc:
-                logger.exception(
-                    "IngestionOrchestrator: connector %s failed: %s", c.name, exc
-                )
+                logger.exception("IngestionOrchestrator: connector %s failed: %s", c.name, exc)
                 out.append(
                     IngestionRunReport(
                         connector=c.name,
                         tenant_id=tenant_id,
-                        discovered=0, extracted=0, chunked=0, deduped=0, indexed=0,
+                        discovered=0,
+                        extracted=0,
+                        chunked=0,
+                        deduped=0,
+                        indexed=0,
                         duration_s=0.0,
                         errors=[f"orchestrator-level failure: {exc}"],
                     )

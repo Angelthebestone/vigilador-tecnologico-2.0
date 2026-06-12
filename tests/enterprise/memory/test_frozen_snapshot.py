@@ -41,9 +41,7 @@ def test_load_from_disk_parses_existing_files(memory_dir):
         f"alpha note{ENTRY_DELIMITER}beta note{ENTRY_DELIMITER}gamma note",
         encoding="utf-8",
     )
-    (memory_dir / "USER.md").write_text(
-        "user prefers concise replies", encoding="utf-8"
-    )
+    (memory_dir / "USER.md").write_text("user prefers concise replies", encoding="utf-8")
     store = MemoryStore()
     store.load_from_disk()
     assert store.read("memory") == ["alpha note", "beta note", "gamma note"]

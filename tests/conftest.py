@@ -23,12 +23,10 @@ from vigilancia_multiagente.api.routes import (
     research_outputs,
     research_start_clarify,
 )
+from vigilancia_multiagente.api.routes.reports import store_report
 from vigilancia_multiagente.application.artifacts.manifest_service import SessionArtifactService
 from vigilancia_multiagente.application.clarification.clarification_service import (
     ClarificationService,
-)
-from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
-    PromptRegressionService,
 )
 from vigilancia_multiagente.application.conversation.conversation_service import ConversationService
 from vigilancia_multiagente.application.evaluation.branch_kpi_service import BranchKPIService
@@ -40,14 +38,11 @@ from vigilancia_multiagente.application.observability.metrics_service import Met
 from vigilancia_multiagente.application.orchestration.approve_research_usecase import (
     ApproveResearchUseCase,
 )
-from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
-from vigilancia_multiagente.api.routes.reports import store_report
-from vigilancia_multiagente.infra.events.in_memory_event_publisher import InMemoryEventPublisher
-from vigilancia_multiagente.application.observability.metrics_service import MetricsService
 from vigilancia_multiagente.application.orchestration.orchestrator_service import (
     OrchestratorService,
 )
 from vigilancia_multiagente.application.planning.plan_builder import PlanBuilder
+from vigilancia_multiagente.application.reporting.report_generator import ReportGenerator
 from vigilancia_multiagente.domain.models import (
     BranchResult,
     Finding,
@@ -55,6 +50,7 @@ from vigilancia_multiagente.domain.models import (
     ResearchSession,
     SourceRef,
 )
+from vigilancia_multiagente.infra.events.in_memory_event_publisher import InMemoryEventPublisher
 
 
 class FakeResult:
@@ -322,6 +318,7 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_start_clarify, "session_repository", session_repo)
     monkeypatch.setattr(research_start_clarify, "orchestrator", orchestrator)
     from vigilancia_multiagente.infra.prompts.loader import FilesystemPromptLoader
+
     _prompt_loader = FilesystemPromptLoader()
     monkeypatch.setattr(
         research_start_clarify,
@@ -385,8 +382,6 @@ def memory_repositories(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(research_delete, "session_repository", session_repo)
 
     monkeypatch.setattr(research_governance, "branch_coordinator", branch_coordinator)
-    monkeypatch.setattr(research_governance, "branch_result_repository", branch_repo)
-    monkeypatch.setattr(research_governance, "prompt_regression_service", PromptRegressionService())
     monkeypatch.setattr(
         research_governance,
         "governance_loader",

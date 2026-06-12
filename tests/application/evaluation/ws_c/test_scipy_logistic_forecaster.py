@@ -60,7 +60,7 @@ async def test_fit_energy_domain(forecaster: ScipyLogisticForecaster) -> None:
 @pytest.mark.asyncio
 async def test_fit_insufficient_data(forecaster: ScipyLogisticForecaster) -> None:
     """Menos de 4 puntos -> proyeccion vacia."""
-    ts = [ (2020, 1), (2021, 2), (2022, 3) ]
+    ts = [(2020, 1), (2021, 2), (2022, 3)]
     proj = forecaster.fit_s_curve("WeakSignal", "AI", ts)
 
     assert proj.samples_count == 3
@@ -85,8 +85,13 @@ async def test_detect_inflection_flat(forecaster: ScipyLogisticForecaster) -> No
     from vigilancia_multiagente.domain.evaluation_entities import SCurveProjection
 
     proj = SCurveProjection(
-        technology="Flat", domain="general", growth_rate=0.0,
-        inflection_year=0, ceiling=0.0, r_squared=0.0, samples_count=0,
+        technology="Flat",
+        domain="general",
+        growth_rate=0.0,
+        inflection_year=0,
+        ceiling=0.0,
+        r_squared=0.0,
+        samples_count=0,
     )
     inflection = forecaster.detect_inflection(proj)
 

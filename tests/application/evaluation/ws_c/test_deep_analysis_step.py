@@ -30,15 +30,6 @@ from vigilancia_multiagente.application.evaluation.ws_c.llm_counterfactual_synth
 from vigilancia_multiagente.application.evaluation.ws_c.llm_critical_dependency_mapper import (
     LlmCriticalDependencyMapper,
 )
-from vigilancia_multiagente.domain.evaluation_entities import (
-    CounterfactualScenario,
-    CriticalDependency,
-    DependencyKind,
-    ImplicitAssumption,
-    MetaAnalysisResult,
-    RiskLevel,
-    SCurveProjection,
-)
 from vigilancia_multiagente.domain.models import BranchType, Finding, SourceRef
 
 
@@ -126,7 +117,11 @@ class MockIteration:
 
 @pytest.mark.asyncio
 async def test_deep_analysis_step_full_pipeline(
-    forecaster, meta_analyzer, assumption_detector, dependency_mapper, counterfactual,
+    forecaster,
+    meta_analyzer,
+    assumption_detector,
+    dependency_mapper,
+    counterfactual,
 ) -> None:
     """Step completo produce anotaciones, proyecciones y meta-analisis."""
     finding = _finding()

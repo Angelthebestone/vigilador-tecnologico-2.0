@@ -83,9 +83,7 @@ class SourceScorer:
         base = self._to_unit(learned)
 
         if self.authenticity_signals:
-            eff = self.authenticity_signals.get(url) or self.authenticity_signals.get(
-                str(domain)
-            )
+            eff = self.authenticity_signals.get(url) or self.authenticity_signals.get(str(domain))
             if isinstance(eff, (int, float)):
                 return base * min(1.0, max(0.0, float(eff)))
 
@@ -115,8 +113,8 @@ class SourceScorerService:
         await service.record_contradiction("src_a", "src_b")
         preferred = await service.get_preferred_sources(limit=5)
     """
-# STATUS: ACTIVE
 
+    # STATUS: ACTIVE
 
     CONFIRMATION_BONUS = 5
     CONTRADICTION_PENALTY = -10

@@ -65,9 +65,7 @@ async def test_discover_returns_doc_refs():
             },
         )
     )
-    conn = GoogleDriveConnector(
-        oauth_manager=_StubOAuth(), tenant_id=_TENANT
-    )
+    conn = GoogleDriveConnector(oauth_manager=_StubOAuth(), tenant_id=_TENANT)
     refs = await conn.discover()
     assert len(refs) == 1
     assert refs[0].external_id == "1abcd"
@@ -77,9 +75,7 @@ async def test_discover_returns_doc_refs():
 
 @pytest.mark.asyncio
 async def test_discover_raises_without_credential():
-    conn = GoogleDriveConnector(
-        oauth_manager=_StubOAuth(token=None), tenant_id=_TENANT
-    )
+    conn = GoogleDriveConnector(oauth_manager=_StubOAuth(token=None), tenant_id=_TENANT)
     with pytest.raises(RuntimeError, match="no OAuth credential"):
         await conn.discover()
 
@@ -92,12 +88,10 @@ async def test_discover_raises_without_credential():
 @pytest.mark.asyncio
 @respx.mock
 async def test_extract_native_doc_uses_export():
-    respx.get(
-        "https://www.googleapis.com/drive/v3/files/abc/export"
-    ).mock(return_value=Response(200, text="hello world"))
-    conn = GoogleDriveConnector(
-        oauth_manager=_StubOAuth(), tenant_id=_TENANT
+    respx.get("https://www.googleapis.com/drive/v3/files/abc/export").mock(
+        return_value=Response(200, text="hello world")
     )
+    conn = GoogleDriveConnector(oauth_manager=_StubOAuth(), tenant_id=_TENANT)
     from vigilancia_multiagente.domain.ports.ingestion_connector import DocumentRef
 
     ref = DocumentRef(
@@ -119,9 +113,7 @@ async def test_extract_native_doc_uses_export():
 @pytest.mark.asyncio
 @respx.mock
 async def test_acl_for_marks_public_when_anyone_permission():
-    respx.get(
-        "https://www.googleapis.com/drive/v3/files/abc/permissions"
-    ).mock(
+    respx.get("https://www.googleapis.com/drive/v3/files/abc/permissions").mock(
         return_value=Response(
             200,
             json={
@@ -136,9 +128,7 @@ async def test_acl_for_marks_public_when_anyone_permission():
             },
         )
     )
-    conn = GoogleDriveConnector(
-        oauth_manager=_StubOAuth(), tenant_id=_TENANT
-    )
+    conn = GoogleDriveConnector(oauth_manager=_StubOAuth(), tenant_id=_TENANT)
     from vigilancia_multiagente.domain.ports.ingestion_connector import DocumentRef
 
     ref = DocumentRef(
@@ -157,9 +147,7 @@ async def test_acl_for_marks_public_when_anyone_permission():
 @pytest.mark.asyncio
 @respx.mock
 async def test_acl_for_extracts_user_emails_only():
-    respx.get(
-        "https://www.googleapis.com/drive/v3/files/abc/permissions"
-    ).mock(
+    respx.get("https://www.googleapis.com/drive/v3/files/abc/permissions").mock(
         return_value=Response(
             200,
             json={
@@ -173,9 +161,7 @@ async def test_acl_for_extracts_user_emails_only():
             },
         )
     )
-    conn = GoogleDriveConnector(
-        oauth_manager=_StubOAuth(), tenant_id=_TENANT
-    )
+    conn = GoogleDriveConnector(oauth_manager=_StubOAuth(), tenant_id=_TENANT)
     from vigilancia_multiagente.domain.ports.ingestion_connector import DocumentRef
 
     ref = DocumentRef(

@@ -43,8 +43,7 @@ class CheckpointReporter:
         self._steps_since_last_report += 1
 
         should_report = (
-            self._steps_since_last_report >= self._checkpoint_every_n
-            or len(blockers) > 0
+            self._steps_since_last_report >= self._checkpoint_every_n or len(blockers) > 0
         )
 
         if not should_report:

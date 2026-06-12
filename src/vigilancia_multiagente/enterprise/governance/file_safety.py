@@ -138,10 +138,7 @@ def is_write_denied(path: str) -> bool:
 
     safe_root = get_safe_write_root()
     return bool(
-        safe_root
-        and not (
-            resolved == safe_root or resolved.startswith(safe_root + os.sep)
-        )
+        safe_root and not (resolved == safe_root or resolved.startswith(safe_root + os.sep))
     )
 
 
@@ -165,9 +162,7 @@ _BLOCKED_PROJECT_ENV_BASENAMES: set[str] = {
 # Vigilador credential file names under ``~/.vigilador/`` that must not be
 # read by tools. Provider tools consume these via internal channels
 # (oauth_manager, settings).
-_VIGILADOR_CREDENTIAL_FILES: tuple[str, ...] = (
-    ".env",
-)
+_VIGILADOR_CREDENTIAL_FILES: tuple[str, ...] = (".env",)
 
 
 def get_read_block_error(path: str) -> str | None:

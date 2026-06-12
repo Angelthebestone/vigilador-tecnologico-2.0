@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from vigilancia_multiagente.enterprise.orchestration.goal_pursuit.approval_gate import (
@@ -35,7 +35,7 @@ def _valid_token() -> CapabilityToken:
 
 
 def _expired_token() -> CapabilityToken:
-    past = datetime.now(tz=timezone.utc) - timedelta(seconds=100)
+    past = datetime.now(tz=UTC) - timedelta(seconds=100)
     return CapabilityToken(
         goal_id=uuid4(),
         ttl_seconds=10,

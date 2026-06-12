@@ -5,8 +5,6 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-import pytest
-
 from vigilancia_multiagente.enterprise.modes.mode_loader import ModeLoader
 
 

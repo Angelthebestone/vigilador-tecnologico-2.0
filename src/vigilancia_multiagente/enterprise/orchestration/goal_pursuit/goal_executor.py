@@ -42,9 +42,7 @@ class SubGoalExecutionError(Exception):
         self.sub_goal_id = sub_goal_id
         self.attempts = attempts
         self.last_error = last_error
-        super().__init__(
-            f"Sub-goal {sub_goal_id!r} failed after {attempts} attempts: {last_error}"
-        )
+        super().__init__(f"Sub-goal {sub_goal_id!r} failed after {attempts} attempts: {last_error}")
 
 
 class SubGoalRunnerPort:
@@ -104,9 +102,7 @@ class GoalExecutor:
         context_with_id = {**context, "goal_id": str(goal_id)}
         dag = self._decomposer.decompose(objective, context_with_id, max_depth)
         plan = self._resolver.resolve(dag)
-        state = GoalState(
-            goal_id=goal_id, status="ACTIVE", dag=dag, plan=plan, token=token
-        )
+        state = GoalState(goal_id=goal_id, status="ACTIVE", dag=dag, plan=plan, token=token)
         self._store.save_state(goal_id, dag)
         return self._run_plan(state, critical_steps)
 
@@ -154,9 +150,7 @@ class GoalExecutor:
             current_stage=current_stage,
         )
 
-    def _run_plan(
-        self, state: GoalState, critical_steps: frozenset[str]
-    ) -> GoalState:
+    def _run_plan(self, state: GoalState, critical_steps: frozenset[str]) -> GoalState:
         """Execute stages sequentially, sub-goals within a stage in order."""
         pending_ids = {sg.id for sg in state.dag.sub_goals} - set(state.completed)
         sg_map = {sg.id: sg for sg in state.dag.sub_goals}

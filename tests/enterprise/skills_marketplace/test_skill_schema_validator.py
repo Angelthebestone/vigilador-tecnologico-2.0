@@ -1,10 +1,11 @@
 """Tests for skill_schema_validator."""
 
+import pytest
+
 from vigilancia_multiagente.enterprise.skills_marketplace.skill_schema_validator import (
     normalize_id,
     validate_frontmatter,
 )
-import pytest
 
 
 def test_valid_frontmatter_all_fields():

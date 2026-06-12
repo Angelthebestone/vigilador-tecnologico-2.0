@@ -77,9 +77,7 @@ async def test_medium_corporate_ratio() -> None:
 @pytest.mark.asyncio
 async def test_low_corporate_ratio() -> None:
     """Corporate ratio < 0.4 should result in LOW risk."""
-    llm = DummyLLM(
-        '{"funder_entity": "NIH", "funder_type": "government", "corporate_ratio": 0.1}'
-    )
+    llm = DummyLLM('{"funder_entity": "NIH", "funder_type": "government", "corporate_ratio": 0.1}')
     analyzer = LlmConflictOfInterestAnalyzer(llm)
     source = _make_source()
 
@@ -93,6 +91,7 @@ async def test_low_corporate_ratio() -> None:
 @pytest.mark.asyncio
 async def test_llm_failure_returns_low_risk() -> None:
     """LLM failure should fall back to LOW risk gracefully."""
+
     class BrokenLLM:
         async def complete(self, messages, **kwargs):
             del messages, kwargs

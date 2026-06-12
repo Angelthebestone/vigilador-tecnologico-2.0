@@ -16,7 +16,7 @@ import os
 from dataclasses import dataclass
 
 import pyalex
-from pyalex import Works, Authors, Institutions
+from pyalex import Authors, Institutions, Works
 
 from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
 
@@ -43,9 +43,7 @@ class OpenAlexTool:
         """Always reports UP — OpenAlex is anonymous-public."""
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -80,12 +78,7 @@ class OpenAlexTool:
                 f"(supported: {', '.join(entity_map)})"
             )
 
-        results = (
-            entity_class()
-            .search(query)
-            .per_page(per_page)
-            .get()
-        )
+        results = entity_class().search(query).per_page(per_page).get()
 
         return {
             "query": query,

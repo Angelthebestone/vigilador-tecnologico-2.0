@@ -41,9 +41,10 @@ def test_sc_plan_01_layer_imports(filepath: str, expected_violations: list[str])
     violations: list[str] = []
     for line in content.splitlines():
         stripped = line.strip()
-        if stripped.startswith("from ") or stripped.startswith("import "):
-            if "vigilancia_multiagente.api" in stripped or "vigilancia_multiagente.infra" in stripped:
-                violations.append(stripped)
+        if stripped.startswith(("from ", "import ")) and (
+            "vigilancia_multiagente.api" in stripped or "vigilancia_multiagente.infra" in stripped
+        ):
+            violations.append(stripped)
     assert violations == expected_violations, (
         f"{filepath} has unexpected layer import violations: {violations}"
     )
@@ -54,7 +55,7 @@ def test_sc_plan_01_layer_imports(filepath: str, expected_violations: list[str])
 
 def test_sc_plan_02_basedpyright_command_exists() -> None:
     """SC-PLAN-02: basedpyright debe estar instalado."""
-    import importlib.util  # noqa: PLC0415
+    import importlib.util
 
     assert importlib.util.find_spec("basedpyright") is not None, (
         "basedpyright no esta instalado — ejecutar: pip install basedpyright"
@@ -66,20 +67,16 @@ def test_sc_plan_02_basedpyright_command_exists() -> None:
 
 def test_sc_plan_03_pytest_script_exists() -> None:
     """SC-PLAN-03: pytest debe estar disponible (flags false)."""
-    import importlib.util  # noqa: PLC0415
+    import importlib.util
 
-    assert importlib.util.find_spec("pytest") is not None, (
-        "pytest no esta instalado"
-    )
+    assert importlib.util.find_spec("pytest") is not None, "pytest no esta instalado"
 
 
 def test_sc_plan_04_pytest_script_exists() -> None:
     """SC-PLAN-04: pytest debe estar disponible (flags true — golden suite)."""
-    import importlib.util  # noqa: PLC0415
+    import importlib.util
 
-    assert importlib.util.find_spec("pytest") is not None, (
-        "pytest no esta instalado"
-    )
+    assert importlib.util.find_spec("pytest") is not None, "pytest no esta instalado"
 
 
 # ── SC-PLAN-05: eval_ws flags exist in settings.py ────────────────────────
@@ -97,9 +94,7 @@ def test_sc_plan_05_eval_ws_flags_exist() -> None:
         "eval_ws_e_enabled",
     ]
     for flag in expected_flags:
-        assert flag in content, (
-            f"Flag {flag} no encontrado en {SETTINGS_PY}"
-        )
+        assert flag in content, f"Flag {flag} no encontrado en {SETTINGS_PY}"
 
 
 # ── SC-PLAN-06: benchmark_latency.py exists ───────────────────────────────
@@ -125,9 +120,7 @@ def test_sc_plan_06_benchmark_latency_exists() -> None:
 )
 def test_sc_plan_07_confidence_calibrator_not_exists(path: Path) -> None:
     """SC-PLAN-07: confidence_calibrator.py no debe existir (eliminado)."""
-    assert not path.exists(), (
-        f"{path.relative_to(PROJECT_ROOT)} aun existe — debe ser eliminado"
-    )
+    assert not path.exists(), f"{path.relative_to(PROJECT_ROOT)} aun existe — debe ser eliminado"
 
 
 # ── SC-PLAN-08: no DEPRECATED legacy files ────────────────────────────────
@@ -147,11 +140,14 @@ def _legacy_files() -> list[Path]:
     return found
 
 
-@pytest.mark.parametrize("filepath", [
-    "application/evaluation/branch_kpi_service.py",
-    "application/evaluation/golden_cases_runner.py",
-    "application/evaluation/prompt_regression_service.py",
-])
+@pytest.mark.parametrize(
+    "filepath",
+    [
+        "application/evaluation/branch_kpi_service.py",
+        "application/evaluation/golden_cases_runner.py",
+        "application/evaluation/prompt_regression_service.py",
+    ],
+)
 def test_sc_plan_08_no_deprecated_legacy(filepath: str) -> None:
     """SC-PLAN-08: archivos legacy sin marca DEPRECATED."""
     full = SRC / filepath
@@ -192,6 +188,4 @@ def test_sc_plan_09_no_get_results(pattern: str, expected_hits: list[str]) -> No
     acceso a dicts sin estructura.
     """
     hits = _find_get_results(pattern, SRC)
-    assert hits == expected_hits, (
-        f"Se encontraron accesos manuales .get('results', []) en: {hits}"
-    )
+    assert hits == expected_hits, f"Se encontraron accesos manuales .get('results', []) en: {hits}"

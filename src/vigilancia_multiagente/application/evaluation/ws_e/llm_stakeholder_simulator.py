@@ -11,6 +11,9 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.evaluation_entities import (
     StakeholderSimulation,
     StakeholderType,
@@ -20,9 +23,6 @@ from vigilancia_multiagente.domain.pipeline_errors import (
     StepError,
     StepErrorSeverity,
     Workstream,
-)
-from vigilancia_multiagente.application.evaluation.prompt_messages import (
-    build_messages_with_fewshot,
 )
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
@@ -66,7 +66,7 @@ class LlmStakeholderSimulator:
             return _empty(report.session_id, stakeholder_type.value)
         try:
             response = await self._llm.complete(messages)
-        except Exception as exc:  # noqa: BLE001 — adapter de frontera externa
+        except Exception as exc:
             logger.warning("LlmStakeholderSimulator failed: %s", exc, exc_info=True)
             self._record_error(report.session_id, exc, context={"stakeholder": stakeholder})
             return _empty(report.session_id, stakeholder_type.value)

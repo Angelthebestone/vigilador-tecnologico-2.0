@@ -34,9 +34,7 @@ class OpenAlexIdeaLineageTracer(IdeaLineageTracer):
         sources: list[SourceRef],
     ) -> IdeaLineage:
         seed_dois = [
-            s.url.replace("https://doi.org/", "")
-            for s in sources
-            if s.url and "doi.org" in s.url
+            s.url.replace("https://doi.org/", "") for s in sources if s.url and "doi.org" in s.url
         ]
 
         discovered: list[UUID] = []
@@ -44,9 +42,7 @@ class OpenAlexIdeaLineageTracer(IdeaLineageTracer):
         circular = False
 
         async with httpx.AsyncClient(timeout=_DEFAULT_TIMEOUT) as client:
-            to_visit: list[tuple[str, int]] = [
-                (doi, 0) for doi in seed_dois[:3]
-            ]
+            to_visit: list[tuple[str, int]] = [(doi, 0) for doi in seed_dois[:3]]
 
             while to_visit:
                 doi, depth = to_visit.pop(0)
@@ -59,7 +55,7 @@ class OpenAlexIdeaLineageTracer(IdeaLineageTracer):
                 if work_data is None:
                     continue
 
-                work_id = work_data.get("id", "")
+                work_data.get("id", "")
                 title = work_data.get("title") or work_data.get("display_name", "")
                 if title:
                     found_id = uuid4()
@@ -74,10 +70,7 @@ class OpenAlexIdeaLineageTracer(IdeaLineageTracer):
                                 to_visit.append((ref_doi, depth + 1))
 
         seminal = discovered[-1] if discovered else (seed_dois[0] if seed_dois else uuid4())
-        if isinstance(seminal, str):
-            seminal_uuid = uuid4()
-        else:
-            seminal_uuid = seminal
+        seminal_uuid = uuid4() if isinstance(seminal, str) else seminal
 
         return IdeaLineage(
             idea=idea,
@@ -86,9 +79,7 @@ class OpenAlexIdeaLineageTracer(IdeaLineageTracer):
             circularity_detected=circular,
         )
 
-    async def _fetch_work(
-        self, client: httpx.AsyncClient, doi: str
-    ) -> dict | None:
+    async def _fetch_work(self, client: httpx.AsyncClient, doi: str) -> dict | None:
         try:
             params: dict[str, str] = {}
             if self._mailto:

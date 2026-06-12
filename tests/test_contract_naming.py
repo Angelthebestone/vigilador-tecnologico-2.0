@@ -45,7 +45,9 @@ def is_camel_case(key: str) -> bool:
     - OR is all-uppercase (acronym like URL, ID)
     - Single lowercase words pass (id, status)
     """
-    return re.match(r"^[a-z][a-zA-Z0-9]*$", key) is not None or re.match(r"^[A-Z]+$", key) is not None
+    return (
+        re.match(r"^[a-z][a-zA-Z0-9]*$", key) is not None or re.match(r"^[A-Z]+$", key) is not None
+    )
 
 
 def is_snake_case(key: str) -> bool:
@@ -53,9 +55,7 @@ def is_snake_case(key: str) -> bool:
     return bool(re.match(r"^[a-z][a-z0-9_]*$|^[A-Z]+$", key))
 
 
-def _check_dict(
-    data: dict, path: str, violations: list[str], *, camel: bool = True
-) -> None:
+def _check_dict(data: dict, path: str, violations: list[str], *, camel: bool = True) -> None:
     """Recursively collect non-conforming keys from nested dicts/lists."""
     checker = is_camel_case if camel else is_snake_case
     for k, v in data.items():
@@ -69,9 +69,7 @@ def _check_dict(
                 _check_value(item, f"{full_path}[{i}]", violations, camel=camel)
 
 
-def _check_value(
-    value: Any, path: str, violations: list[str], *, camel: bool = True
-) -> None:
+def _check_value(value: Any, path: str, violations: list[str], *, camel: bool = True) -> None:
     """Dispatch to _check_dict for dicts; recurse into lists."""
     if isinstance(value, dict):
         _check_dict(value, path, violations, camel=camel)

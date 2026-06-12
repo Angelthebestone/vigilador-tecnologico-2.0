@@ -57,8 +57,7 @@ class AssembleBranchResultStep(PipelineStep[ToolLoopContext, AgentRunOutput]):
             id=uuid4(),
             session_id=session.id,
             url=_require_text(last_payload, "url"),
-            title=_optional_text(last_payload, "title")
-            or _optional_text(last_payload, "summary"),
+            title=_optional_text(last_payload, "title") or _optional_text(last_payload, "summary"),
             provider=last_execution.provider,
             branch_type=self._branch_type,
             accessed_at=datetime.now(UTC),

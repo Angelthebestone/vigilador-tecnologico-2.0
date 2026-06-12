@@ -116,9 +116,7 @@ class TurboVecIndex:
     ) -> list[tuple[int, float]]:
         if k <= 0:
             raise ValueError("TurboVecIndex.query: k must be positive")
-        return await asyncio.to_thread(
-            self._query_sync, tenant_id, embedding, k, allowlist
-        )
+        return await asyncio.to_thread(self._query_sync, tenant_id, embedding, k, allowlist)
 
     async def persist(self, tenant_id: UUID) -> None:
         async with self._get_persist_lock(tenant_id):
@@ -165,9 +163,7 @@ class TurboVecIndex:
                 f"index has dim={handle.dim}, chunks have dim={dim}"
             )
 
-        vectors = np.array(
-            [chunk.embedding for chunk in chunks], dtype=np.float32
-        )
+        vectors = np.array([chunk.embedding for chunk in chunks], dtype=np.float32)
         handle.index.add(vectors)
         # Stash chunk-id → array-slot in metadata for downstream resolution.
         # turbovec assigns sequential internal slot ids; we record them.
@@ -181,9 +177,7 @@ class TurboVecIndex:
         handle.pending_writes += len(chunks)
         return len(chunks)
 
-    def _ensure_handle(
-        self, tenant_id: UUID, dim: int, turbovec: Any
-    ) -> _IndexHandle:
+    def _ensure_handle(self, tenant_id: UUID, dim: int, turbovec: Any) -> _IndexHandle:
         path = self._index_path(tenant_id)
         if path.exists():
             index = turbovec.TurboQuantIndex.load(str(path))
@@ -230,7 +224,7 @@ class TurboVecIndex:
             meta = handle.metadata_by_chunk.get(slot_int)
             if meta is None:
                 continue
-            chunk_id = int(meta.get("chunk_id", slot_int))
+            chunk_id = int(str(meta.get("chunk_id", slot_int)))
             if allowed is not None and chunk_id not in allowed:
                 continue
             out.append((chunk_id, float(score)))

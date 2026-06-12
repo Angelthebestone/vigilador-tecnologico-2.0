@@ -62,12 +62,14 @@ class AdminRepoMaintenancePhase:
                 continue
             updates_detected += 1
             impact = await self._classifier.classify(change)
-            await self._proposal_store.store_proposal({
-                "repo_id": repo_id,
-                "impact": impact,
-                "change": change,
-                "auto_promote": False,
-            })
+            await self._proposal_store.store_proposal(
+                {
+                    "repo_id": repo_id,
+                    "impact": impact,
+                    "change": change,
+                    "auto_promote": False,
+                }
+            )
             proposals_created += 1
 
         duration_ms = (time.perf_counter() - t0) * 1000

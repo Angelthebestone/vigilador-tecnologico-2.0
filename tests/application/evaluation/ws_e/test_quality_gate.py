@@ -159,4 +159,3 @@ async def test_quality_gate_blocks_on_critical_bias() -> None:
         await gate.run(report)
 
     assert exc_info.value.audit.bias_categories == ["geographic"]
-

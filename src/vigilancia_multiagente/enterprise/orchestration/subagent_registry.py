@@ -101,9 +101,9 @@ class InMemorySubagentRepo:
         self, tenant_id: UUID, parent_session_id: UUID
     ) -> list[SubagentRecord]:
         return [
-            r for r in self._records.values()
-            if r.tenant_id == tenant_id
-            and r.parent_session_id == parent_session_id
+            r
+            for r in self._records.values()
+            if r.tenant_id == tenant_id and r.parent_session_id == parent_session_id
         ]
 
 
@@ -148,8 +148,7 @@ class SubagentRegistry:
             parent = await self.repo.get(parent_subagent_id)
             if parent is None:
                 raise ValueError(
-                    f"SubagentRegistry.spawn: parent {parent_subagent_id} "
-                    "not registered"
+                    f"SubagentRegistry.spawn: parent {parent_subagent_id} not registered"
                 )
             depth = parent.depth + 1
 
@@ -172,7 +171,10 @@ class SubagentRegistry:
         await self.repo.save(record)
         logger.info(
             "SubagentRegistry: spawn id=%s role=%s depth=%d tenant=%s",
-            record.id, record.role, record.depth, record.tenant_id,
+            record.id,
+            record.role,
+            record.depth,
+            record.tenant_id,
         )
         if self.audit_log is not None:
             self.audit_log.log_subagent_spawn(
@@ -191,9 +193,7 @@ class SubagentRegistry:
     async def mark_failed(self, subagent_id: UUID) -> SubagentRecord:
         return await self._set_terminal(subagent_id, SubagentStatus.FAILED)
 
-    async def _set_terminal(
-        self, subagent_id: UUID, target: SubagentStatus
-    ) -> SubagentRecord:
+    async def _set_terminal(self, subagent_id: UUID, target: SubagentStatus) -> SubagentRecord:
         record = await self.repo.get(subagent_id)
         if record is None:
             raise KeyError(f"SubagentRegistry: id {subagent_id} not found")
@@ -208,7 +208,9 @@ class SubagentRegistry:
         await self.repo.update(record)
         logger.info(
             "SubagentRegistry: %s id=%s role=%s",
-            target.value, record.id, record.role,
+            target.value,
+            record.id,
+            record.role,
         )
         return record
 
@@ -226,9 +228,7 @@ class SubagentRegistry:
     ) -> list[SubagentRecord]:
         return await self.repo.list_for_session(tenant_id, parent_session_id)
 
-    async def list_active(
-        self, tenant_id: UUID, parent_session_id: UUID
-    ) -> list[SubagentRecord]:
+    async def list_active(self, tenant_id: UUID, parent_session_id: UUID) -> list[SubagentRecord]:
         rows = await self.list_for_session(tenant_id, parent_session_id)
         return [r for r in rows if r.status == SubagentStatus.ACTIVE]
 
@@ -236,9 +236,7 @@ class SubagentRegistry:
         return await self.repo.get(subagent_id)
 
 
-def filter_by_role(
-    records: Iterable[SubagentRecord], role: str
-) -> list[SubagentRecord]:
+def filter_by_role(records: Iterable[SubagentRecord], role: str) -> list[SubagentRecord]:
     """Convenience helper for callers (e.g. dashboards)."""
     return [r for r in records if r.role == role]
 

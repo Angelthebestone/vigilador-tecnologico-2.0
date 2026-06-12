@@ -57,7 +57,7 @@ class ToolRegistry:
         if tool.name in self._tools:
             raise ValueError(f"Tool '{tool.name}' already registered")
         self._tools[tool.name] = tool
-        
+
         # Pre-compute embedding for tool description (FR-001)
         desc = getattr(tool, "description", tool.name)
         if self._embedding_gw:
@@ -106,6 +106,7 @@ class ToolRegistry:
         if not long_description:
             try:
                 from vigilancia_multiagente.infra.prompts.loader import FilesystemPromptLoader
+
                 loader = FilesystemPromptLoader()
                 long_description = loader.load(f"tools/{name}")
             except (FileNotFoundError, Exception):
@@ -120,14 +121,14 @@ class ToolRegistry:
         """Descubre tools ordenadas por similitud semántica al intent."""
         intent_vec = await self._embedding_gw.embed(intent)
         scored: list[tuple[float, ToolCard]] = []
-        
+
         # Get all valid tool names first
         valid_tools = [tool for tool in self._tools.values() if self._passes_gating(tool)]
         valid_names = [tool.name for tool in valid_tools]
-        
+
         # Batch fetch statuses (FR-002)
         statuses = await self._health_repo.get_statuses_batch(valid_names, tenant_id)
-        
+
         for tool in valid_tools:
             # Use pre-computed embedding (FR-001)
             tool_vec = self._tool_embeddings.get(tool.name)
@@ -135,11 +136,11 @@ class ToolRegistry:
                 # Fallback if not pre-computed
                 desc = getattr(tool, "description", tool.name)
                 tool_vec = await self._embedding_gw.embed(desc)
-                
+
             sim = _cosine_similarity(intent_vec, tool_vec)
             status = statuses.get(tool.name, "UNKNOWN")
             scored.append((sim, self._to_card(tool, status)))
-            
+
         scored.sort(key=lambda x: x[0], reverse=True)
         return [card for _, card in scored]
 

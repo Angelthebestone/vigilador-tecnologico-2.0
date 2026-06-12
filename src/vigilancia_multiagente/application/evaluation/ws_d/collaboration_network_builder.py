@@ -94,8 +94,7 @@ class CollaborationNetworkBuilderImpl(CollaborationNetworkBuilder):
                 edge_set = {(a, b) for a, b, _ in network.edges}
                 total_pairs = len(component) * (len(component) - 1) / 2
                 internal_edges = sum(
-                    1 for a in component for b in component
-                    if a < b and (a, b) in edge_set
+                    1 for a in component for b in component if a < b and (a, b) in edge_set
                 )
                 density = internal_edges / max(total_pairs, 1)
                 if density > 0.6:

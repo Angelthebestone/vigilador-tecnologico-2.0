@@ -18,14 +18,16 @@ class JsonlRegistryStore:
     def save(self, record: ArtifactRecord) -> None:
         """Append a record to the JSONL file."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        line = json.dumps({
-            "artifact_type": record.artifact_type,
-            "artifact_path": record.artifact_path,
-            "data_sources": list(record.data_sources),
-            "refresh_policy": record.refresh_policy,
-            "metrics": list(record.metrics),
-            "created_at": record.created_at,
-        })
+        line = json.dumps(
+            {
+                "artifact_type": record.artifact_type,
+                "artifact_path": record.artifact_path,
+                "data_sources": list(record.data_sources),
+                "refresh_policy": record.refresh_policy,
+                "metrics": list(record.metrics),
+                "created_at": record.created_at,
+            }
+        )
         with self._path.open("a", encoding="utf-8") as f:
             f.write(line + "\n")
 
@@ -38,14 +40,16 @@ class JsonlRegistryStore:
             if not line.strip():
                 continue
             data = json.loads(line)
-            records.append(ArtifactRecord(
-                artifact_type=data["artifact_type"],
-                artifact_path=data["artifact_path"],
-                data_sources=tuple(data["data_sources"]),
-                refresh_policy=data["refresh_policy"],
-                metrics=tuple(data["metrics"]),
-                created_at=data["created_at"],
-            ))
+            records.append(
+                ArtifactRecord(
+                    artifact_type=data["artifact_type"],
+                    artifact_path=data["artifact_path"],
+                    data_sources=tuple(data["data_sources"]),
+                    refresh_policy=data["refresh_policy"],
+                    metrics=tuple(data["metrics"]),
+                    created_at=data["created_at"],
+                )
+            )
         return records
 
 

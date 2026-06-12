@@ -1,4 +1,5 @@
 """Data Intelligence services — WS-B."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -29,9 +30,6 @@ def build_data_intelligence_services(
     from vigilancia_multiagente.application.evaluation.ws_b.pydantic_schema_registry import (
         PydanticExtractionSchemaRegistry,
     )
-    from vigilancia_multiagente.infra.persistence.extraction_schema_repository import (
-        PostgresExtractionSchemaRepository,
-    )
     from vigilancia_multiagente.infra.search.bm25_plus_embedding import (
         BM25PlusEmbeddingSearchEngine,
     )
@@ -45,7 +43,8 @@ def build_data_intelligence_services(
         embedding_gateway=s["embedding_gateway"],
     )
     di["deduplicator"] = EmbeddingBasedDeduplicator(
-        reranker=s["reranker"], threshold=0.92,
+        reranker=s["reranker"],
+        threshold=0.92,
     )
     di["schema_registry"] = PydanticExtractionSchemaRegistry()
     di["multilingual"] = LlmMultilingualNormalizer(llm_client=s["llm_client"])
@@ -55,6 +54,7 @@ def build_data_intelligence_services(
     from vigilancia_multiagente.application.evaluation.contradiction_analyzer import (
         ContradictionAnalyzer,
     )
+
     di["consensus_dispute"] = ConsensusDisputeMapperImpl(
         contradiction_analyzer=ContradictionAnalyzer(),
         embedding_gateway=s["embedding_gateway"],

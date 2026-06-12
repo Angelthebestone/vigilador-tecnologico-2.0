@@ -18,8 +18,7 @@ class PathTraversalError(Exception):
         self.requested = requested
         self.root = root
         super().__init__(
-            f"Path traversal denied: '{requested}' resolves outside "
-            f"root jail '{root}'"
+            f"Path traversal denied: '{requested}' resolves outside root jail '{root}'"
         )
 
 
@@ -61,6 +60,4 @@ def validate_filename(name: str) -> None:
     if "\x00" in name:
         raise ValueError(f"Filename contains null byte: {name!r}")
     if os.sep in name or (os.altsep and os.altsep in name):
-        raise ValueError(
-            f"Filename contains path separator: {name!r}"
-        )
+        raise ValueError(f"Filename contains path separator: {name!r}")

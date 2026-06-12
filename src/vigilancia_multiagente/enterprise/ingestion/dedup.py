@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 _SHINGLE_SIZE = 4  # tokens per shingle
@@ -31,7 +32,7 @@ class DedupResult:
 
 
 def dedup_chunks(
-    chunks: list[object],
+    chunks: Sequence[object],
     *,
     near_threshold: float = _DEFAULT_NEAR_THRESHOLD,
 ) -> DedupResult:
@@ -85,8 +86,7 @@ def _shingles(text: str) -> frozenset[str]:
     if len(tokens) < _SHINGLE_SIZE:
         return frozenset(tokens)
     return frozenset(
-        " ".join(tokens[i : i + _SHINGLE_SIZE])
-        for i in range(len(tokens) - _SHINGLE_SIZE + 1)
+        " ".join(tokens[i : i + _SHINGLE_SIZE]) for i in range(len(tokens) - _SHINGLE_SIZE + 1)
     )
 
 

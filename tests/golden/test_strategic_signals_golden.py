@@ -34,16 +34,20 @@ def convergence_ai_bio_golden():
 
     # Baseline (old): AI and Bio are far apart
     for i in range(5):
-        embeddings.append((
-            "AI",
-            [0.1, 0.9, 0.2, 0.8],
-            now - timedelta(days=400 + i * 30),
-        ))
-        embeddings.append((
-            "BIO",
-            [0.9, 0.1, 0.8, 0.2],
-            now - timedelta(days=400 + i * 30),
-        ))
+        embeddings.append(
+            (
+                "AI",
+                [0.1, 0.9, 0.2, 0.8],
+                now - timedelta(days=400 + i * 30),
+            )
+        )
+        embeddings.append(
+            (
+                "BIO",
+                [0.9, 0.1, 0.8, 0.2],
+                now - timedelta(days=400 + i * 30),
+            )
+        )
 
     # Convergence point: AI and Bio vectors start resembling each other
     # (8 months before "now" — the golden case threshold)
@@ -71,26 +75,20 @@ def convergence_ai_bio_golden():
 
 @pytest.mark.asyncio
 async def test_convergence_ai_bio_golden(detector, convergence_ai_bio_golden):
-    embeddings, convergence_time = convergence_ai_bio_golden
+    embeddings, _convergence_time = convergence_ai_bio_golden
     clusters = await detector.detect(embeddings)
 
     assert len(clusters) >= 1, "Golden: debe detectar al menos 1 cluster de convergencia"
 
     # Verify the cluster contains both AI and Bio
-    ai_bio_clusters = [
-        c for c in clusters
-        if "AI" in c.domains and "BIO" in c.domains
-    ]
-    assert len(ai_bio_clusters) >= 1, (
-        "Golden: debe existir un cluster con dominios AI y BIO"
-    )
+    ai_bio_clusters = [c for c in clusters if "AI" in c.domains and "BIO" in c.domains]
+    assert len(ai_bio_clusters) >= 1, "Golden: debe existir un cluster con dominios AI y BIO"
 
     # Verify early detection: first_detected should be >= 6 months before now
     cluster = ai_bio_clusters[0]
     lead_months = (datetime.now() - cluster.first_detected).days / 30
     assert lead_months >= 6.0, (
-        f"Golden: deteccion temprana debe ser >= 6 meses "
-        f"(lead={lead_months:.1f} meses)"
+        f"Golden: deteccion temprana debe ser >= 6 meses (lead={lead_months:.1f} meses)"
     )
 
 
@@ -104,10 +102,7 @@ async def test_no_false_positive_on_unrelated_domains(detector):
         embeddings.append(("ART", [0.0, 1.0, 0.0], now - timedelta(days=30 * i)))
 
     clusters = await detector.detect(embeddings)
-    math_art = [
-        c for c in clusters
-        if "MATH" in c.domains and "ART" in c.domains
-    ]
+    math_art = [c for c in clusters if "MATH" in c.domains and "ART" in c.domains]
     # MATH and ART are too different; they should not converge
     # (allow for the possibility but flag it)
     if math_art:

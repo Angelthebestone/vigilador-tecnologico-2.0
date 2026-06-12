@@ -426,24 +426,36 @@ tools:
   notes: Alias de capacidad patent del MCP serper
 - id: google_workspace
   domain: productivity
-  source: nuevo
-  strategy: WRAP-SDK
-  runtime: python_internal
+  source: google
+  strategy: MCP-EXTERNO
+  runtime: stdio_external
   status: active
   owner: google
   license: Apache-2.0
   capabilities:
-  - read_docs
-  - write_docs
-  - read_sheets
-  - send_email
+  - gmail_send
+  - gmail_read
+  - gmail_search
+  - gmail_labels
+  - gmail_drafts
+  - calendar_events
+  - calendar_availability
+  - drive_browse
+  - drive_files
+  - drive_shared
+  - docs_read
+  - docs_write
+  - docs_insert
+  - docs_format
+  - sheets_read
+  - sheets_write
+  - sheets_append
+  - forms_create
+  - forms_responses
   requires_key: true
   env_var: GOOGLE_WORKSPACE_KEY
-  healthcheck: internal
+  healthcheck: mcp_process
   update_policy: upstream-watch
-  loc_count: 12000
-  loc_validated: true
-  language: typescript
   mvp: true
   source_repo: https://github.com/nicholishen/google-workspace-mcp
   pinned_version: 0.1.0

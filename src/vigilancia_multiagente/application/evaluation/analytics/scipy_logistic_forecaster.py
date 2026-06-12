@@ -60,7 +60,9 @@ class ScipyLogisticForecaster:
             return self._empty(technology, domain)
 
         if len(timeseries) < 4:
-            logger.warning("Too few data points (%d) for curve fit on %s", len(timeseries), technology)
+            logger.warning(
+                "Too few data points (%d) for curve fit on %s", len(timeseries), technology
+            )
             return self._empty(technology, domain, samples=len(timeseries))
 
         sorted_ts = sorted(timeseries, key=lambda item: item[0])

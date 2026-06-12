@@ -54,7 +54,7 @@ class OrchestratorGoldenCaseRunner:
 
         try:
             sandbox_result = await self._sandbox.run_seed_query(case.seed_query)
-        except Exception as exc:  # noqa: BLE001 — runner tolera fallos del flujo
+        except Exception as exc:
             logger.warning(
                 "OrchestratorGoldenCaseRunner: case %s failed with %s",
                 case.name,

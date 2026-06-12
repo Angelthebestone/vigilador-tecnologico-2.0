@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -99,6 +98,7 @@ class TestCatalogLoaderLoad:
 
         loader = CatalogLoader()
         import logging
+
         with caplog.at_level(logging.WARNING):
             entries = loader.load(catalog_path)
 

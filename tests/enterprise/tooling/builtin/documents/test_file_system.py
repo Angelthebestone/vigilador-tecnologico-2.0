@@ -34,9 +34,7 @@ async def test_write_and_read_roundtrip(tool, tmp_path):
 
 @pytest.mark.asyncio
 async def test_write_creates_subdirectories(tool, tmp_path):
-    result = await tool.execute(
-        "write_file", {"path": "sub/dir/file.txt", "content": "nested"}
-    )
+    result = await tool.execute("write_file", {"path": "sub/dir/file.txt", "content": "nested"})
     assert "error" not in result
     assert (tmp_path / "sub" / "dir" / "file.txt").read_text() == "nested"
 
@@ -80,9 +78,7 @@ async def test_patch_file(tool, tmp_path):
 @pytest.mark.asyncio
 async def test_patch_file_old_text_not_found(tool, tmp_path):
     (tmp_path / "f.txt").write_text("abc")
-    result = await tool.execute(
-        "patch_file", {"path": "f.txt", "old_text": "xyz", "new_text": "q"}
-    )
+    result = await tool.execute("patch_file", {"path": "f.txt", "old_text": "xyz", "new_text": "q"})
     assert "error" in result
     assert "not found" in result["error"]
 
@@ -99,9 +95,7 @@ async def test_traversal_rejected_read(tool):
 
 @pytest.mark.asyncio
 async def test_traversal_rejected_write(tool):
-    result = await tool.execute(
-        "write_file", {"path": "../../../tmp/evil.txt", "content": "bad"}
-    )
+    result = await tool.execute("write_file", {"path": "../../../tmp/evil.txt", "content": "bad"})
     assert "error" in result
     assert "traversal" in result["error"].lower()
 

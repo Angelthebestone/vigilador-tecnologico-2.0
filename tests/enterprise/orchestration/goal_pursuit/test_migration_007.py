@@ -26,9 +26,8 @@ def _get_sync_db_url() -> str | None:
         if not url:
             return None
         # Convert asyncpg URL to psycopg2 format
-        url = url.replace("postgresql+asyncpg://", "postgresql://")
-        return url
-    except Exception:  # noqa: BLE001
+        return url.replace("postgresql+asyncpg://", "postgresql://")
+    except Exception:
         return None
 
 
@@ -40,7 +39,7 @@ def _try_connect(url: str) -> bool:
         conn = psycopg2.connect(url)
         conn.close()
         return True
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
 
 

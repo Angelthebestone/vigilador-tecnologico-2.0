@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 import httpx
 
@@ -90,8 +91,7 @@ def retry_with_policy(policy: RetryPolicy | None = None):
                         raise
 
                     wait_time = min(
-                        actual_policy.backoff.initial
-                        * (actual_policy.backoff.multiplier**attempt),
+                        actual_policy.backoff.initial * (actual_policy.backoff.multiplier**attempt),
                         actual_policy.backoff.max,
                     )
                     logger.warning(
@@ -99,7 +99,7 @@ def retry_with_policy(policy: RetryPolicy | None = None):
                         f"retrying in {wait_time:.1f}s: {exc}"
                     )
                     await asyncio.sleep(wait_time)
-                except Exception as exc:
+                except Exception:
                     # Non-retryable exception, raise immediately
                     raise
 

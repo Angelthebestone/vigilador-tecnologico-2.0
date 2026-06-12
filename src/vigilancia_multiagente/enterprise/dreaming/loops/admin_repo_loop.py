@@ -51,12 +51,14 @@ class AdminRepoLoop:
             for release in releases:
                 releases_detected += 1
                 impact = await self._classifier.classify(release)
-                await self._proposal_store.store({
-                    "repo_id": repo_id,
-                    "release": release,
-                    "impact": impact,
-                    "auto_promote": False,
-                })
+                await self._proposal_store.store(
+                    {
+                        "repo_id": repo_id,
+                        "release": release,
+                        "impact": impact,
+                        "auto_promote": False,
+                    }
+                )
                 proposals_stored += 1
 
         return {

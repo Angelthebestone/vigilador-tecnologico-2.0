@@ -50,9 +50,7 @@ class MarkitdownTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -87,9 +85,7 @@ class MarkitdownTool:
         try:
             from markitdown import MarkItDown
         except ImportError as exc:
-            raise RuntimeError(
-                "MarkitdownTool: markitdown package not installed"
-            ) from exc
+            raise RuntimeError("MarkitdownTool: markitdown package not installed") from exc
 
         # MarkItDown is sync; offload to a worker thread.
         def _run() -> str:
@@ -109,7 +105,10 @@ _MARKDOWN_PATTERNS: list[tuple[str, str]] = [
     (r"`[^`]*`", " "),  # inline code
     (r"!\[([^\]]*)\]\([^)]*\)", r"\1"),  # images → alt text
     (r"\[([^\]]*)\]\([^)]*\)", r"\1"),  # links → text
-    (r"^#{1,6}\s+", "", ),  # headings markers (multiline below)
+    (
+        r"^#{1,6}\s+",
+        "",
+    ),  # headings markers (multiline below)
     (r"[*_]{1,3}([^*_]+)[*_]{1,3}", r"\1"),  # bold/italic
     (r"^>\s?", ""),
     (r"\s+", " "),

@@ -12,7 +12,6 @@ from vigilancia_multiagente.enterprise.orchestration.app_development.constitutio
 )
 from vigilancia_multiagente.enterprise.orchestration.app_development.errors import (
     InconsistencyBlockError,
-    SandboxExecutionError,
 )
 from vigilancia_multiagente.enterprise.orchestration.app_development.implement_agent import (
     ImplementAgent,
@@ -40,9 +39,7 @@ async def test_constitution_agent_generates_document() -> None:
 
 @pytest.mark.asyncio
 async def test_specify_agent_generates_spec() -> None:
-    llm = FakeLLM(
-        response="FUNCTIONAL_REQUIREMENTS: FR1\nSUCCESS_CRITERIA: SC1\nSCOPE: internal"
-    )
+    llm = FakeLLM(response="FUNCTIONAL_REQUIREMENTS: FR1\nSUCCESS_CRITERIA: SC1\nSCOPE: internal")
     template = FakeTemplate()
     agent = SpecifyAgent(llm, template)
     result = await agent.run("constitution content")

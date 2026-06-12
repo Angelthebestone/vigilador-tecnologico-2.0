@@ -67,7 +67,7 @@ def _matches_allowed(target_file: str) -> bool:
             prefix = pattern.split("**")[0]
             suffix = pattern.split("**")[-1].lstrip("/")
             if normalized.startswith(prefix):
-                remainder = normalized[len(prefix):]
+                remainder = normalized[len(prefix) :]
                 if not suffix or suffix == "*":
                     return True
                 # Check if the filename matches the suffix glob
@@ -116,7 +116,9 @@ class AgentModifier:
     ) -> ModificationResult:
         """Propose and apply a modification. Order: DB → JSONL → file with compensation."""
         if not _matches_allowed(target_file):
-            return ModificationResult(success=False, record=None, error=f"Path not allowed: {target_file}")
+            return ModificationResult(
+                success=False, record=None, error=f"Path not allowed: {target_file}"
+            )
 
         file_path = self._base_path / target_file
         old_content = file_path.read_text(encoding="utf-8") if file_path.exists() else ""
@@ -126,7 +128,9 @@ class AgentModifier:
 
         diff_summary = await generate_summary(diff, self._llm_client)
         needs_approval = requires_approval(target_file, self._mode_settings)
-        status = ModificationStatus.PENDING_APPROVAL if needs_approval else ModificationStatus.APPLIED
+        status = (
+            ModificationStatus.PENDING_APPROVAL if needs_approval else ModificationStatus.APPLIED
+        )
 
         record_id = uuid4()
         rollback_token = str(uuid4())
@@ -174,7 +178,9 @@ class AgentModifier:
                     {"id": record_id},
                 )
                 await self._session.commit()
-                return ModificationResult(success=False, record=None, error=f"File write failed: {e}")
+                return ModificationResult(
+                    success=False, record=None, error=f"File write failed: {e}"
+                )
 
         # Metrics
         agent_modifications_total.labels(
@@ -202,7 +208,9 @@ class AgentModifier:
         if status == ModificationStatus.REVERTED.value:
             return RollbackResult(success=False, previous_content=None, error="Already reverted")
         if status == ModificationStatus.PENDING_APPROVAL.value:
-            return RollbackResult(success=False, previous_content=None, error="Cannot rollback pending approval")
+            return RollbackResult(
+                success=False, previous_content=None, error="Cannot rollback pending approval"
+            )
 
         target_file: str = row["target_file"]  # type: ignore[assignment]
         file_path = self._base_path / target_file
@@ -215,8 +223,9 @@ class AgentModifier:
         # Conflict detection: current file must match the post-change state
         if current_content != new_content:
             return RollbackResult(
-                success=False, previous_content=None,
-                error="Conflict: file was modified externally after this change"
+                success=False,
+                previous_content=None,
+                error="Conflict: file was modified externally after this change",
             )
 
         # Apply rollback

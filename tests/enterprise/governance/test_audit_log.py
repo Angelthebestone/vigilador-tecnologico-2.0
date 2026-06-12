@@ -93,12 +93,8 @@ def test_log_subagent_spawn_records_parent_and_depth(audit: AuditLog) -> None:
 
 def test_daily_rotation_uses_dated_file(audit: AuditLog, tmp_path: Path) -> None:
     """Two events on the same UTC day land in a single dated file."""
-    audit.log_tool_invocation(
-        tool_id="x", operation="op", outcome="success", duration_ms=1.0
-    )
-    audit.log_tool_invocation(
-        tool_id="y", operation="op", outcome="success", duration_ms=2.0
-    )
+    audit.log_tool_invocation(tool_id="x", operation="op", outcome="success", duration_ms=1.0)
+    audit.log_tool_invocation(tool_id="y", operation="op", outcome="success", duration_ms=2.0)
     today = datetime.now(UTC).strftime("%Y-%m-%d")
     path = tmp_path / f"events_{today}.jsonl"
     assert path.exists()
@@ -113,6 +109,4 @@ def test_audit_log_raises_on_unwritable_dir(monkeypatch, tmp_path: Path) -> None
 
     monkeypatch.setattr(Path, "mkdir", boom)
     with pytest.raises(AuditLogError, match="Cannot create audit directory"):
-        audit.log_tool_invocation(
-            tool_id="x", operation="op", outcome="success", duration_ms=1.0
-        )
+        audit.log_tool_invocation(tool_id="x", operation="op", outcome="success", duration_ms=1.0)

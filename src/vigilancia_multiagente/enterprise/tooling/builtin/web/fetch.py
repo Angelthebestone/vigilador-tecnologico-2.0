@@ -1,58 +1,52 @@
-"""Fetch tool — native WRAP-SDK over ``httpx`` for plain HTTP fetch + text extract.
+"""Fetch tool — BaseHTTPProvider subclass.
 
 Spec 021 FR-053/054: native-first, universal Tool abstraction.
 Catalog: ``fetch`` / domain ``web`` / capabilities ``[fetch_url, extract_text]``.
 
-Strategy: WRAP-SDK using ``httpx``. No API key required. Honors the URL
-safety floor from ``enterprise.governance.url_safety`` (FR-025) so the
-agent cannot fetch private/internal addresses or cloud metadata endpoints.
+Strategy: Subclass ``BaseHTTPProvider``. No API key required. Overrides
+``client`` to enable ``follow_redirects``. Honors the URL safety floor
+from ``enterprise.governance.url_safety`` (FR-025).
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from html.parser import HTMLParser
+from typing import Any, ClassVar
 
 import httpx
 
 from vigilancia_multiagente.enterprise.governance.url_safety import is_safe_url
-from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
+from vigilancia_multiagente.enterprise.tooling.builtin._base.http_provider import (
+    BaseHTTPProvider,
+)
 
-_DEFAULT_TIMEOUT_S = 30.0
-_DEFAULT_MAX_BYTES = 1_000_000  # 1 MB body cap; over-large pages truncate cleanly.
+_DEFAULT_MAX_BYTES = 1_000_000
 
 
-@dataclass(frozen=True)
-class FetchTool:
+class FetchTool(BaseHTTPProvider):
     """Native tool for plain HTTP GET + minimal text extraction."""
 
-    name: str = "fetch"
-    domain: str = "web"
-    is_external_mcp: bool = False
-    requires_auth: bool = False
+    name: ClassVar[str] = "fetch"
+    domain: ClassVar[str] = "web"
+    base_url: ClassVar[str] = ""
+    auth_env_var: ClassVar[str | None] = None
+    requires_auth: ClassVar[bool] = False
 
-    async def healthcheck(self) -> HealthcheckResult:
-        """Always reports UP — ``httpx`` is a hard dependency of the project."""
-        return HealthcheckResult(status="UP")
+    @property
+    def client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+                timeout=httpx.Timeout(30.0, connect=5.0),
+                follow_redirects=True,
+            )
+        return self._client
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
-        """Dispatch to the requested capability.
+    def _auth_headers(self, api_key: str) -> dict[str, str]:
+        return {}
 
-        Supported ``tool_name`` values:
-        * ``fetch_url`` — args: ``url`` (str, required). Returns
-          ``{url, status_code, headers, body}`` (body capped at 1 MB).
-        * ``extract_text`` — args: ``url`` (str). Same fetch + a minimal
-          HTML→text pass.
-
-        Raises:
-            ValueError: unsupported tool_name or invalid url.
-            PermissionError: URL fails the SSRF safety check
-                (governance.url_safety.is_safe_url).
-            httpx.HTTPStatusError: non-2xx response.
-        """
+    async def execute(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
         url = args.get("url")
         if not isinstance(url, str) or not url.strip():
             raise ValueError("FetchTool: 'url' must be a non-empty string")
@@ -66,38 +60,44 @@ class FetchTool:
             return await self._fetch(url)
         if tool_name == "extract_text":
             payload = await self._fetch(url)
-            payload["text"] = _html_to_text(payload.get("body", ""))
+            payload["text"] = _html_to_text(str(payload.get("body", "")))
             return payload
         raise ValueError(
-            f"FetchTool: unknown tool_name '{tool_name}' "
-            f"(supported: fetch_url, extract_text)"
+            f"FetchTool: unknown tool_name '{tool_name}' (supported: fetch_url, extract_text)"
         )
 
-    async def _fetch(self, url: str) -> dict[str, object]:
-        async with httpx.AsyncClient(
-            timeout=_DEFAULT_TIMEOUT_S,
-            follow_redirects=True,
-        ) as client:
-            response = await client.get(url)
+    async def _fetch(self, url: str) -> dict[str, Any]:
+        api_key = await self._api_key()
+        resolved_key = api_key or ""
+        headers = self._auth_headers(resolved_key)
+        try:
+            response = await self.client.get(url, headers=headers)
             response.raise_for_status()
             content = response.content[:_DEFAULT_MAX_BYTES]
             try:
                 body = content.decode(response.encoding or "utf-8", errors="replace")
             except (LookupError, TypeError):
                 body = content.decode("utf-8", errors="replace")
-
-        return {
-            "url": str(response.url),
-            "status_code": response.status_code,
-            "headers": dict(response.headers),
-            "body": body,
-            "truncated": len(response.content) > _DEFAULT_MAX_BYTES,
-        }
-
-
-# ---------------------------------------------------------------------------
-# Minimal HTML → text extractor (KISS — no BeautifulSoup dependency)
-# ---------------------------------------------------------------------------
+            return {
+                "url": str(response.url),
+                "status_code": response.status_code,
+                "headers": dict(response.headers),
+                "body": body,
+                "truncated": len(response.content) > _DEFAULT_MAX_BYTES,
+            }
+        except httpx.HTTPStatusError as exc:
+            self._handle_response_error(exc.response)
+            raise
+        except httpx.ReadTimeout as exc:
+            from vigilancia_multiagente.enterprise.tooling.builtin._base.retry_policy import (
+                ProviderTimeoutError,
+            )
+            raise ProviderTimeoutError("Request timed out") from exc
+        except httpx.RequestError as exc:
+            from vigilancia_multiagente.enterprise.tooling.builtin._base.retry_policy import (
+                ProviderError,
+            )
+            raise ProviderError(f"Request failed: {exc}") from exc
 
 
 class _TextExtractor(HTMLParser):
@@ -123,12 +123,10 @@ class _TextExtractor(HTMLParser):
 
     def text(self) -> str:
         joined = "".join(self._chunks)
-        # Collapse runs of whitespace (including newlines from block elements).
         return re.sub(r"\s+", " ", joined).strip()
 
 
 def _html_to_text(body: str) -> str:
-    """Best-effort HTML→text. Empty/non-HTML body passes through trimmed."""
     if not body or "<" not in body:
         return body.strip()
     parser = _TextExtractor()

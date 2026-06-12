@@ -46,9 +46,7 @@ class PIInterceptor:
         self._repository = repository
         self._audit_dir = audit_dir or _AUDIT_DIR
 
-    async def intercept(
-        self, content: str, source: str, tenant_id: UUID
-    ) -> InterceptionResult:
+    async def intercept(self, content: str, source: str, tenant_id: UUID) -> InterceptionResult:
         """Intercepta contenido. Si PI detectado: cuarentena + audit + métrica."""
         detection = self._detector.detect(content, source)
 
@@ -111,6 +109,7 @@ class PIInterceptor:
             from vigilancia_multiagente.enterprise.observability.metrics import (
                 pi_quarantined_total,
             )
+
             pi_quarantined_total.labels(source=source, severity=severity).inc()
         except ImportError:
             logger.debug("Prometheus metrics not available; skipping metric increment")

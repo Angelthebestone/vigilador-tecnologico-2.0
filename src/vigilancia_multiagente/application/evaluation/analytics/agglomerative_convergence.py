@@ -8,7 +8,6 @@ con deteccion de convergencia entre dominios.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import cast
 from uuid import uuid4
 
 import numpy as np
@@ -39,11 +38,11 @@ class SklearnAgglomerativeConvergenceDetector:
         if len(embeddings) < 3:
             return []
 
-        terms, vectors, timestamps = zip(*embeddings)
+        terms, vectors, timestamps = zip(*embeddings, strict=False)
         matrix = np.array(vectors)
 
         model = AgglomerativeClustering(  # type: ignore[call-overload]
-            n_clusters=None if self._distance_threshold else self._n_clusters,
+            n_clusters=None if self._distance_threshold else (self._n_clusters or 2),  # type: ignore[arg-type]
             distance_threshold=self._distance_threshold,
             metric="cosine",
             linkage="average",
@@ -58,12 +57,12 @@ class SklearnAgglomerativeConvergenceDetector:
         window_start = now - timedelta(days=self._window_days)
 
         results: list[ConvergenceCluster] = []
-        for label, indices in clusters_map.items():
+        for _label, indices in clusters_map.items():  # noqa: PERF102
             if len(indices) < 2:
                 continue
             cluster_terms = [terms[i] for i in indices]
             cluster_times = [timestamps[i] for i in indices]
-            cluster_vectors = matrix[list(indices)]
+            matrix[list(indices)]
 
             # Domain diversity signal: more domains within cluster = convergence
             unique_terms = list(set(cluster_terms))

@@ -22,7 +22,6 @@ from vigilancia_multiagente.api.dependencies import (
     session_repository,
     vector_index,
 )
-from vigilancia_multiagente.application.evaluation.report_quality_gate import QualityGateBlocked
 from vigilancia_multiagente.application.evaluation.analytics.scipy_logistic_forecaster import (
     ScipyLogisticForecaster,
 )
@@ -31,12 +30,13 @@ from vigilancia_multiagente.application.evaluation.analytics.vader_narrative_shi
 )
 from vigilancia_multiagente.application.evaluation.hype_detector import HypeDetector
 from vigilancia_multiagente.application.evaluation.obsolescence_detector import ObsolescenceDetector
+from vigilancia_multiagente.application.evaluation.report_quality_gate import QualityGateBlocked
+from vigilancia_multiagente.application.fusion.decision_assistant import DecisionAssistant
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.evaluation_entities import SCurveProjection
-from vigilancia_multiagente.application.fusion.decision_assistant import DecisionAssistant
-from vigilancia_multiagente.shared.graph_dto import GraphPayload
 from vigilancia_multiagente.domain.ports.embedding_gateway import TaskType
 from vigilancia_multiagente.domain.session_state import SessionStatus
+from vigilancia_multiagente.shared.graph_dto import GraphPayload
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +372,13 @@ async def analyze_obsolescence(session_id: UUID, tech: str = Query(...)) -> dict
     if settings.eval_ws_c_enabled:
         forecaster = ScipyLogisticForecaster()
         timeseries = [
-            (2020, 2), (2021, 5), (2022, 12), (2023, 25), (2024, 40), (2025, 55), (2026, 65),
+            (2020, 2),
+            (2021, 5),
+            (2022, 12),
+            (2023, 25),
+            (2024, 40),
+            (2025, 55),
+            (2026, 65),
         ]
         proj = forecaster.fit_s_curve(tech, "general", timeseries)
         if proj.growth_rate > 0:
@@ -446,7 +452,13 @@ async def get_maturity(session_id: UUID, tech: str = Query(...)) -> dict:
     if settings.eval_ws_c_enabled:
         forecaster = ScipyLogisticForecaster()
         timeseries = [
-            (2020, 2), (2021, 5), (2022, 12), (2023, 25), (2024, 40), (2025, 55), (2026, 65),
+            (2020, 2),
+            (2021, 5),
+            (2022, 12),
+            (2023, 25),
+            (2024, 40),
+            (2025, 55),
+            (2026, 65),
         ]
         projection = forecaster.fit_s_curve(tech, "general", timeseries)
         inflection = forecaster.detect_inflection(projection)
@@ -487,9 +499,7 @@ async def get_maturity(session_id: UUID, tech: str = Query(...)) -> dict:
     return {"session_id": str(session_id), "tech": tech, "maturity": report}
 
 
-def _build_narrative_timeline(
-    tech: str, results: list
-) -> list[tuple[datetime, str]]:
+def _build_narrative_timeline(tech: str, results: list) -> list[tuple[datetime, str]]:
     """Construye timeline [(timestamp, text)] desde resultados de busqueda."""
     now = datetime.now()
     timeline: list[tuple[datetime, str]] = [(now, tech)]
@@ -547,4 +557,3 @@ async def search_cross_session(
         limit=limit,
     )
     return {"session_id": str(session_id), "query": query, "limit": limit, "results": results}
-

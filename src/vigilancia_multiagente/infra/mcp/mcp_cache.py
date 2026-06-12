@@ -40,7 +40,9 @@ class MCPSmartCache:
     _store: OrderedDict[str, _CacheEntry] = field(default_factory=OrderedDict, repr=False)
     _tool_index: dict[str, set[str]] = field(default_factory=dict, repr=False)
     _lock: Lock = field(default_factory=Lock, repr=False)
-    _max_entries: int = field(default_factory=lambda: int(os.environ.get("VT_MCP_CACHE_MAX_ENTRIES", "1000")), repr=False)
+    _max_entries: int = field(
+        default_factory=lambda: int(os.environ.get("VT_MCP_CACHE_MAX_ENTRIES", "1000")), repr=False
+    )
 
     # Default TTLs per tool (in seconds)
     _ttls: dict[str, float] = field(

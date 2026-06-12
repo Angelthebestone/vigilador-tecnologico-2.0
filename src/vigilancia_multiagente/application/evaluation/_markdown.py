@@ -12,7 +12,7 @@ def markdown_section(title: str, body_lines: Iterable[str]) -> str:
     Centraliza el patrón repetido en los analizadores de inteligencia
     (contradicciones, señales débiles, trayectoria causal).
     """
-# STATUS: ACTIVE
+    # STATUS: ACTIVE
 
     lines = list(body_lines)
     if not lines:

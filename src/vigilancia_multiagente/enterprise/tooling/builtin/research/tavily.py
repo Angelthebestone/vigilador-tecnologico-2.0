@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from typing import Literal
 
 from tavily import TavilyClient
 
@@ -42,9 +43,7 @@ class TavilyTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -68,8 +67,7 @@ class TavilyTool:
         if tool_name == "news_search":
             return self._search(args, topic="news")
         raise ValueError(
-            f"TavilyTool: unknown tool_name '{tool_name}' "
-            f"(supported: web_search, news_search)"
+            f"TavilyTool: unknown tool_name '{tool_name}' (supported: web_search, news_search)"
         )
 
     def _search(
@@ -86,10 +84,13 @@ class TavilyTool:
             max_results = 5
 
         client = self._client()
+        resolved_topic: Literal["general", "news", "finance"] = (
+            topic if topic in ("general", "news", "finance") else "general"
+        )
         response = client.search(
             query=query,
             max_results=max_results,
-            topic=topic or "general",
+            topic=resolved_topic,
             search_depth="advanced",
             include_answer=True,
         )

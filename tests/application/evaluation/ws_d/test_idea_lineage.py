@@ -60,29 +60,34 @@ async def test_trace_lineage_with_mock(tracer, sources_with_dois):
 
         async def mock_get(url, **kwargs):
             if "10.1234/test.2024.001" in str(url):
-                return _mock_response({
-                    "id": "https://openalex.org/W001",
-                    "title": "Seminal paper",
-                    "display_name": "Seminal paper",
-                    "referenced_works": ["https://doi.org/10.1234/test.2024.000"],
-                })
-            elif "10.1234/test.2024.002" in str(url):
-                return _mock_response({
-                    "id": "https://openalex.org/W002",
-                    "title": "Follow-up paper",
-                    "display_name": "Follow-up paper",
-                    "referenced_works": [
-                        "https://doi.org/10.1234/test.2024.001",
-                        "https://doi.org/10.1234/test.2024.003",
-                    ],
-                })
-            else:
-                return _mock_response({
+                return _mock_response(
+                    {
+                        "id": "https://openalex.org/W001",
+                        "title": "Seminal paper",
+                        "display_name": "Seminal paper",
+                        "referenced_works": ["https://doi.org/10.1234/test.2024.000"],
+                    }
+                )
+            if "10.1234/test.2024.002" in str(url):
+                return _mock_response(
+                    {
+                        "id": "https://openalex.org/W002",
+                        "title": "Follow-up paper",
+                        "display_name": "Follow-up paper",
+                        "referenced_works": [
+                            "https://doi.org/10.1234/test.2024.001",
+                            "https://doi.org/10.1234/test.2024.003",
+                        ],
+                    }
+                )
+            return _mock_response(
+                {
                     "id": "https://openalex.org/W000",
                     "title": "Root paper",
                     "display_name": "Root paper",
                     "referenced_works": [],
-                })
+                }
+            )
 
         mock_instance.get = mock_get
 
@@ -100,17 +105,20 @@ async def test_trace_with_circularity(tracer, sources_with_dois):
 
         async def mock_get(url, **kwargs):
             if "10.1234/test.2024.001" in str(url):
-                return _mock_response({
-                    "id": "https://openalex.org/W001",
-                    "title": "Paper A",
-                    "referenced_works": ["https://doi.org/10.1234/test.2024.002"],
-                })
-            else:
-                return _mock_response({
+                return _mock_response(
+                    {
+                        "id": "https://openalex.org/W001",
+                        "title": "Paper A",
+                        "referenced_works": ["https://doi.org/10.1234/test.2024.002"],
+                    }
+                )
+            return _mock_response(
+                {
                     "id": "https://openalex.org/W002",
                     "title": "Paper B",
                     "referenced_works": ["https://doi.org/10.1234/test.2024.001"],
-                })
+                }
+            )
 
         mock_instance.get = mock_get
 

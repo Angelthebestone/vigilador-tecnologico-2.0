@@ -75,8 +75,7 @@ class WindowsBackend(ComputerUseBackend):
 
         if mode not in ("som", "vision", "ax"):
             raise ValueError(
-                f"WindowsBackend.capture: unknown mode '{mode}' "
-                "(supported: som, vision, ax)"
+                f"WindowsBackend.capture: unknown mode '{mode}' (supported: som, vision, ax)"
             )
 
         width, height = pyautogui.size()
@@ -111,9 +110,7 @@ class WindowsBackend(ComputerUseBackend):
             png_bytes_len=png_bytes_len,
         )
 
-    def _enumerate_windows_as_elements(
-        self, filter_app: str | None
-    ) -> list[UIElement]:
+    def _enumerate_windows_as_elements(self, filter_app: str | None) -> list[UIElement]:
         import pygetwindow
 
         out: list[UIElement] = []
@@ -156,13 +153,15 @@ class WindowsBackend(ComputerUseBackend):
         target_xy = self._resolve_xy(element, x, y)
         if target_xy is None:
             return ActionResult(
-                ok=False, action="click",
+                ok=False,
+                action="click",
                 message="missing element or [x,y] coordinate",
             )
         with self._held(modifiers):
             pyautogui.click(target_xy[0], target_xy[1], clicks=click_count, button=button)
         return ActionResult(
-            ok=True, action="click",
+            ok=True,
+            action="click",
             message=f"{button}-click x{click_count} at {target_xy}",
         )
 
@@ -183,14 +182,17 @@ class WindowsBackend(ComputerUseBackend):
         dst = self._resolve_xy(to_element, *(to_xy or (None, None)))
         if src is None or dst is None:
             return ActionResult(
-                ok=False, action="drag",
+                ok=False,
+                action="drag",
                 message="drag requires both source and destination",
             )
         with self._held(modifiers):
             pyautogui.moveTo(*src)
             pyautogui.dragTo(dst[0], dst[1], button=button)
         return ActionResult(
-            ok=True, action="drag", message=f"drag {src} -> {dst}",
+            ok=True,
+            action="drag",
+            message=f"drag {src} -> {dst}",
         )
 
     def scroll(
@@ -222,7 +224,8 @@ class WindowsBackend(ComputerUseBackend):
             else:
                 pyautogui.hscroll(amt)  # type: ignore[attr-defined]
         return ActionResult(
-            ok=True, action="scroll",
+            ok=True,
+            action="scroll",
             message=f"scroll {direction} x{amt}",
         )
 
@@ -234,7 +237,8 @@ class WindowsBackend(ComputerUseBackend):
 
         pyautogui.typewrite(text, interval=0.0)
         return ActionResult(
-            ok=True, action="type",
+            ok=True,
+            action="type",
             message=f"typed {len(text)} chars",
         )
 
@@ -272,7 +276,8 @@ class WindowsBackend(ComputerUseBackend):
         import pygetwindow
 
         matches = [
-            w for w in pygetwindow.getAllWindows()
+            w
+            for w in pygetwindow.getAllWindows()
             if app.lower() in (getattr(w, "title", "") or "").lower()
         ]
         if not matches:
@@ -287,7 +292,8 @@ class WindowsBackend(ComputerUseBackend):
                 target.restore() if getattr(target, "isMinimized", False) else None
         except Exception as exc:
             return ActionResult(
-                ok=False, action="focus_app",
+                ok=False,
+                action="focus_app",
                 message=f"focus failed: {exc}",
             )
         return ActionResult(ok=True, action="focus_app", message=f"focused '{app}'")
@@ -298,7 +304,8 @@ class WindowsBackend(ComputerUseBackend):
         # Win11 set_value over UIA requires pywinauto. Out of MVP scope —
         # constitución #4: explicit not-implemented, not a silent no-op.
         return ActionResult(
-            ok=False, action="set_value",
+            ok=False,
+            action="set_value",
             message=(
                 "set_value is not implemented in the Win11 backend yet "
                 "(needs pywinauto / UIA). Use click + type as a workaround."

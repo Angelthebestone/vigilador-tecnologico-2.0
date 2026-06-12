@@ -46,9 +46,7 @@ class FollowupStrategist:
         """
         if self._query_expander is not None:
             try:
-                prior = [
-                    {"query": context.seed_query, "query_type": context.branch_type}
-                ]
+                prior = [{"query": context.seed_query, "query_type": context.branch_type}]
                 expansions = self._query_expander.expand(  # type: ignore[attr-defined]
                     context.seed_query, prior
                 )

@@ -6,7 +6,6 @@ import pytest
 
 from vigilancia_multiagente.enterprise.orchestration.app_development.errors import (
     ApprovalDeniedError,
-    DirectoryNotWritableError,
     GuardrailViolationError,
     SandboxExecutionError,
 )
@@ -46,18 +45,24 @@ def _make_coordinator(
 
 @pytest.mark.asyncio
 async def test_compleja_executes_7_phases_in_order() -> None:
-    coordinator, llm, approval, audit = _make_coordinator()
+    coordinator, _llm, _approval, audit = _make_coordinator()
     state = await coordinator.run("COMPLEJA", "build a tool")
     assert len(state.completed_phases) == 7
     assert state.completed_phases == [
-        "constitution", "specify", "plan", "tasks", "analyze", "implement", "test"
+        "constitution",
+        "specify",
+        "plan",
+        "tasks",
+        "analyze",
+        "implement",
+        "test",
     ]
     assert len(audit.entries) == 7
 
 
 @pytest.mark.asyncio
 async def test_gate_constitution_blocks_without_approval() -> None:
-    coordinator, _, approval, _ = _make_coordinator(approved=False)
+    coordinator, _, _approval, _ = _make_coordinator(approved=False)
     with pytest.raises(ApprovalDeniedError) as exc_info:
         await coordinator.run("COMPLEJA", "build a tool")
     assert exc_info.value.phase == "constitution"
@@ -82,9 +87,12 @@ async def test_gate_analyze_blocks_without_approval() -> None:
             return call_count == 1
 
     coordinator = PhaseCoordinator(
-        llm=llm, template=template, sandbox=sandbox,
+        llm=llm,
+        template=template,
+        sandbox=sandbox,
         approval=ConditionalApproval(),  # type: ignore[arg-type]
-        audit=audit, file_system=fs,
+        audit=audit,
+        file_system=fs,
     )
     with pytest.raises(ApprovalDeniedError) as exc_info:
         await coordinator.run("COMPLEJA", "build a tool")
@@ -109,8 +117,12 @@ async def test_analyze_no_issues_continues_after_approval() -> None:
     audit = FakeAudit()
     fs = FakeFileSystem(exists=True)
     coordinator = PhaseCoordinator(
-        llm=llm, template=template, sandbox=sandbox,
-        approval=approval, audit=audit, file_system=fs,
+        llm=llm,
+        template=template,
+        sandbox=sandbox,
+        approval=approval,
+        audit=audit,
+        file_system=fs,
     )
     state = await coordinator.run("COMPLEJA", "build a tool")
     # analyze gate was presented

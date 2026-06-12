@@ -82,9 +82,7 @@ class McpToolWrapper:
             error=status.last_error or f"MCP '{self.name}' state={status.state}",
         )
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Delegate to the MCP via JSON-RPC ``tools/call``.
 
         **Not yet implemented** — pending the mcp_client port (see

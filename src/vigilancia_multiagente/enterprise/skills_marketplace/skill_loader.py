@@ -41,10 +41,10 @@ from vigilancia_multiagente.enterprise.skills_marketplace.skill_registry import 
     SkillRegistry,
     ToolRegistryPort,
 )
-from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 from vigilancia_multiagente.enterprise.skills_marketplace.skill_schema_validator import (
     validate_frontmatter,
 )
+from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 
 logger = logging.getLogger(__name__)
 
@@ -116,15 +116,19 @@ class SkillLoader:
 
         if "external:agency-agents" in self._sources_enabled:
             await self._load_marketplace(
-                AgencyAgentsAdapter(self._agency_agents_path, cold_skills_enabled=self._cold_skills_enabled),
+                AgencyAgentsAdapter(
+                    self._agency_agents_path, cold_skills_enabled=self._cold_skills_enabled
+                ),
                 "external:agency-agents",
                 result,
             )
 
         # Any explicitly-unknown source is a config bug — surface explicitly.
         known = {
-            "curated", "learned",
-            "external:k-dense", "external:agency-agents",
+            "curated",
+            "learned",
+            "external:k-dense",
+            "external:agency-agents",
         }
         for source in self._sources_enabled:
             if source not in known:
@@ -144,9 +148,7 @@ class SkillLoader:
     # Source loaders
     # ------------------------------------------------------------------
 
-    async def _load_directory(
-        self, path: Path, source: SkillSource, result: LoadResult
-    ) -> None:
+    async def _load_directory(self, path: Path, source: SkillSource, result: LoadResult) -> None:
         """Load skills from a curated/learned directory."""
         if not path.is_dir():
             return
@@ -219,9 +221,7 @@ class SkillLoader:
         """Common loader path for the cloned in-tree marketplaces (FR-031/032)."""
         scanner = getattr(adapter, "scan", None)
         if scanner is None:
-            result.errors.append(
-                f"SkillLoader: adapter for '{source_label}' missing scan() method"
-            )
+            result.errors.append(f"SkillLoader: adapter for '{source_label}' missing scan() method")
             return
 
         for card, summary, _body in scanner():
@@ -265,9 +265,7 @@ class SkillLoader:
             return False
         return True
 
-    def _build_tags(
-        self, skill_id: str, hint: str, existing: list[str]
-    ) -> list[str]:
+    def _build_tags(self, skill_id: str, hint: str, existing: list[str]) -> list[str]:
         """Return tags with canonical category prepended.
 
         Order: ``[<category>, "sub:<sub>"?, ...existing]``. Idempotent —

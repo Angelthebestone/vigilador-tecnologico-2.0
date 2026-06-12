@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from vigilancia_multiagente.enterprise.artifacts.ports import DataSource, FileSystemPort, SourceIndex
+from vigilancia_multiagente.enterprise.artifacts.ports import (
+    DataSource,
+)
 from vigilancia_multiagente.enterprise.artifacts.source_inventory_agent import (
     SourceInventoryAgent,
 )
@@ -47,9 +49,15 @@ def _make_agent(
 def test_inventory_with_three_available_sources() -> None:
     """Inventario con 3 fuentes disponibles retorna nombre/tipo/ubicacion/disponibilidad."""
     indexed = [
-        DataSource(name="ventas.csv", source_type="CSV", location="/data/ventas.csv", available=True),
-        DataSource(name="api_crm", source_type="API", location="https://crm.api/v1", available=True),
-        DataSource(name="db_clientes", source_type="DB", location="postgres://db/clientes", available=True),
+        DataSource(
+            name="ventas.csv", source_type="CSV", location="/data/ventas.csv", available=True
+        ),
+        DataSource(
+            name="api_crm", source_type="API", location="https://crm.api/v1", available=True
+        ),
+        DataSource(
+            name="db_clientes", source_type="DB", location="postgres://db/clientes", available=True
+        ),
     ]
     agent = _make_agent(indexed=indexed)
     result = agent.run_inventory("dashboard de ventas")
@@ -66,7 +74,9 @@ def test_inventory_with_three_available_sources() -> None:
 def test_unavailable_source_marked_with_suggestion() -> None:
     """Fuente eliminada marcada como no disponible con sugerencia de alternativas (EC-01)."""
     indexed = [
-        DataSource(name="backup.csv", source_type="CSV", location="/data/backup.csv", available=True),
+        DataSource(
+            name="backup.csv", source_type="CSV", location="/data/backup.csv", available=True
+        ),
     ]
     agent = _make_agent(indexed=indexed, existing_files=set())
     result = agent.run_inventory("ventas", declared_paths=["/data/deleted.csv"])
@@ -89,8 +99,18 @@ def test_zero_sources_reports_suggestion() -> None:
 def test_indexed_sources_discovered_correctly() -> None:
     """Fuentes del índice empresarial descubiertas correctamente (FR-002, SC-002)."""
     indexed = [
-        DataSource(name="doc_financiero", source_type="documento_indexado", location="idx://fin/001", available=True),
-        DataSource(name="reporte_q1", source_type="documento_indexado", location="idx://rep/q1", available=True),
+        DataSource(
+            name="doc_financiero",
+            source_type="documento_indexado",
+            location="idx://fin/001",
+            available=True,
+        ),
+        DataSource(
+            name="reporte_q1",
+            source_type="documento_indexado",
+            location="idx://rep/q1",
+            available=True,
+        ),
     ]
     agent = _make_agent(indexed=indexed)
     result = agent.run_inventory("métricas financieras")

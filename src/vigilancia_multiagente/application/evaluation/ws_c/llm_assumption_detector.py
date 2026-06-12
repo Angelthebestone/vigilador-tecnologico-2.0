@@ -13,6 +13,9 @@ import logging
 import re
 from typing import cast
 
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.evaluation_entities import (
     AssumptionSeverity,
     ImplicitAssumption,
@@ -22,9 +25,6 @@ from vigilancia_multiagente.domain.pipeline_errors import (
     StepError,
     StepErrorSeverity,
     Workstream,
-)
-from vigilancia_multiagente.application.evaluation.prompt_messages import (
-    build_messages_with_fewshot,
 )
 from vigilancia_multiagente.domain.ports.assumption_detector import AssumptionDetector
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
@@ -57,9 +57,7 @@ class LlmAssumptionDetector(AssumptionDetector):
             messages = build_messages_with_fewshot(
                 prompt_loader=self._prompt_loader,
                 base_path="evaluation/assumption_detection.txt",
-                user_content=(
-                    f"Finding: {finding.statement}\nSource: {source_text[:2000]}"
-                ),
+                user_content=(f"Finding: {finding.statement}\nSource: {source_text[:2000]}"),
             )
         except FileNotFoundError as exc:
             self._record_error(exc, context={"prompt": "evaluation/assumption_detection.txt"})

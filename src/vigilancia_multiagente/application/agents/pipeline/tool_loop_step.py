@@ -13,7 +13,6 @@ from vigilancia_multiagente.application.agents.pipeline.errors import (
     Workstream,
     add_step_error,
 )
-from vigilancia_multiagente.domain.pipeline_errors import StepError
 from vigilancia_multiagente.application.mcp.types import ToolExecutionResult
 from vigilancia_multiagente.application.research.followup_loop import (
     run_followup_loop,
@@ -33,6 +32,7 @@ from vigilancia_multiagente.application.routing.tool_selector import (
     ToolSelector,
 )
 from vigilancia_multiagente.domain.models import BranchType
+from vigilancia_multiagente.domain.pipeline_errors import StepError
 from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
 from vigilancia_multiagente.domain.ports.event_publisher import EventPublisher
 from vigilancia_multiagente.domain.ports.provider_registry import ProviderConfig
@@ -74,6 +74,7 @@ class ToolLoopContext(ComposePromptContext):
     deep_analysis_projections: list | None = None
     deep_analysis_meta_result: object | None = None
     deep_analysis_counterfactuals: list | None = None
+    ws_d_signals: object | None = None
 
 
 class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
@@ -197,9 +198,7 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
         embeddings: list[IterationEmbedding] = []
         if len(iterations) >= 2:
             missing = [
-                idx
-                for idx, _ in enumerate(iterations, start=1)
-                if tracker.vector_for(idx) is None
+                idx for idx, _ in enumerate(iterations, start=1) if tracker.vector_for(idx) is None
             ]
             filled: dict[int, list[float]] = {}
             if missing:
@@ -227,14 +226,15 @@ class ToolLoopStep(PipelineStep[ToolLoopContext, ToolLoopContext]):
                 ctx = await self._data_intelligence_step.run(ctx)  # type: ignore[union-attr]
             except Exception as exc:
                 add_step_error(
-                    ctx.errors, Workstream.WS_B, "DataIntelligenceStep.sub_phase", exc,
+                    ctx.errors,
+                    Workstream.WS_B,
+                    "DataIntelligenceStep.sub_phase",
+                    exc,
                     severity=StepErrorSeverity.WARNING,
                 )
         return ctx
 
-    def _select_provider(
-        self, providers: list[ProviderConfig], tool_name: str
-    ) -> ProviderConfig:
+    def _select_provider(self, providers: list[ProviderConfig], tool_name: str) -> ProviderConfig:
         for provider in providers:
             if tool_name in provider.enabled_tools:
                 return provider

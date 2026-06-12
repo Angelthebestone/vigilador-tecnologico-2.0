@@ -27,15 +27,6 @@ from vigilancia_multiagente.application.evaluation.analytics.agglomerative_conve
 from vigilancia_multiagente.application.evaluation.analytics.vader_narrative_shift import (
     VaderNarrativeShiftDetector,
 )
-from vigilancia_multiagente.application.evaluation.ws_d.collaboration_network_builder import (
-    CollaborationNetworkBuilderImpl,
-)
-from vigilancia_multiagente.application.evaluation.ws_d.patenting_gap_analyzer import (
-    PatentingGapAnalyzerImpl,
-)
-from vigilancia_multiagente.application.evaluation.ws_d.talent_mobility_analyzer import (
-    TalentMobilityAnalyzerImpl,
-)
 from vigilancia_multiagente.domain.evaluation_entities import (
     CollaborationNetwork,
     ConvergenceCluster,
@@ -142,6 +133,8 @@ class StrategicSignalsStep:
                 vec = payload.get("embedding", payload.get("vector"))
                 if isinstance(vec, list) and all(isinstance(v, (int, float)) for v in vec):
                     embeddings.append((query, [float(v) for v in vec], datetime.now()))
+        if self._convergence_detector is None:
+            return []
         return await self._convergence_detector.detect(embeddings) if embeddings else []
 
     async def _detect_narrative(self, ctx: ToolLoopContext) -> list[NarrativeShift]:
@@ -155,15 +148,23 @@ class StrategicSignalsStep:
                 if statement:
                     timeline.append((datetime.now(), statement))
         topic = ctx.seed_query or "general"
+        if self._narrative_detector is None:
+            return []
         return await self._narrative_detector.detect(topic, timeline) if timeline else []
 
     async def _trace_lineage(self, ctx: ToolLoopContext) -> IdeaLineage | None:
         sources = _get_sources_from_ctx(ctx)
         idea = ctx.seed_query or "general"
+        if self._lineage_tracer is None:
+            return None
         return await self._lineage_tracer.trace(idea, sources)
 
-    async def _build_collaboration_network(self, ctx: ToolLoopContext) -> CollaborationNetwork | None:
+    async def _build_collaboration_network(
+        self, ctx: ToolLoopContext
+    ) -> CollaborationNetwork | None:
         sources = _get_sources_from_ctx(ctx)
+        if self._collaboration_builder is None:
+            return None
         return await self._collaboration_builder.build(sources)
 
     async def _analyze_mobility(self, ctx: ToolLoopContext) -> list[TalentMobility]:
@@ -173,6 +174,8 @@ class StrategicSignalsStep:
                 for tag in getattr(finding, "tags", []):
                     if tag not in author_ids:
                         author_ids.append(tag)
+        if self._mobility_analyzer is None:
+            return []
         return await self._mobility_analyzer.analyze(author_ids[:10]) if author_ids else []
 
     async def _analyze_patenting_gaps(self, ctx: ToolLoopContext) -> list[PatentingGap]:
@@ -183,11 +186,11 @@ class StrategicSignalsStep:
                     subdomains.append(tag)
         if not subdomains and ctx.seed_query:
             subdomains = [ctx.seed_query]
+        if self._patenting_analyzer is None:
+            return []
         return await self._patenting_analyzer.analyze(subdomains[:5]) if subdomains else []
 
-    async def _safe_call(
-        self, step_name: str, coro: Any, ctx: ToolLoopContext
-    ) -> Any:
+    async def _safe_call(self, step_name: str, coro: Any, ctx: ToolLoopContext) -> Any:
         try:
             return await coro
         except Exception as exc:
@@ -215,13 +218,11 @@ def _get_sources_from_ctx(ctx: ToolLoopContext) -> list:
     sources: list = []
     for execution in ctx.executions:
         payload = getattr(execution, "payload", {})
-        if isinstance(payload, dict):
-            url = payload.get("url") or ""
-        else:
-            url = ""
+        url = payload.get("url") or "" if isinstance(payload, dict) else ""
         if url:
             from uuid import uuid4
-            from vigilancia_multiagente.domain.models import SourceRef, BranchType
+
+            from vigilancia_multiagente.domain.models import SourceRef
 
             sources.append(
                 SourceRef(

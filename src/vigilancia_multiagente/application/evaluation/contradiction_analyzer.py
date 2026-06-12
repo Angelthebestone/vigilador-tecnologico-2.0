@@ -62,9 +62,7 @@ class ContradictionAnalyzer:
                         DisputedPoint(
                             topic=getattr(m, "claim", "")[:60],
                             statement_a=getattr(m, "claim", ""),
-                            statement_b=str(
-                                getattr(m, "resolution", "Sin resolucion")
-                            ),
+                            statement_b=str(getattr(m, "resolution", "Sin resolucion")),
                             confidence_a=0.5,
                             confidence_b=0.5,
                             explanation=(

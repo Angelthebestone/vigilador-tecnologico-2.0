@@ -1,10 +1,10 @@
 import json
 from dataclasses import dataclass, field
-
-import yaml
 from enum import StrEnum
 from pathlib import Path
 from typing import cast
+
+import yaml
 
 from vigilancia_multiagente.config.settings import Settings
 
@@ -431,7 +431,9 @@ def _provider_from_manifest(item: dict[str, object]) -> MCPProviderConfig:
             backoff_ms=cast(int, retry_payload.get("backoff_ms", 500)),
         ),
         enabled_tools=tuple(str(tool) for tool in cast(list[str], item.get("enabled_tools", []))),
-        capabilities=tuple(str(capability) for capability in cast(list[str], item.get("capabilities", []))),
+        capabilities=tuple(
+            str(capability) for capability in cast(list[str], item.get("capabilities", []))
+        ),
         headers={str(key): str(value) for key, value in headers.items()},
     )
 

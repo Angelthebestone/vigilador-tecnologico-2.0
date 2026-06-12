@@ -41,9 +41,7 @@ class ComplexityDecision:
 
 
 class _LLMClientProto(Protocol):
-    async def complete(
-        self, messages: list[Any], **kwargs: Any
-    ) -> Any: ...
+    async def complete(self, messages: list[Any], **kwargs: Any) -> Any: ...
 
 
 _PROMPT_TEMPLATE = (
@@ -71,9 +69,7 @@ class ComplexityClassifier:
     model_kwargs: dict[str, Any] | None = None
     audit_log: AuditLogPort | None = None
 
-    async def classify(
-        self, query: str, session_id: str | None = None
-    ) -> ComplexityDecision:
+    async def classify(self, query: str, session_id: str | None = None) -> ComplexityDecision:
         """Classify ``query`` with one LLM call and log the reason."""
         if not isinstance(query, str) or not query.strip():
             raise ValueError("ComplexityClassifier.classify: 'query' must be non-empty")
@@ -86,9 +82,7 @@ class ComplexityClassifier:
         t0 = time.perf_counter()
         try:
             response = await asyncio.wait_for(
-                self.llm_client.complete(
-                    messages=messages, **(self.model_kwargs or {})
-                ),
+                self.llm_client.complete(messages=messages, **(self.model_kwargs or {})),
                 timeout=self.timeout_s,
             )
         except TimeoutError as exc:
@@ -101,7 +95,9 @@ class ComplexityClassifier:
         latency_ms = (time.perf_counter() - t0) * 1000
         logger.info(
             "ComplexityClassifier: query=%r -> level=%s reason=%r",
-            query[:80], decision.level.value, decision.reason,
+            query[:80],
+            decision.level.value,
+            decision.reason,
         )
         if self.audit_log is not None:
             self.audit_log.log_complexity_decision(
@@ -160,9 +156,7 @@ def _parse_decision(raw: str) -> ComplexityDecision:
         raise ClassifierError("ComplexityClassifier: empty LLM response")
     match = _JSON_BLOCK_RE.search(raw)
     if not match:
-        raise ClassifierError(
-            f"ComplexityClassifier: response has no JSON block: {raw[:200]!r}"
-        )
+        raise ClassifierError(f"ComplexityClassifier: response has no JSON block: {raw[:200]!r}")
     try:
         payload = json.loads(match.group(0))
     except json.JSONDecodeError as exc:
@@ -172,9 +166,7 @@ def _parse_decision(raw: str) -> ComplexityDecision:
 
     level_raw = payload.get("level") if isinstance(payload, dict) else None
     if not isinstance(level_raw, str):
-        raise ClassifierError(
-            f"ComplexityClassifier: response missing 'level' field: {payload!r}"
-        )
+        raise ClassifierError(f"ComplexityClassifier: response missing 'level' field: {payload!r}")
     level_norm = level_raw.strip().upper()
     if level_norm not in ComplexityLevel.__members__:
         raise ClassifierError(

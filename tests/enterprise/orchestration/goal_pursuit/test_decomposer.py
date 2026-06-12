@@ -38,13 +38,15 @@ class EmptyLLM(LLMDecomposerPort):
 def _make_sub_goals(count: int) -> list[dict[str, object]]:
     goals: list[dict[str, object]] = []
     for i in range(count):
-        deps: list[str] = [f"sg-{i-1}"] if i > 0 else []
-        goals.append({
-            "id": f"sg-{i}",
-            "description": f"Sub-goal {i}",
-            "dependencies": deps,
-            "completion_criteria": f"Criteria for sg-{i}",
-        })
+        deps: list[str] = [f"sg-{i - 1}"] if i > 0 else []
+        goals.append(
+            {
+                "id": f"sg-{i}",
+                "description": f"Sub-goal {i}",
+                "dependencies": deps,
+                "completion_criteria": f"Criteria for sg-{i}",
+            }
+        )
     return goals
 
 
@@ -73,13 +75,15 @@ def test_max_depth_respected() -> None:
     # Create a deep chain that exceeds max_depth=2
     goals: list[dict[str, object]] = []
     for i in range(5):
-        deps: list[str] = [f"sg-{i-1}"] if i > 0 else []
-        goals.append({
-            "id": f"sg-{i}",
-            "description": f"Step {i}",
-            "dependencies": deps,
-            "completion_criteria": f"Done {i}",
-        })
+        deps: list[str] = [f"sg-{i - 1}"] if i > 0 else []
+        goals.append(
+            {
+                "id": f"sg-{i}",
+                "description": f"Step {i}",
+                "dependencies": deps,
+                "completion_criteria": f"Done {i}",
+            }
+        )
     llm = FakeLLM(goals)
     decomposer = GoalDecomposer(llm)
     with pytest.raises(MaxDepthExceededError):

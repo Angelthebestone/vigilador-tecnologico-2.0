@@ -50,9 +50,7 @@ class WikidataFactCheckAdapter:
         params = {"format": "json", "query": sparql}
         headers = {"User-Agent": "VigilanciaTecnologica/1.0"}
         try:
-            response = await self._client.get(
-                _SPARQL_URL, params=params, headers=headers
-            )
+            response = await self._client.get(_SPARQL_URL, params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
             bindings = data.get("results", {}).get("bindings", [])

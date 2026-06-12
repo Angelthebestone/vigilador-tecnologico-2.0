@@ -14,15 +14,15 @@ import re
 from typing import cast
 from uuid import uuid4
 
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.evaluation_entities import CounterfactualScenario
 from vigilancia_multiagente.domain.models import FinalReport
 from vigilancia_multiagente.domain.pipeline_errors import (
     StepError,
     StepErrorSeverity,
     Workstream,
-)
-from vigilancia_multiagente.application.evaluation.prompt_messages import (
-    build_messages_with_fewshot,
 )
 from vigilancia_multiagente.domain.ports.counterfactual import CounterfactualSynthesizer
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient

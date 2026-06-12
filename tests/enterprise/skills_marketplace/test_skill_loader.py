@@ -32,7 +32,9 @@ class FakeToolRegistry:
         return name in self._available
 
 
-def _write_skill(path: Path, skill_id: str, description: str = "A skill", caps: list[str] | None = None) -> None:
+def _write_skill(
+    path: Path, skill_id: str, description: str = "A skill", caps: list[str] | None = None
+) -> None:
     caps_line = f"required_capabilities: {caps}" if caps else ""
     content = f"""\
 ---
@@ -207,8 +209,13 @@ async def test_load_real_kdense_marketplace():
     """Integration: load real ``_vendor/k_dense`` (D2) — expects >= 1 skill."""
     repo_root = Path(__file__).resolve().parents[3]
     vendor_path = (
-        repo_root / "src" / "vigilancia_multiagente" / "enterprise"
-        / "skills_marketplace" / "_vendor" / "k_dense"
+        repo_root
+        / "src"
+        / "vigilancia_multiagente"
+        / "enterprise"
+        / "skills_marketplace"
+        / "_vendor"
+        / "k_dense"
     )
     if not vendor_path.is_dir():
         return  # vendor not cloned in this checkout

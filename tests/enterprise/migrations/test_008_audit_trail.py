@@ -70,7 +70,9 @@ async def test_migration_idempotent(engine: AsyncEngine) -> None:
     await _apply(engine)  # Second apply - must not fail
     async with engine.connect() as conn:
         result = await conn.execute(
-            text("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'agent_modifications'")
+            text(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'agent_modifications'"
+            )
         )
         assert result.scalar() == 1
 
@@ -83,6 +85,8 @@ async def test_drop_does_not_affect_other_tables(engine: AsyncEngine) -> None:
         await conn.execute(text("DROP TABLE IF EXISTS agent_modifications CASCADE"))
     async with engine.connect() as conn:
         result = await conn.execute(
-            text("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'agent_modifications'")
+            text(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'agent_modifications'"
+            )
         )
         assert result.scalar() == 0

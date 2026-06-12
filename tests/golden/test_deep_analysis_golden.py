@@ -5,6 +5,7 @@ Golden case 'alphafold-baseline' valida curva-S y meta-analisis.
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -24,17 +25,7 @@ from vigilancia_multiagente.application.evaluation.ws_c.llm_counterfactual_synth
 from vigilancia_multiagente.application.evaluation.ws_c.llm_critical_dependency_mapper import (
     LlmCriticalDependencyMapper,
 )
-from vigilancia_multiagente.domain.evaluation_entities import (
-    AssumptionSeverity,
-    CounterfactualScenario,
-    CriticalDependency,
-    DependencyKind,
-    RiskLevel,
-    SCurveProjection,
-)
-from unittest.mock import MagicMock
-
-from vigilancia_multiagente.domain.models import Finding, FinalReport
+from vigilancia_multiagente.domain.models import FinalReport, Finding
 
 
 class DummyResponse:
@@ -72,9 +63,17 @@ async def test_alphafold_s_curve_projection() -> None:
     """Curva-S para AlphaFold: R^2 >= 0.8, growth_rate > 0."""
     forecaster = ScipyLogisticForecaster()
     timeseries = [
-        (2016, 1), (2017, 2), (2018, 5), (2019, 12),
-        (2020, 30), (2021, 65), (2022, 100), (2023, 130),
-        (2024, 145), (2025, 152), (2026, 155),
+        (2016, 1),
+        (2017, 2),
+        (2018, 5),
+        (2019, 12),
+        (2020, 30),
+        (2021, 65),
+        (2022, 100),
+        (2023, 130),
+        (2024, 145),
+        (2025, 152),
+        (2026, 155),
     ]
 
     proj = forecaster.fit_s_curve("AlphaFold", "BIO", timeseries)

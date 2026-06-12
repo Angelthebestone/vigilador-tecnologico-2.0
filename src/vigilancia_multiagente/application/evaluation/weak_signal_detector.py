@@ -129,7 +129,8 @@ class WeakSignalReport:
 class WeakSignalDetector:
     """No requiere LLM: opera sobre los statements de findings ya recolectados
     y la memoria recurrente que CrossSessionService ya expone."""
-# STATUS: ACTIVE
+
+    # STATUS: ACTIVE
 
     def degrade_to_sub_signal(
         self,
@@ -139,11 +140,10 @@ class WeakSignalDetector:
         """Degrada la heuristica por frecuencia a sub-senal si hay ConvergenceCluster."""
         from vigilancia_multiagente.domain.evaluation_entities import ConvergenceCluster
 
-        if convergence_clusters and any(
-            isinstance(c, ConvergenceCluster) for c in convergence_clusters
-        ):
-            return True
-        return False
+        return bool(
+            convergence_clusters
+            and any(isinstance(c, ConvergenceCluster) for c in convergence_clusters)
+        )
 
     def detect(
         self,

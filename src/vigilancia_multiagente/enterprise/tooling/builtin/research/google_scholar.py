@@ -48,9 +48,7 @@ class GoogleScholarTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -62,29 +60,21 @@ class GoogleScholarTool:
         try:
             from scholarly import scholarly
         except ImportError as exc:
-            raise RuntimeError(
-                "GoogleScholarTool: scholarly package not installed"
-            ) from exc
+            raise RuntimeError("GoogleScholarTool: scholarly package not installed") from exc
 
         if tool_name == "search_papers":
             query = args.get("query")
             if not isinstance(query, str) or not query.strip():
-                raise ValueError(
-                    "GoogleScholarTool: 'query' must be a non-empty string"
-                )
+                raise ValueError("GoogleScholarTool: 'query' must be a non-empty string")
             num_results = args.get("num_results", 5)
             if not isinstance(num_results, int) or num_results <= 0:
                 num_results = 5
-            return await asyncio.to_thread(
-                _search_papers, scholarly, query, num_results
-            )
+            return await asyncio.to_thread(_search_papers, scholarly, query, num_results)
 
         if tool_name == "get_citations":
             paper_title = args.get("paper_title")
             if not isinstance(paper_title, str) or not paper_title.strip():
-                raise ValueError(
-                    "GoogleScholarTool: 'paper_title' must be a non-empty string"
-                )
+                raise ValueError("GoogleScholarTool: 'paper_title' must be a non-empty string")
             return await asyncio.to_thread(_get_citations, scholarly, paper_title)
 
         raise ValueError(
@@ -98,9 +88,7 @@ class GoogleScholarTool:
 # ---------------------------------------------------------------------------
 
 
-def _search_papers(
-    scholarly_mod: object, query: str, num_results: int
-) -> dict[str, object]:
+def _search_papers(scholarly_mod: object, query: str, num_results: int) -> dict[str, object]:
     """Search Google Scholar and return up to ``num_results`` papers."""
     iterator = scholarly_mod.search_pubs(query)  # type: ignore[attr-defined]
     out: list[dict[str, object]] = []
@@ -118,9 +106,7 @@ def _search_papers(
                 "year": bib.get("pub_year", ""),
                 "venue": bib.get("venue", ""),
                 "url": pub.get("pub_url", "") if isinstance(pub, dict) else "",
-                "num_citations": pub.get("num_citations", 0)
-                if isinstance(pub, dict)
-                else 0,
+                "num_citations": pub.get("num_citations", 0) if isinstance(pub, dict) else 0,
             }
         )
     return {"query": query, "results": out}

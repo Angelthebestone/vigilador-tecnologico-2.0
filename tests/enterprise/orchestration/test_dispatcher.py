@@ -96,10 +96,12 @@ def playbook_dir(tmp_path):
 
 @pytest.fixture
 def fake_registry():
-    return _FakeRegistry({
-        "default": _FakeMode("default", "general"),
-        "CEO": _FakeMode("CEO", "deep-research"),
-    })
+    return _FakeRegistry(
+        {
+            "default": _FakeMode("default", "general"),
+            "CEO": _FakeMode("CEO", "deep-research"),
+        }
+    )
 
 
 @pytest.fixture
@@ -165,9 +167,7 @@ async def test_dispatch_uses_custom_executor_when_registered(playbook_dir, fake_
 
 
 @pytest.mark.asyncio
-async def test_dispatch_raises_unavailable_when_playbook_missing(
-    fake_registry, tmp_path
-):
+async def test_dispatch_raises_unavailable_when_playbook_missing(fake_registry, tmp_path):
     """Pointing at an empty playbook dir surfaces a typed error."""
     cascade = CascadeResolver(registry=fake_registry, default_mode="default")
     deps = DispatcherDeps(
@@ -185,9 +185,7 @@ async def test_dispatch_raises_unavailable_when_playbook_missing(
 
 
 @pytest.mark.asyncio
-async def test_dispatch_passes_complexity_when_classifier_present(
-    playbook_dir, fake_registry
-):
+async def test_dispatch_passes_complexity_when_classifier_present(playbook_dir, fake_registry):
     class _StubClassifier:
         async def classify(self, query):
             from vigilancia_multiagente.enterprise.orchestration.complexity_classifier import (

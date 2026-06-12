@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from vigilancia_multiagente.enterprise.orchestration.goal_pursuit.approval_gate import (
@@ -25,7 +25,6 @@ from vigilancia_multiagente.enterprise.orchestration.goal_pursuit.dependency_res
 )
 from vigilancia_multiagente.enterprise.orchestration.goal_pursuit.goal_executor import (
     GoalExecutor,
-    GoalState,
     SubGoalRunnerPort,
 )
 from vigilancia_multiagente.enterprise.orchestration.goal_pursuit.ports import (
@@ -33,7 +32,6 @@ from vigilancia_multiagente.enterprise.orchestration.goal_pursuit.ports import (
     GoalDAG,
     SubGoal,
 )
-
 
 # --- Fakes ---
 
@@ -47,13 +45,15 @@ class FakeLLM(LLMDecomposerPort):
     ) -> list[dict[str, object]]:
         goals: list[dict[str, object]] = []
         for i in range(self._count):
-            deps: list[str] = [f"sg-{i-1}"] if i > 0 else []
-            goals.append({
-                "id": f"sg-{i}",
-                "description": f"Step {i}",
-                "dependencies": deps,
-                "completion_criteria": f"Done {i}",
-            })
+            deps: list[str] = [f"sg-{i - 1}"] if i > 0 else []
+            goals.append(
+                {
+                    "id": f"sg-{i}",
+                    "description": f"Step {i}",
+                    "dependencies": deps,
+                    "completion_criteria": f"Done {i}",
+                }
+            )
         return goals
 
 
@@ -125,7 +125,7 @@ def _valid_token() -> CapabilityToken:
 
 
 def test_full_flow_5_sub_goals_with_checkpoints() -> None:
-    executor, store, runner, channel = _make_executor(llm_count=5, checkpoint_n=2)
+    executor, _store, _runner, channel = _make_executor(llm_count=5, checkpoint_n=2)
     goal_id = uuid4()
     state = executor.execute(goal_id, "complex goal", {}, _valid_token(), max_depth=10)
     assert state.status == "COMPLETED"
@@ -134,12 +134,12 @@ def test_full_flow_5_sub_goals_with_checkpoints() -> None:
 
 
 def test_pause_resume_works() -> None:
-    executor, store, runner, channel = _make_executor(llm_count=3)
+    executor, _store, _runner, _channel = _make_executor(llm_count=3)
     goal_id = uuid4()
     state = executor.execute(goal_id, "goal", {}, _valid_token(), max_depth=10)
     assert state.status == "COMPLETED"
     # Simulate pause/resume on a fresh state
-    executor2, store2, runner2, channel2 = _make_executor(llm_count=3)
+    executor2, _store2, _runner2, _channel2 = _make_executor(llm_count=3)
     goal_id2 = uuid4()
     state2 = executor2.execute(goal_id2, "goal", {}, _valid_token(), max_depth=10)
     paused = executor2.pause(state2)
@@ -149,7 +149,7 @@ def test_pause_resume_works() -> None:
 
 
 def test_cancel_marks_active_sub_goals_failed() -> None:
-    executor, store, runner, channel = _make_executor(llm_count=5, fail_ids=frozenset({"sg-2"}))
+    executor, _store, _runner, _channel = _make_executor(llm_count=5, fail_ids=frozenset({"sg-2"}))
     goal_id = uuid4()
     state = executor.execute(goal_id, "goal", {}, _valid_token(), max_depth=10)
     # State is paused because sg-2 failed after retries
@@ -160,7 +160,7 @@ def test_cancel_marks_active_sub_goals_failed() -> None:
 
 
 def test_restart_recovery_from_checkpoint() -> None:
-    executor, store, runner, channel = _make_executor(llm_count=3)
+    executor, _store, _runner, _channel = _make_executor(llm_count=3)
     goal_id = uuid4()
     # Execute fully first to populate store
     state = executor.execute(goal_id, "goal", {}, _valid_token(), max_depth=10)
@@ -179,8 +179,8 @@ def test_token_expires_pauses_goal() -> None:
         goal_id=uuid4(),
         ttl_seconds=1,
         scopes=frozenset({"all"}),
-        issued_at=datetime.now(tz=timezone.utc) - timedelta(seconds=100),
-        expires_at=datetime.now(tz=timezone.utc) - timedelta(seconds=90),
+        issued_at=datetime.now(tz=UTC) - timedelta(seconds=100),
+        expires_at=datetime.now(tz=UTC) - timedelta(seconds=90),
         token_id=uuid4(),
     )
     executor = GoalExecutor(
@@ -197,9 +197,7 @@ def test_token_expires_pauses_goal() -> None:
 
 
 def test_sub_goal_fails_after_3_retries_pauses_goal() -> None:
-    executor, store, runner, channel = _make_executor(
-        llm_count=3, fail_ids=frozenset({"sg-0"})
-    )
+    executor, _store, _runner, _channel = _make_executor(llm_count=3, fail_ids=frozenset({"sg-0"}))
     goal_id = uuid4()
     state = executor.execute(goal_id, "goal", {}, _valid_token(), max_depth=10)
     assert state.status == "PAUSED"

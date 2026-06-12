@@ -24,11 +24,7 @@ class MockLLMClient:
         self.complete = AsyncMock()
 
     def set_logprob(self, logprob: float) -> None:
-        self.complete.return_value = {
-            "choices": [{
-                "logprobs": {"token_logprobs": [logprob] * 5}
-            }]
-        }
+        self.complete.return_value = {"choices": [{"logprobs": {"token_logprobs": [logprob] * 5}}]}
 
 
 @pytest.fixture

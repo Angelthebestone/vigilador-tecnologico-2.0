@@ -172,9 +172,7 @@ def is_always_blocked_url(url: str) -> bool:
             ip = None
 
         if ip is not None:
-            if ip in _ALWAYS_BLOCKED_IPS or any(
-                ip in net for net in _ALWAYS_BLOCKED_NETWORKS
-            ):
+            if ip in _ALWAYS_BLOCKED_IPS or any(ip in net for net in _ALWAYS_BLOCKED_NETWORKS):
                 logger.warning(
                     "Blocked request to cloud metadata address (always-blocked floor): %s",
                     hostname,
@@ -183,9 +181,7 @@ def is_always_blocked_url(url: str) -> bool:
             return False
 
         try:
-            addr_info = socket.getaddrinfo(
-                hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM
-            )
+            addr_info = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
         except socket.gaierror:
             return False
 
@@ -246,13 +242,9 @@ def is_safe_url(url: str) -> bool:
         allow_private_ip = _allows_private_ip_resolution(hostname, scheme)
 
         try:
-            addr_info = socket.getaddrinfo(
-                hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM
-            )
+            addr_info = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
         except socket.gaierror:
-            logger.warning(
-                "Blocked request — DNS resolution failed for: %s", hostname
-            )
+            logger.warning("Blocked request — DNS resolution failed for: %s", hostname)
             return False
 
         for _family, _, _, _, sockaddr in addr_info:
@@ -262,9 +254,7 @@ def is_safe_url(url: str) -> bool:
             except ValueError:
                 continue
 
-            if ip in _ALWAYS_BLOCKED_IPS or any(
-                ip in net for net in _ALWAYS_BLOCKED_NETWORKS
-            ):
+            if ip in _ALWAYS_BLOCKED_IPS or any(ip in net for net in _ALWAYS_BLOCKED_NETWORKS):
                 logger.warning(
                     "Blocked request to cloud metadata address: %s -> %s",
                     hostname,
@@ -272,11 +262,7 @@ def is_safe_url(url: str) -> bool:
                 )
                 return False
 
-            if (
-                not allow_all_private
-                and not allow_private_ip
-                and _is_blocked_ip(ip)
-            ):
+            if not allow_all_private and not allow_private_ip and _is_blocked_ip(ip):
                 logger.warning(
                     "Blocked request to private/internal address: %s -> %s",
                     hostname,

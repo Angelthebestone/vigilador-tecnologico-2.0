@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -161,9 +162,7 @@ class AuditLog:
                 "agent_id": agent_id,
                 "session_id": session_id,
                 "prompt_excerpt": (
-                    prompt_excerpt[: self.excerpt_max_chars]
-                    if prompt_excerpt is not None
-                    else None
+                    prompt_excerpt[: self.excerpt_max_chars] if prompt_excerpt is not None else None
                 ),
                 "error": error,
             }
@@ -232,9 +231,7 @@ class AuditLog:
         try:
             self.audit_dir.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            raise AuditLogError(
-                f"Cannot create audit directory {self.audit_dir}: {exc}"
-            ) from exc
+            raise AuditLogError(f"Cannot create audit directory {self.audit_dir}: {exc}") from exc
 
         now = datetime.now(UTC)
         payload = {"timestamp": now.isoformat(), **payload}

@@ -80,34 +80,27 @@ async def test_post_providers_rejects_unknown_reranker(client):
 
 
 @pytest.mark.asyncio
-async def test_post_connectors_drive_returns_authorize_url_when_unconfigured(
-    client, monkeypatch
-):
+async def test_post_connectors_drive_returns_authorize_url_when_unconfigured(client, monkeypatch):
     """Without VT_GOOGLE_CLIENT_ID set, the endpoint surfaces 503."""
     from vigilancia_multiagente.config import settings as settings_module
 
     settings_module.get_settings.cache_clear()
-    monkeypatch.delenv("VT_GOOGLE_CLIENT_ID", raising=False)
-    resp = await client.post(
-        "/api/v2/enterprise/onboarding/connectors/drive", json={}
-    )
+    monkeypatch.setenv("VT_GOOGLE_CLIENT_ID", "")
+    settings_module.get_settings.cache_clear()
+    resp = await client.post("/api/v2/enterprise/onboarding/connectors/drive", json={})
     assert resp.status_code == 503
     assert "google_client_id" in resp.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
-async def test_post_connectors_drive_returns_url_with_client_id(
-    client, monkeypatch
-):
+async def test_post_connectors_drive_returns_url_with_client_id(client, monkeypatch):
     """When VT_GOOGLE_CLIENT_ID is configured, returns an authorize URL."""
     from vigilancia_multiagente.config import settings as settings_module
 
     monkeypatch.setenv("VT_GOOGLE_CLIENT_ID", "client-abc-123")
     settings_module.get_settings.cache_clear()
 
-    resp = await client.post(
-        "/api/v2/enterprise/onboarding/connectors/drive", json={}
-    )
+    resp = await client.post("/api/v2/enterprise/onboarding/connectors/drive", json={})
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "authorize_required"
@@ -120,9 +113,7 @@ async def test_post_connectors_drive_returns_url_with_client_id(
 
 
 @pytest.mark.asyncio
-async def test_post_connectors_drive_with_auth_code_records_intent(
-    client, monkeypatch
-):
+async def test_post_connectors_drive_with_auth_code_records_intent(client, monkeypatch):
     from vigilancia_multiagente.config import settings as settings_module
 
     monkeypatch.setenv("VT_GOOGLE_CLIENT_ID", "client-id")
@@ -153,9 +144,7 @@ async def test_post_ingest_initial_accepts_default_connector(client, monkeypatch
     monkeypatch.setenv("VT_INGESTION_ENABLED", "true")
     settings_module.get_settings.cache_clear()
 
-    resp = await client.post(
-        "/api/v2/enterprise/onboarding/ingest/initial", json={}
-    )
+    resp = await client.post("/api/v2/enterprise/onboarding/ingest/initial", json={})
     assert resp.status_code == 202
     body = resp.json()
     assert body["status"] == "accepted"
@@ -182,7 +171,9 @@ async def test_post_ingest_initial_rejects_unknown_connector(client):
 
 
 @pytest.mark.asyncio
-async def test_no_endpoint_requires_authorization_header(client, mock_company_repo, tmp_path, monkeypatch):
+async def test_no_endpoint_requires_authorization_header(
+    client, mock_company_repo, tmp_path, monkeypatch
+):
     from vigilancia_multiagente.api.routes import enterprise_onboarding
 
     monkeypatch.setattr(enterprise_onboarding, "_project_root", lambda: tmp_path)
@@ -194,10 +185,11 @@ async def test_no_endpoint_requires_authorization_header(client, mock_company_re
 
     # All four endpoints called without any Authorization header.
     payloads = [
-        ("/api/v2/enterprise/onboarding/company",
-         {"name": "X", "geo": {"country": "CO"}}),
-        ("/api/v2/enterprise/onboarding/providers",
-         {"embedding_provider": "gemini", "reranker_provider": "cohere"}),
+        ("/api/v2/enterprise/onboarding/company", {"name": "X", "geo": {"country": "CO"}}),
+        (
+            "/api/v2/enterprise/onboarding/providers",
+            {"embedding_provider": "gemini", "reranker_provider": "cohere"},
+        ),
         ("/api/v2/enterprise/onboarding/connectors/drive", {}),
         ("/api/v2/enterprise/onboarding/ingest/initial", {}),
     ]

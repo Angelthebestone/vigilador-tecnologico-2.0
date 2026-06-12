@@ -153,12 +153,18 @@ def test_command_skill_hash_drives_revalidation_signal():
     the same id, the registry/loader treats them as candidates for
     PENDING_REVALIDATION (driven by HashTracker; here we verify the field)."""
     a = CommandSkill(
-        id="cmd.x", display_name="x", description="x",
-        source=SkillSource.CURATED, content_hash="hash-v1",
+        id="cmd.x",
+        display_name="x",
+        description="x",
+        source=SkillSource.CURATED,
+        content_hash="hash-v1",
     )
     b = CommandSkill(
-        id="cmd.x", display_name="x", description="x",
-        source=SkillSource.CURATED, content_hash="hash-v2",
+        id="cmd.x",
+        display_name="x",
+        description="x",
+        source=SkillSource.CURATED,
+        content_hash="hash-v2",
     )
     assert a.content_hash != b.content_hash
 

@@ -83,9 +83,7 @@ class StubAgentExecutor:
         self.label = label
         self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    async def execute(
-        self, agent_id: str, inputs: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def execute(self, agent_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
         self.calls.append((agent_id, dict(inputs)))
         return {
             "agent": agent_id,
@@ -155,9 +153,7 @@ class Dispatcher:
         complexity_reason: str | None = None
         if self._deps.complexity_classifier is not None:
             try:
-                decision = await self._deps.complexity_classifier.classify(
-                    request.message
-                )
+                decision = await self._deps.complexity_classifier.classify(request.message)
                 complexity_level = decision.level.value
                 complexity_reason = decision.reason
             except Exception as exc:
@@ -174,8 +170,7 @@ class Dispatcher:
             playbook = load_playbook(playbook_path)
         except PlaybookError as exc:
             raise DispatcherUnavailableError(
-                f"Dispatcher: cannot load playbook '{playbook_id}' for mode "
-                f"'{mode_id}': {exc}"
+                f"Dispatcher: cannot load playbook '{playbook_id}' for mode '{mode_id}': {exc}"
             ) from exc
 
         # 4. Pick executor for this playbook

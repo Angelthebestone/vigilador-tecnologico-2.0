@@ -117,9 +117,7 @@ def test_tool_wrapper_protocol_surface():
 async def test_capture_returns_screenshot_payload():
     fake = _FakeBackend()
     tool = ComputerUseTool(backend=fake, enabled=True)
-    result = await tool.execute(
-        "computer_use", {"action": "capture", "mode": "som"}
-    )
+    result = await tool.execute("computer_use", {"action": "capture", "mode": "som"})
     assert result["mode"] == "som"
     assert result["png_b64"] == "b64"
     assert fake.last_call == ("capture", {"mode": "som", "app": None})
@@ -133,9 +131,7 @@ async def test_capture_returns_screenshot_payload():
 @pytest.mark.asyncio
 async def test_click_allowlisted_app_passes_gate():
     fake = _FakeBackend()
-    tool = ComputerUseTool(
-        backend=fake, enabled=True, app_allowlist=("Notepad",)
-    )
+    tool = ComputerUseTool(backend=fake, enabled=True, app_allowlist=("Notepad",))
     result = await tool.execute(
         "computer_use",
         {"action": "click", "app": "Notepad", "coordinate": [100, 200]},
@@ -159,9 +155,7 @@ async def test_type_applies_text_after_callback_approval():
         return "approve_once"
 
     set_approval_callback(_approve)
-    result = await tool.execute(
-        "computer_use", {"action": "type", "text": "hello"}
-    )
+    result = await tool.execute("computer_use", {"action": "type", "text": "hello"})
     assert result["ok"] is True
     assert fake.last_call == ("type_text", {"text": "hello"})
 
@@ -197,7 +191,9 @@ async def test_disabled_tool_raises_explicit_error():
 async def test_destructive_outside_allowlist_no_callback_denies():
     fake = _FakeBackend()
     tool = ComputerUseTool(
-        backend=fake, enabled=True, app_allowlist=("Notepad",),
+        backend=fake,
+        enabled=True,
+        app_allowlist=("Notepad",),
     )
     set_approval_callback(None)  # no callback registered
     with pytest.raises(PermissionError, match="denied by approval gate"):
@@ -217,9 +213,7 @@ async def test_callback_deny_is_honored():
 
     set_approval_callback(_deny)
     with pytest.raises(PermissionError, match="denied by approval gate"):
-        await tool.execute(
-            "computer_use", {"action": "click", "coordinate": [10, 20]}
-        )
+        await tool.execute("computer_use", {"action": "click", "coordinate": [10, 20]})
 
 
 # ---------------------------------------------------------------------------
@@ -230,9 +224,7 @@ async def test_callback_deny_is_honored():
 @pytest.mark.asyncio
 async def test_hard_blocked_key_combo_refused_even_when_allowlisted():
     fake = _FakeBackend()
-    tool = ComputerUseTool(
-        backend=fake, enabled=True, app_allowlist=("Notepad",)
-    )
+    tool = ComputerUseTool(backend=fake, enabled=True, app_allowlist=("Notepad",))
     with pytest.raises(PermissionError, match="hard-blocked"):
         await tool.execute(
             "computer_use",
@@ -243,9 +235,7 @@ async def test_hard_blocked_key_combo_refused_even_when_allowlisted():
 @pytest.mark.asyncio
 async def test_hard_blocked_type_pattern_refused():
     fake = _FakeBackend()
-    tool = ComputerUseTool(
-        backend=fake, enabled=True, app_allowlist=("Notepad",)
-    )
+    tool = ComputerUseTool(backend=fake, enabled=True, app_allowlist=("Notepad",))
     with pytest.raises(PermissionError, match="hard-blocked pattern"):
         await tool.execute(
             "computer_use",

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -233,7 +233,7 @@ class TestMetrics:
         target = base_path / "config" / "skills" / "search.yaml"
         target.write_text("old\n", encoding="utf-8")
 
-        before = agent_modifications_total._metrics.copy()
+        agent_modifications_total._metrics.copy()
 
         modifier = AgentModifier(
             session=mock_session,

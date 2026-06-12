@@ -53,8 +53,12 @@ class _FakeBranchCoordinator:
         return [
             _FakeBranchResult(branch_type=b)
             for b in (
-                "avances_tecnologicos", "inteligencia_comercial",
-                "normativa", "riesgos", "mercado", "social",
+                "avances_tecnologicos",
+                "inteligencia_comercial",
+                "normativa",
+                "riesgos",
+                "mercado",
+                "social",
             )
         ]
 
@@ -72,8 +76,12 @@ async def test_wrapper_invokes_branch_coordinator_with_session_and_plan():
     assert result["branches"] == 6
     assert isinstance(result["value"], list)
     assert {b["branch_type"] for b in result["value"]} == {
-        "avances_tecnologicos", "inteligencia_comercial",
-        "normativa", "riesgos", "mercado", "social",
+        "avances_tecnologicos",
+        "inteligencia_comercial",
+        "normativa",
+        "riesgos",
+        "mercado",
+        "social",
     }
 
 

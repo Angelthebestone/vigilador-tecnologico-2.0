@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
 
 from vigilancia_multiagente.enterprise.skills_marketplace.skill_models import (
@@ -16,7 +18,15 @@ from vigilancia_multiagente.enterprise.skills_marketplace.skill_registry import 
 class FakeEmbeddingGateway:
     """Fake embedding gateway that returns vectors based on word overlap."""
 
-    _VOCAB = ["generar", "reporte", "mensual", "deploy", "production", "plan", "skill"]
+    _VOCAB: ClassVar[list[str]] = [
+        "generar",
+        "reporte",
+        "mensual",
+        "deploy",
+        "production",
+        "plan",
+        "skill",
+    ]
 
     async def embed(self, text: str, task_type: str = "") -> list[float]:
         lower = text.lower()

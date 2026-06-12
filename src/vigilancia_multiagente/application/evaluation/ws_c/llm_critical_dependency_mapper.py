@@ -66,17 +66,17 @@ class LlmCriticalDependencyMapper(CriticalDependencyMapper):
             f"Responde SOLO con JSON array, cada item con: "
             f"name (str), dependency_kind (material|library|vendor|regulation), "
             f"risk_level (low|medium|high).\n\n"
-            f"Hallazgos relevantes:\n"
-            + "\n".join(
-                f"- {f.statement[:200]}" for f in findings
-            )
+            f"Hallazgos relevantes:\n" + "\n".join(f"- {f.statement[:200]}" for f in findings)
         )
 
         messages = [
-            MiniMaxMessage(role="system", content=(
-                "Eres un analista de dependencias tecnologicas. "
-                "Responde SOLO con JSON array valido."
-            )),
+            MiniMaxMessage(
+                role="system",
+                content=(
+                    "Eres un analista de dependencias tecnologicas. "
+                    "Responde SOLO con JSON array valido."
+                ),
+            ),
             MiniMaxMessage(role="user", content=llm_prompt),
         ]
         try:

@@ -90,6 +90,7 @@ async def test_no_assumptions_detected() -> None:
 @pytest.mark.asyncio
 async def test_llm_failure_returns_empty_list() -> None:
     """Fallo de LLM -> StepError + lista vacia."""
+
     class FailingLLM:
         async def complete(self, messages):
             raise RuntimeError("LLM timeout")
@@ -107,6 +108,7 @@ async def test_llm_failure_returns_empty_list() -> None:
 @pytest.mark.asyncio
 async def test_missing_prompt_file() -> None:
     """Prompt file faltante -> lista vacia."""
+
     class MissingPromptLoader:
         def load(self, path: str) -> str:
             raise FileNotFoundError(f"{path} not found")

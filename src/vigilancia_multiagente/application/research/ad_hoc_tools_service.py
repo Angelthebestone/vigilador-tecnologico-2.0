@@ -39,11 +39,6 @@ class AdHocResearchToolsService:
         payload = response.payload
         if self._ws_b_enabled and self._schema_registry is not None:
             try:
-                from vigilancia_multiagente.domain.evaluation_entities import (
-                    ExtractionSchema,
-                    SourceType,
-                )
-
                 schema = self._schema_registry.get_schema(  # type: ignore[attr-defined]
                     "news", "general"
                 )

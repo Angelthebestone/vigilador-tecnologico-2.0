@@ -166,7 +166,7 @@ class BranchCoordinator:
         depth_limit: int,
     ):
         agent = self._agents[branch.branch_type]
-        session_key = str(session.id)
+        str(session.id)
         if self._event_publisher is not None:
             await self._event_publisher.publish(
                 session.id,
@@ -245,9 +245,7 @@ class BranchCoordinator:
             }
             try:
                 output = await agent.run(session, sub_branch, depth_limit=2)
-                self._sub_results_by_session.setdefault(session.id, []).append(
-                    output.branch_result
-                )
+                self._sub_results_by_session.setdefault(session.id, []).append(output.branch_result)
                 signal_record["sub_executed"] = True
             except Exception as exc:
                 logger.warning("Cross-signal sub-execution failed: %s", exc)

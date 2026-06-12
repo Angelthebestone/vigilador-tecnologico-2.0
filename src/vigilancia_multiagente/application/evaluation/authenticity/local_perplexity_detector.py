@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import math
 import re
-from uuid import UUID
 
 from vigilancia_multiagente.domain.evaluation_entities import ContentAuthenticitySignal
 from vigilancia_multiagente.domain.models import SourceRef
@@ -84,8 +83,7 @@ class LocalPerplexityAuthenticityDetector:
         if mean == 0:
             return 0.0
         variance = sum((x - mean) ** 2 for x in lengths) / len(lengths)
-        burstiness = min(1.0, math.sqrt(variance) / mean)
-        return burstiness
+        return min(1.0, math.sqrt(variance) / mean)
 
     @staticmethod
     def _count_boilerplate(text: str) -> int:
@@ -97,10 +95,7 @@ class LocalPerplexityAuthenticityDetector:
     @staticmethod
     def _combine(perplexity: float, burstiness: float, boilerplate: int) -> float:
         boilerplate_score = min(1.0, boilerplate / 5.0) * 0.3
-        if perplexity > 0:
-            perplexity_score = max(0.0, 1.0 - perplexity / 10.0) * 0.4
-        else:
-            perplexity_score = 0.0
+        perplexity_score = max(0.0, 1.0 - perplexity / 10.0) * 0.4 if perplexity > 0 else 0.0
         boost_score = (1.0 - burstiness) * 0.3
         return min(1.0, perplexity_score + boost_score + boilerplate_score)
 

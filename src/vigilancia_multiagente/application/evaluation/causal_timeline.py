@@ -54,8 +54,8 @@ class CausalTimeline:
 class CausalTimelineBuilder:
     """Determinístico (sin LLM): infiere causalidad por tipo de evento +
     proximidad temporal usando la precedencia canónica research->market."""
-# STATUS: ACTIVE
 
+    # STATUS: ACTIVE
 
     def build(self, branch_results: list[BranchResult], max_gap_years: int = 3) -> CausalTimeline:
         timeline = CausalTimeline()

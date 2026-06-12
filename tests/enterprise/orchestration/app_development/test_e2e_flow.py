@@ -25,8 +25,12 @@ async def test_e2e_compleja_full_flow() -> None:
     fs = FakeFileSystem(exists=True)
 
     coordinator = PhaseCoordinator(
-        llm=llm, template=template, sandbox=sandbox,
-        approval=approval, audit=audit, file_system=fs,
+        llm=llm,
+        template=template,
+        sandbox=sandbox,
+        approval=approval,
+        audit=audit,
+        file_system=fs,
     )
     state = await coordinator.run("COMPLEJA", "script Python que procese CSV")
 
@@ -62,8 +66,12 @@ async def test_e2e_copy_final_fails_if_dir_missing() -> None:
     fs = FakeFileSystem(exists=False)
 
     coordinator = PhaseCoordinator(
-        llm=llm, template=template, sandbox=sandbox,
-        approval=approval, audit=audit, file_system=fs,
+        llm=llm,
+        template=template,
+        sandbox=sandbox,
+        approval=approval,
+        audit=audit,
+        file_system=fs,
     )
     state = await coordinator.run("MODERADA", "build tool")
     with pytest.raises(DirectoryNotWritableError):

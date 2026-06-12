@@ -123,10 +123,7 @@ def _parse_branches_from_llm(data: list[dict]) -> list[BranchConfig]:
             bt = BranchType(item.get("type", "").upper())
         except ValueError:
             continue
-        providers = [
-            provider
-            for provider in item.get("mcp_providers", DEFAULT_PROVIDERS[bt])
-        ] or DEFAULT_PROVIDERS[bt]
+        providers = list(item.get("mcp_providers", DEFAULT_PROVIDERS[bt])) or DEFAULT_PROVIDERS[bt]
         branches.append(
             BranchConfig(
                 branch_type=bt,

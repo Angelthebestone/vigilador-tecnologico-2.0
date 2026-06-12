@@ -120,9 +120,7 @@ def test_website_policy_blocks_listed_domain(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     invalidate_cache()
-    result = check_website_access(
-        "https://blocked.example.com/page", config_path=cfg
-    )
+    result = check_website_access("https://blocked.example.com/page", config_path=cfg)
     assert result is not None
     assert result["host"] == "blocked.example.com"
 

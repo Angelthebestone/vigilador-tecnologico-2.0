@@ -53,7 +53,11 @@ async def get_mode(request: Request, mode_id: str):
     mode = registry.get(mode_id)
     if mode is None:
         raise HTTPException(status_code=404, detail=f"Mode '{mode_id}' not found")
-    return {"id": mode.id, "name": getattr(mode, "name", mode.id), "status": getattr(mode, "status", "active")}
+    return {
+        "id": mode.id,
+        "name": getattr(mode, "name", mode.id),
+        "status": getattr(mode, "status", "active"),
+    }
 
 
 @router.get("/playbooks")

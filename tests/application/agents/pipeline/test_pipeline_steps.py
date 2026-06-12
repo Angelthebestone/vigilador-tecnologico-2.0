@@ -31,27 +31,20 @@ from vigilancia_multiagente.application.agents.pipeline.tool_loop_step import (
 from vigilancia_multiagente.application.governance.contract_loader import AgentSkillPolicy
 from vigilancia_multiagente.application.governance.prompt_composer import (
     ComposedPrompt,
-    PromptComposer,
 )
-from vigilancia_multiagente.application.governance.validators import PromptValidator
 from vigilancia_multiagente.application.research.followup_loop import IterationResult
-from vigilancia_multiagente.application.research.semantic_relations import SemanticRelation
 from vigilancia_multiagente.application.research.temporal_window import TemporalWindow
 from vigilancia_multiagente.application.routing.tool_selector import ToolSelector
 from vigilancia_multiagente.domain.models import (
     BranchConfig,
     BranchResult,
-    BranchStatus,
     BranchType,
-    Finding,
     ResearchSession,
-    SourceRef,
 )
 from vigilancia_multiagente.domain.ports.provider_registry import ProviderConfig
 from vigilancia_multiagente.domain.session_state import SessionStatus
 from vigilancia_multiagente.domain.system_base import BranchOverlay, SystemBase
 from vigilancia_multiagente.shared.mcp_dto import ToolExecutionResult
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fakes
@@ -121,9 +114,7 @@ class FakePromptComposer:
             user_query=user_query,
             sections={"global_rules": "test"},
             full_text=(
-                f"# System Base v{system_base.version}\n\n"
-                f"{overlay.objective}\n\n"
-                f"{user_query}"
+                f"# System Base v{system_base.version}\n\n{overlay.objective}\n\n{user_query}"
             ),
             prompt_composition_id="test-composition-id",
         )
@@ -920,6 +911,7 @@ class TestToolLoopStep:
         con needs_follow_up=True y next_query, forzando una 2a iteracion.
         depth_limit=2 permite 2 iteraciones.
         """
+
         class FakeToolExecutorFollowUp(FakeToolExecutor):
             """Retorna needs_follow_up=True en la 1ra iteracion."""
 

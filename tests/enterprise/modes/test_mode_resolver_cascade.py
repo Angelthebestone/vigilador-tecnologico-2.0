@@ -59,9 +59,7 @@ async def test_cascade_explicit_mode_short_circuits():
 async def test_cascade_unknown_explicit_mode_falls_through():
     reg = _StubRegistry({"default"})
     resolver = CascadeResolver(registry=reg)
-    out = await resolver.resolve(
-        ResolutionRequest(session_id="s2", explicit_mode="unregistered")
-    )
+    out = await resolver.resolve(ResolutionRequest(session_id="s2", explicit_mode="unregistered"))
     assert out == "default"
 
 
@@ -74,9 +72,7 @@ async def test_cascade_unknown_explicit_mode_falls_through():
 async def test_cascade_uses_channel_default(tmp_path):
     channels = tmp_path / "channels"
     channels.mkdir()
-    (channels / "slack.yaml").write_text(
-        "default_mode: vigilancia-tech\n", encoding="utf-8"
-    )
+    (channels / "slack.yaml").write_text("default_mode: vigilancia-tech\n", encoding="utf-8")
     reg = _StubRegistry({"default", "vigilancia-tech"})
     resolver = CascadeResolver(registry=reg, channels_dir=channels)
     out = await resolver.resolve(
@@ -167,9 +163,7 @@ async def test_cascade_llm_failure_falls_through_to_default():
 async def test_cascade_falls_to_default_when_nothing_matches():
     reg = _StubRegistry({"default"})
     resolver = CascadeResolver(registry=reg)
-    out = await resolver.resolve(
-        ResolutionRequest(session_id="s7", message="hi")
-    )
+    out = await resolver.resolve(ResolutionRequest(session_id="s7", message="hi"))
     assert out == "default"
 
 
@@ -217,11 +211,17 @@ def test_mode_context_company_geo_defaults_to_empty_dict():
 
 def test_mode_context_two_instances_have_independent_geo_dicts():
     a = ModeContext(
-        soul_overlay="x", company_context={}, skills_allowed=frozenset(),
-        playbooks_allowed=frozenset(), tools_allowed=frozenset(),
+        soul_overlay="x",
+        company_context={},
+        skills_allowed=frozenset(),
+        playbooks_allowed=frozenset(),
+        tools_allowed=frozenset(),
     )
     b = ModeContext(
-        soul_overlay="y", company_context={}, skills_allowed=frozenset(),
-        playbooks_allowed=frozenset(), tools_allowed=frozenset(),
+        soul_overlay="y",
+        company_context={},
+        skills_allowed=frozenset(),
+        playbooks_allowed=frozenset(),
+        tools_allowed=frozenset(),
     )
     assert a.company_geo is not b.company_geo

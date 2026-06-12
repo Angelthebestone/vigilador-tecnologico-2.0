@@ -12,11 +12,15 @@ from vigilancia_multiagente.enterprise.orchestration.app_development.errors impo
 
 Complexity = Literal["SIMPLE", "MODERADA", "COMPLEJA"]
 
-PHASES_MODERADA: tuple[str, ...] = (
-    "constitution", "specify", "plan", "tasks", "implement"
-)
+PHASES_MODERADA: tuple[str, ...] = ("constitution", "specify", "plan", "tasks", "implement")
 PHASES_COMPLEJA: tuple[str, ...] = (
-    "constitution", "specify", "plan", "tasks", "analyze", "implement", "test"
+    "constitution",
+    "specify",
+    "plan",
+    "tasks",
+    "analyze",
+    "implement",
+    "test",
 )
 
 

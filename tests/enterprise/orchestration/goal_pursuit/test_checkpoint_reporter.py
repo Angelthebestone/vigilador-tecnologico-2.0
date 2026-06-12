@@ -50,9 +50,7 @@ def test_report_on_blocker_detected() -> None:
     reporter = CheckpointReporter(channel, checkpoint_every_n=10)
     goal_id = uuid4()
     # Even at step 1, a blocker triggers immediate report
-    r = reporter.step_completed(
-        goal_id, ("s1",), ("s2",), "partial", blockers=("API rate limit",)
-    )
+    r = reporter.step_completed(goal_id, ("s1",), ("s2",), "partial", blockers=("API rate limit",))
     assert r is not None
     assert r.blockers == ("API rate limit",)
 

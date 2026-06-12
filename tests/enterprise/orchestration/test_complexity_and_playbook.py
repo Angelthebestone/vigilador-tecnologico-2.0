@@ -26,8 +26,7 @@ from vigilancia_multiagente.enterprise.orchestration.playbook_runner import (
 
 
 class _StubLLM:
-    def __init__(self, payload: str | dict | None = None,
-                 raise_timeout: bool = False) -> None:
+    def __init__(self, payload: str | dict | None = None, raise_timeout: bool = False) -> None:
         self.payload = payload
         self.raise_timeout = raise_timeout
         self.last_messages: list | None = None
@@ -63,9 +62,7 @@ async def test_classifier_logs_reason(caplog):
 @pytest.mark.asyncio
 async def test_classifier_uses_injected_llm_kwargs():
     llm = _StubLLM(payload='{"level": "COMPLEX", "reason": "multi-step"}')
-    clf = ComplexityClassifier(
-        llm_client=llm, model_kwargs={"temperature": 0.0, "max_tokens": 32}
-    )
+    clf = ComplexityClassifier(llm_client=llm, model_kwargs={"temperature": 0.0, "max_tokens": 32})
     await clf.classify("plan a 6-month research roadmap")
     assert llm.last_kwargs == {"temperature": 0.0, "max_tokens": 32}
 
@@ -96,11 +93,7 @@ async def test_classifier_rejects_empty_query():
 @pytest.mark.asyncio
 async def test_classifier_handles_openai_response_shape():
     """Common dict shape from OpenAI-compatible clients."""
-    payload = {
-        "choices": [
-            {"message": {"content": '{"level":"COMPLEX","reason":"deep"}'}}
-        ]
-    }
+    payload = {"choices": [{"message": {"content": '{"level":"COMPLEX","reason":"deep"}'}}]}
     llm = _StubLLM(payload=payload)
     decision = await ComplexityClassifier(llm_client=llm).classify("design a system")
     assert decision.level == ComplexityLevel.COMPLEX

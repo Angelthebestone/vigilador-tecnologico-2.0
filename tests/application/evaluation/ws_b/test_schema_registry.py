@@ -34,7 +34,9 @@ def test_validate_valid_response(registry):
         json_schema={"title": "NewsSchema", "type": "object"},
         version=1,
     )
-    result = registry.validate({"title": "Test", "url": "https://example.com", "content": "Hello"}, schema)
+    result = registry.validate(
+        {"title": "Test", "url": "https://example.com", "content": "Hello"}, schema
+    )
     assert result["title"] == "Test"
     assert result["url"] == "https://example.com"
 

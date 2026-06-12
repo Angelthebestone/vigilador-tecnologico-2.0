@@ -8,8 +8,8 @@ from uuid import UUID
 
 import click
 
-from vigilancia_multiagente.enterprise.governance.audit_persistence import AuditPersistence
 from vigilancia_multiagente.enterprise.governance.agent_modifier import AgentModifier
+from vigilancia_multiagente.enterprise.governance.audit_persistence import AuditPersistence
 from vigilancia_multiagente.infra.db.connection import database
 from vigilancia_multiagente.infra.persistence.agent_modifications_repository import (
     AgentModificationsRepository,
@@ -99,7 +99,9 @@ def pending_approvals() -> None:
 @audit.command(name="rollback")
 @click.argument("token")
 @click.option("--user", type=str, default="admin", help="User performing rollback")
-@click.option("--base-path", type=click.Path(exists=True), default=".", help="Base path for config files")
+@click.option(
+    "--base-path", type=click.Path(exists=True), default=".", help="Base path for config files"
+)
 def rollback_cmd(token: str, user: str, base_path: str) -> None:
     """Rollback a specific modification."""
     from pathlib import Path
@@ -124,7 +126,9 @@ def rollback_cmd(token: str, user: str, base_path: str) -> None:
 @audit.command()
 @click.argument("token")
 @click.option("--user", type=str, default="admin", help="User approving")
-@click.option("--base-path", type=click.Path(exists=True), default=".", help="Base path for config files")
+@click.option(
+    "--base-path", type=click.Path(exists=True), default=".", help="Base path for config files"
+)
 def approve(token: str, user: str, base_path: str) -> None:
     """Approve a pending modification."""
     from pathlib import Path

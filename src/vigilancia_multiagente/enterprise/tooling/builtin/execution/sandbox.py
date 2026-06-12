@@ -48,10 +48,7 @@ class SandboxTool:
         except ImportError:
             return HealthcheckResult(
                 status="UNCONFIGURED",
-                error=(
-                    "e2b package not installed; run `pip install e2b` "
-                    "to enable this tool"
-                ),
+                error=("e2b package not installed; run `pip install e2b` to enable this tool"),
             )
         if not self._api_key():
             return HealthcheckResult(
@@ -60,9 +57,7 @@ class SandboxTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -96,8 +91,7 @@ class SandboxTool:
                 _run_command, Sandbox, api_key, command, self._timeout_s()
             )
         raise ValueError(
-            f"SandboxTool: unknown tool_name '{tool_name}' "
-            f"(supported: run_code, execute_command)"
+            f"SandboxTool: unknown tool_name '{tool_name}' (supported: run_code, execute_command)"
         )
 
 

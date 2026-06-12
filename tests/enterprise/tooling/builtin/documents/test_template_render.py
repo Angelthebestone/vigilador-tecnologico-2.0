@@ -34,21 +34,27 @@ class TestTemplateRenderTool:
 
     @pytest.mark.asyncio()
     async def test_renders_template_with_variables(self, tool: TemplateRenderTool) -> None:
-        result = await tool.execute("template_render", {
-            "template_name": "report.md",
-            "variables": {"title": "Test Report", "body": "Content here"},
-            "output_format": "md",
-        })
+        result = await tool.execute(
+            "template_render",
+            {
+                "template_name": "report.md",
+                "variables": {"title": "Test Report", "body": "Content here"},
+                "output_format": "md",
+            },
+        )
         assert "error" not in result
         assert "# Test Report" in result["rendered_content"]
         assert "Content here" in result["rendered_content"]
 
     @pytest.mark.asyncio()
     async def test_missing_template_returns_error(self, tool: TemplateRenderTool) -> None:
-        result = await tool.execute("template_render", {
-            "template_name": "nonexistent.md",
-            "variables": {},
-            "output_format": "md",
-        })
+        result = await tool.execute(
+            "template_render",
+            {
+                "template_name": "nonexistent.md",
+                "variables": {},
+                "output_format": "md",
+            },
+        )
         assert "error" in result
         assert "not found" in result["error"]

@@ -61,9 +61,7 @@ async def test_spawn_links_parent_via_parent_agent_id_and_increments_depth():
 async def test_status_lifecycle_active_to_completed():
     repo = InMemorySubagentRepo()
     reg = SubagentRegistry(repo=repo)
-    record = await reg.spawn(
-        tenant_id=_TENANT, parent_session_id=_SESSION, role="r"
-    )
+    record = await reg.spawn(tenant_id=_TENANT, parent_session_id=_SESSION, role="r")
     assert record.status == SubagentStatus.ACTIVE
     completed = await reg.mark_completed(record.id)
     assert completed.status == SubagentStatus.COMPLETED
@@ -74,9 +72,7 @@ async def test_status_lifecycle_active_to_completed():
 async def test_double_terminal_transition_raises():
     repo = InMemorySubagentRepo()
     reg = SubagentRegistry(repo=repo)
-    record = await reg.spawn(
-        tenant_id=_TENANT, parent_session_id=_SESSION, role="r"
-    )
+    record = await reg.spawn(tenant_id=_TENANT, parent_session_id=_SESSION, role="r")
     await reg.mark_completed(record.id)
     with pytest.raises(SubagentStatusTransitionError, match="terminal"):
         await reg.mark_failed(record.id)
@@ -94,17 +90,23 @@ async def test_max_depth_overrun_raises():
     reg = SubagentRegistry(repo=repo, max_depth=2)
     a = await reg.spawn(tenant_id=_TENANT, parent_session_id=_SESSION, role="a")
     b = await reg.spawn(
-        tenant_id=_TENANT, parent_session_id=_SESSION, role="b",
+        tenant_id=_TENANT,
+        parent_session_id=_SESSION,
+        role="b",
         parent_subagent_id=a.id,
     )
     c = await reg.spawn(
-        tenant_id=_TENANT, parent_session_id=_SESSION, role="c",
+        tenant_id=_TENANT,
+        parent_session_id=_SESSION,
+        role="c",
         parent_subagent_id=b.id,
     )
     assert c.depth == 2
     with pytest.raises(SubagentDepthExceededError, match="depth 3"):
         await reg.spawn(
-            tenant_id=_TENANT, parent_session_id=_SESSION, role="d",
+            tenant_id=_TENANT,
+            parent_session_id=_SESSION,
+            role="d",
             parent_subagent_id=c.id,
         )
 
@@ -124,9 +126,7 @@ async def test_list_active_filters_terminal_records():
 async def test_spawn_rejects_empty_role():
     reg = SubagentRegistry(repo=InMemorySubagentRepo())
     with pytest.raises(ValueError, match="role required"):
-        await reg.spawn(
-            tenant_id=_TENANT, parent_session_id=_SESSION, role="   "
-        )
+        await reg.spawn(tenant_id=_TENANT, parent_session_id=_SESSION, role="   ")
 
 
 @pytest.mark.asyncio
@@ -134,7 +134,9 @@ async def test_unknown_parent_subagent_id_raises():
     reg = SubagentRegistry(repo=InMemorySubagentRepo())
     with pytest.raises(ValueError, match="not registered"):
         await reg.spawn(
-            tenant_id=_TENANT, parent_session_id=_SESSION, role="x",
+            tenant_id=_TENANT,
+            parent_session_id=_SESSION,
+            role="x",
             parent_subagent_id=uuid4(),
         )
 
@@ -145,9 +147,7 @@ async def test_heartbeat_updates_last_progress_at_only_when_active():
 
     repo = InMemorySubagentRepo()
     reg = SubagentRegistry(repo=repo)
-    record = await reg.spawn(
-        tenant_id=_TENANT, parent_session_id=_SESSION, role="r"
-    )
+    record = await reg.spawn(tenant_id=_TENANT, parent_session_id=_SESSION, role="r")
     initial = record.last_progress_at
     # Pause briefly so the next ``datetime.now`` returns a strictly later
     # timestamp on hosts that resolve sub-microsecond clocks.

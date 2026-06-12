@@ -41,7 +41,7 @@ def claims_overlap(statement_a: str, statement_b: str) -> bool:
 
 def polarity_conflict(statement_a: str, statement_b: str) -> bool:
     """True si uno niega y el otro afirma (polaridad opuesta)."""
-# STATUS: ACTIVE
+    # STATUS: ACTIVE
 
     neg_a = bool(set(statement_a.lower().split()) & _NEGATORS)
     neg_b = bool(set(statement_b.lower().split()) & _NEGATORS)

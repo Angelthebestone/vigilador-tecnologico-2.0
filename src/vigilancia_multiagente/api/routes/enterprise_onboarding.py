@@ -153,9 +153,7 @@ async def test_llm(
 ):
     try:
         start = time.time()
-        resp = await client.chat_completion(
-            messages=[{"role": "user", "content": "ping"}]
-        )
+        resp = await client.chat_completion(messages=[{"role": "user", "content": "ping"}])
         latency_ms = round((time.time() - start) * 1000, 1)
         return {"status": "ok", "model": resp.model, "latency_ms": latency_ms}
     except Exception as exc:
@@ -238,9 +236,11 @@ async def connect_drive(body: DriveConnectorRequest, request: Request):
     """
     settings = get_settings()
     client_id = _read_setting(settings, "google_client_id", required=True)
-    redirect_uri = body.redirect_uri or _read_setting(
-        settings, "google_redirect_uri", required=False
-    ) or "http://localhost:8000/api/v2/enterprise/onboarding/connectors/drive/callback"
+    redirect_uri = (
+        body.redirect_uri
+        or _read_setting(settings, "google_redirect_uri", required=False)
+        or "http://localhost:8000/api/v2/enterprise/onboarding/connectors/drive/callback"
+    )
 
     if body.auth_code is None:
         # Step 1 — return the URL the user must visit.
@@ -296,14 +296,15 @@ async def ingest_initial(body: InitialIngestionRequest, request: Request):
     if hasattr(request.app.state, "ingestion_orchestrator"):
         logger.info(
             "ingestion_orchestrator attached — job %s queued for connector %s",
-            job_id, body.connector,
+            job_id,
+            body.connector,
         )
         # F4a.H attaches a fire-and-forget task launcher here.
     else:
         logger.warning(
-            "ingestion_orchestrator NOT attached — recording intent only "
-            "(job %s for connector %s)",
-            job_id, body.connector,
+            "ingestion_orchestrator NOT attached — recording intent only (job %s for connector %s)",
+            job_id,
+            body.connector,
         )
 
     return {
@@ -322,7 +323,7 @@ async def ingest_initial(body: InitialIngestionRequest, request: Request):
 def _read_setting(settings: object, name: str, *, required: bool) -> str | None:
     value = getattr(settings, name, None)
     if hasattr(value, "get_secret_value"):
-        value = value.get_secret_value()
+        value = value.get_secret_value()  # type: ignore[union-attr]
     if value is None or value == "":
         if required:
             raise HTTPException(

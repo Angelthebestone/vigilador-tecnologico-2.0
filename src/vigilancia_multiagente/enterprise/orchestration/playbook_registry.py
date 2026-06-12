@@ -39,9 +39,7 @@ class PlaybookNotFoundError(Exception):
     def __init__(self, playbook_id: str, available: list[str]) -> None:
         self.playbook_id = playbook_id
         self.available = available
-        super().__init__(
-            f"Playbook '{playbook_id}' not found. Available: {available}"
-        )
+        super().__init__(f"Playbook '{playbook_id}' not found. Available: {available}")
 
 
 class PlaybookRegistry:

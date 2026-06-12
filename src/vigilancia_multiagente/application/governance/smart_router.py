@@ -83,7 +83,17 @@ _KEYWORDS: dict[str, tuple[str, ...]] = {
         "professor",
         "profesor",
     ),
-    "patent": ("patent", "ip", "intellectual property", "trademark", "copyright", "patente", "prior art", "invención", "asignatario"),
+    "patent": (
+        "patent",
+        "ip",
+        "intellectual property",
+        "trademark",
+        "copyright",
+        "patente",
+        "prior art",
+        "invención",
+        "asignatario",
+    ),
     "news": ("news", "announce", "release", "latest", "update", "today"),
     "bibliometric": (
         "citation",

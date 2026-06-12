@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -23,7 +23,7 @@ class FakeMaintainer:
 
 def _ctx() -> DreamingContext:
     return DreamingContext(
-        cycle_id="c1", started_at=datetime.now(timezone.utc), tenant_id="t1", llm_available=True
+        cycle_id="c1", started_at=datetime.now(UTC), tenant_id="t1", llm_available=True
     )
 
 

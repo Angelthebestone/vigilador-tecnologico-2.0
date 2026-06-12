@@ -104,10 +104,10 @@ class DeepAnalysisStep:
         _attach_deep_analysis(ctx, annotations, projections, meta_result, counterfactuals)
         return ctx
 
-    async def _run_forecaster(
-        self, findings: list[Finding]
-    ) -> list[SCurveProjection]:
+    async def _run_forecaster(self, findings: list[Finding]) -> list[SCurveProjection]:
         projections: list[SCurveProjection] = []
+        if self._forecaster is None:
+            return projections
         for finding in findings:
             try:
                 timeseries = _build_timeseries(finding)
@@ -124,9 +124,9 @@ class DeepAnalysisStep:
                 logger.debug("Forecaster failed for %s: %s", finding.topic, exc)
         return projections
 
-    async def _run_meta(
-        self, findings: list[Finding]
-    ) -> MetaAnalysisResult | None:
+    async def _run_meta(self, findings: list[Finding]) -> MetaAnalysisResult | None:
+        if self._meta_analyzer is None:
+            return None
         try:
             numeric_studies = _extract_numeric_studies(findings)
             if not numeric_studies:
@@ -173,11 +173,11 @@ class DeepAnalysisStep:
 
         return ann
 
-    async def _run_counterfactual(
-        self, ctx: ToolLoopContext
-    ) -> list[CounterfactualScenario]:
+    async def _run_counterfactual(self, ctx: ToolLoopContext) -> list[CounterfactualScenario]:
         report = _build_draft_report(ctx)
         if report is None:
+            return []
+        if self._counterfactual_synthesizer is None:
             return []
         try:
             return await self._counterfactual_synthesizer.synthesize(report)
@@ -260,7 +260,14 @@ def _extract_numeric_studies(findings: list[Finding]) -> list[dict]:
 
 def _infer_domain(finding: Finding) -> str:
     domain_keywords = {
-        "AI": ("ai", "machine learning", "deep learning", "neural", "llm", "artificial intelligence"),
+        "AI": (
+            "ai",
+            "machine learning",
+            "deep learning",
+            "neural",
+            "llm",
+            "artificial intelligence",
+        ),
         "BIO": ("bio", "genome", "protein", "dna", "cell", "molecular biology"),
         "MATH": ("math", "algebra", "theorem", "proof", "topology"),
         "NANO": ("nano", "quantum dot", "nanoparticle"),
@@ -279,9 +286,7 @@ def _build_draft_report(ctx: ToolLoopContext) -> FinalReport | None:
     session = getattr(ctx, "session", None)
     if session is None:
         return None
-    findings_text = "\n".join(
-        f.statement for f in _extract_findings(ctx)
-    )
+    findings_text = "\n".join(f.statement for f in _extract_findings(ctx))
     return FinalReport(
         session_id=session.id,
         executive_summary=findings_text[:1000],

@@ -24,8 +24,12 @@ def _dag(sub_goals: list[SubGoal]) -> GoalDAG:
 
 def test_valid_dag_sequences_correctly() -> None:
     sg_a = SubGoal(id="a", description="A", dependencies=frozenset(), completion_criteria="done")
-    sg_b = SubGoal(id="b", description="B", dependencies=frozenset({"a"}), completion_criteria="done")
-    sg_c = SubGoal(id="c", description="C", dependencies=frozenset({"b"}), completion_criteria="done")
+    sg_b = SubGoal(
+        id="b", description="B", dependencies=frozenset({"a"}), completion_criteria="done"
+    )
+    sg_c = SubGoal(
+        id="c", description="C", dependencies=frozenset({"b"}), completion_criteria="done"
+    )
     resolver = DependencyResolver()
     plan = resolver.resolve(_dag([sg_a, sg_b, sg_c]))
     flat = [sg_id for stage in plan.stages for sg_id in stage]
@@ -35,7 +39,9 @@ def test_valid_dag_sequences_correctly() -> None:
 def test_identifies_parallelizable_steps() -> None:
     sg_a = SubGoal(id="a", description="A", dependencies=frozenset(), completion_criteria="done")
     sg_b = SubGoal(id="b", description="B", dependencies=frozenset(), completion_criteria="done")
-    sg_c = SubGoal(id="c", description="C", dependencies=frozenset({"a", "b"}), completion_criteria="done")
+    sg_c = SubGoal(
+        id="c", description="C", dependencies=frozenset({"a", "b"}), completion_criteria="done"
+    )
     resolver = DependencyResolver()
     plan = resolver.resolve(_dag([sg_a, sg_b, sg_c]))
     # a and b should be in the same stage (parallel)
@@ -45,9 +51,15 @@ def test_identifies_parallelizable_steps() -> None:
 
 
 def test_detects_cycle_and_rejects() -> None:
-    sg_a = SubGoal(id="a", description="A", dependencies=frozenset({"c"}), completion_criteria="done")
-    sg_b = SubGoal(id="b", description="B", dependencies=frozenset({"a"}), completion_criteria="done")
-    sg_c = SubGoal(id="c", description="C", dependencies=frozenset({"b"}), completion_criteria="done")
+    sg_a = SubGoal(
+        id="a", description="A", dependencies=frozenset({"c"}), completion_criteria="done"
+    )
+    sg_b = SubGoal(
+        id="b", description="B", dependencies=frozenset({"a"}), completion_criteria="done"
+    )
+    sg_c = SubGoal(
+        id="c", description="C", dependencies=frozenset({"b"}), completion_criteria="done"
+    )
     resolver = DependencyResolver()
     with pytest.raises(CyclicDependencyError):
         resolver.resolve(_dag([sg_a, sg_b, sg_c]))
@@ -63,8 +75,12 @@ def test_excessive_depth_rejected() -> None:
     # Chain of 5 nodes with max_depth=3
     sgs = []
     for i in range(5):
-        deps = frozenset({f"sg-{i-1}"}) if i > 0 else frozenset()
-        sgs.append(SubGoal(id=f"sg-{i}", description=f"S{i}", dependencies=deps, completion_criteria="done"))
+        deps = frozenset({f"sg-{i - 1}"}) if i > 0 else frozenset()
+        sgs.append(
+            SubGoal(
+                id=f"sg-{i}", description=f"S{i}", dependencies=deps, completion_criteria="done"
+            )
+        )
     resolver = DependencyResolver(max_depth=3)
     with pytest.raises(DepthExceededError):
         resolver.resolve(_dag(sgs))

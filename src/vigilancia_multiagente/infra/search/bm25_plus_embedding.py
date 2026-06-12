@@ -15,7 +15,6 @@ from rank_bm25 import BM25Okapi
 from vigilancia_multiagente.domain.evaluation_entities import HybridSearchQuery
 from vigilancia_multiagente.domain.models import SourceRef
 from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway, TaskType
-from vigilancia_multiagente.domain.ports.hybrid_search import HybridSearchEngine
 
 
 class BM25PlusEmbeddingSearchEngine:
@@ -31,29 +30,23 @@ class BM25PlusEmbeddingSearchEngine:
         if not candidates:
             return []
 
-        texts = [
-            f"{c.title or ''} {c.url}".strip() or c.url for c in candidates
-        ]
+        texts = [f"{c.title or ''} {c.url}".strip() or c.url for c in candidates]
         tokenized_corpus = [text.lower().split() for text in texts]
         bm25 = BM25Okapi(tokenized_corpus)
         tokenized_query = query.text.lower().split()
         bm25_scores = bm25.get_scores(tokenized_query)
 
-        bm25_norm = _normalize(bm25_scores)
+        bm25_norm = _normalize(cast(list[float], bm25_scores.tolist()))
 
         query_vec = await self._embedding_gateway.embed(
             query.text, task_type=TaskType.RETRIEVAL_QUERY
         )
         doc_vecs = await self._embedding_gateway.embed_documents(texts)
-        emb_scores = [
-            _cosine_similarity(query_vec, cast(list[float], dv))
-            for dv in doc_vecs
-        ]
+        emb_scores = [_cosine_similarity(query_vec, cast(list[float], dv)) for dv in doc_vecs]
         emb_norm = _normalize(emb_scores)
 
         combined = [
-            query.vector_weight * emb_norm[i]
-            + query.keyword_weight * bm25_norm[i]
+            query.vector_weight * emb_norm[i] + query.keyword_weight * bm25_norm[i]
             for i in range(len(candidates))
         ]
 

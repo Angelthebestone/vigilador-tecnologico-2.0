@@ -64,7 +64,9 @@ class RetractionWatchCSVAdapter:
                     self._cache[doi] = record
                     new_count += 1
             self._last_sync = datetime.now(UTC)
-            logger.info("RetractionWatch sync: %d new records (cache=%d)", new_count, len(self._cache))
+            logger.info(
+                "RetractionWatch sync: %d new records (cache=%d)", new_count, len(self._cache)
+            )
             return new_count
         except httpx.HTTPError as exc:
             logger.warning("RetractionWatch CSV download failed: %s", exc)

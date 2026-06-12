@@ -12,7 +12,6 @@ import pytest
 
 from vigilancia_multiagente.domain.evaluation_entities import HybridSearchQuery
 from vigilancia_multiagente.domain.models import BranchType, SourceRef
-from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
 from vigilancia_multiagente.infra.search.bm25_plus_embedding import (
     BM25PlusEmbeddingSearchEngine,
 )
@@ -54,9 +53,9 @@ def corpus() -> list[SourceRef]:
             branch_type=BranchType.AVANCES,
             accessed_at=datetime.now(UTC),
             title=(
-                f"Deep learning with transformers for NLP"
+                "Deep learning with transformers for NLP"
                 if i < 10
-                else f"Cooking recipe for pasta carbonara"
+                else "Cooking recipe for pasta carbonara"
             ),
         )
         for i in range(20)

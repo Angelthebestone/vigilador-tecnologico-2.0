@@ -69,4 +69,3 @@ async def test_retrain_builds_curve_and_recovers_after_activation() -> None:
     assert active_curve is not None
     assert active_curve.model_version == curve.model_version
     assert calibrated != pytest.approx(0.2)
-

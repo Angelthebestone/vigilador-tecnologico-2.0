@@ -47,12 +47,17 @@ async def build_enterprise_services(settings: Any, database: Any) -> dict[str, A
     #    subagents). Optional in tests; in production a default AuditLog
     #    writes to ~/.vigilador/audit/events_<date>.jsonl.
     from vigilancia_multiagente.enterprise.governance.audit_log import AuditLog
+
     audit_log = AuditLog()
     services["audit_log"] = audit_log
 
     # ── ToolRegistry + builtin tools + catalog metadata (specs 009/018) ──
     tool_registry = await _build_tool_registry(
-        settings, database, embedding_gateway, ToolHealthRepository, audit_log,
+        settings,
+        database,
+        embedding_gateway,
+        ToolHealthRepository,
+        audit_log,
     )
     services["tool_registry"] = tool_registry
     _load_catalog(settings, services)
@@ -75,10 +80,11 @@ async def build_enterprise_services(settings: Any, database: Any) -> dict[str, A
     return services
 
 
-async def _build_tool_registry(settings, database, embedding_gateway, tool_health_repo_cls, audit_log=None):
+async def _build_tool_registry(
+    settings, database, embedding_gateway, tool_health_repo_cls, audit_log=None
+):
     # Documents tools (spec 009 + spec 018 — already shipped)
     # Spec 021 D5 native-first WRAP-SDK + CLONE-UPSTREAM tools (T015-T031).
-    from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
     from vigilancia_multiagente.enterprise.tooling.builtin.creative.minimax_image import (
         MiniMaxImageTool,
     )
@@ -102,9 +108,6 @@ async def _build_tool_registry(settings, database, embedding_gateway, tool_healt
     )
     from vigilancia_multiagente.enterprise.tooling.builtin.execution.sandbox import (
         SandboxTool,
-    )
-    from vigilancia_multiagente.enterprise.tooling.builtin.productivity.google_workspace import (
-        GoogleWorkspaceTool,
     )
     from vigilancia_multiagente.enterprise.tooling.builtin.research.arxiv import (
         ArxivTool,
@@ -137,6 +140,7 @@ async def _build_tool_registry(settings, database, embedding_gateway, tool_healt
         PlaywrightTool,
     )
     from vigilancia_multiagente.enterprise.tooling.tool_registry import ToolRegistry
+    from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 
     # FR-001: Two-tier embedding cache for tool descriptions
     cache_dir = PROJECT_ROOT / ".vigilador" / "cache" / "embeddings"
@@ -144,17 +148,12 @@ async def _build_tool_registry(settings, database, embedding_gateway, tool_healt
     embedding_cache.load_from_disk()
 
     registry = ToolRegistry(
-        tool_health_repo_cls(database), 
-        embedding_gateway, 
+        tool_health_repo_cls(database),
+        embedding_gateway,
         audit_log=audit_log,
         embedding_cache=embedding_cache,
     )
     workspace = _resolve(settings.file_system_root) if settings.file_system_root else PROJECT_ROOT
-
-    # OAuthManager is wired ad-hoc by enterprise_onboarding for now; pass None
-    # so GoogleWorkspaceTool reports UNCONFIGURED until tenant onboarding.
-    from uuid import UUID
-    tenant_id = UUID(settings.default_tenant_id)
 
     builtin_tools = (
         # Documents (5)
@@ -179,10 +178,8 @@ async def _build_tool_registry(settings, database, embedding_gateway, tool_healt
         PlaywrightTool(),
         # Creative (1)
         MiniMaxImageTool(),
-        # Productivity (1) — OAuthManager wired by tenant onboarding
-        GoogleWorkspaceTool(oauth_manager=None, tenant_id=tenant_id),
         # Execution (1)
-        SandboxTool(),
+        SandboxTool(),  # type: ignore[arg-type]
         # Desktop (1) — opt-in via settings.computer_use_enabled / VT_COMPUTER_USE_ENABLED
         ComputerUseTool(
             enabled=settings.computer_use_enabled,
@@ -190,12 +187,12 @@ async def _build_tool_registry(settings, database, embedding_gateway, tool_healt
         ),
     )
     for tool in builtin_tools:
-        await registry.register(tool)
-    
+        await registry.register(tool)  # type: ignore[arg-type]
+
     # Flush tool embeddings to disk after registration
     if embedding_cache:
         embedding_cache.flush_to_disk()
-        
+
     logger.info(
         "ToolRegistry wired with %d builtin tools (5 documents + 10 research + "
         "2 web + 1 creative + 1 productivity + 1 execution + 1 desktop)",
@@ -236,7 +233,12 @@ def _build_modes_and_playbooks(settings, services: dict[str, Any]) -> None:
     )
 
 
-async def _build_skills(settings, embedding_gateway, tool_registry, services: dict[str, Any]) -> None:
+async def _build_skills(
+    settings, embedding_gateway, tool_registry, services: dict[str, Any]
+) -> None:
+    # FR-003: Create EmbeddingCache for skill embeddings
+    import os
+
     from vigilancia_multiagente.enterprise.skills_marketplace import SkillLoader, SkillRegistry
     from vigilancia_multiagente.enterprise.skills_marketplace.skill_catalog import (
         SkillCatalog,
@@ -244,11 +246,13 @@ async def _build_skills(settings, embedding_gateway, tool_registry, services: di
     )
     from vigilancia_multiagente.infra.embeddings.embedding_cache import EmbeddingCache
 
-    # FR-003: Create EmbeddingCache for skill embeddings
-    embedding_cache = EmbeddingCache()
+    cache_dir = os.path.join(os.path.expanduser("~"), ".vigilador", "cache", "embeddings")
+    embedding_cache = EmbeddingCache(cache_dir=cache_dir, filename="skills.json")
     embedding_cache.load_from_disk()
 
-    skill_registry = SkillRegistry(embedding_gateway, tool_registry, embedding_cache=embedding_cache)
+    skill_registry = SkillRegistry(
+        embedding_gateway, tool_registry, embedding_cache=embedding_cache
+    )
     # Spec 021 D2/D3 — vendor paths inside src/, no .claude/skills/ at runtime.
     src_root = Path(__file__).resolve().parents[1]
     vendor_root = src_root / "enterprise" / "skills_marketplace" / "_vendor"
@@ -270,9 +274,7 @@ async def _build_skills(settings, embedding_gateway, tool_registry, services: di
                 len(catalog.disabled()),
             )
         except SkillCatalogError as exc:
-            logger.error(
-                "SkillCatalog disabled — taxonomy/catalog YAML invalid: %s", exc
-            )
+            logger.error("SkillCatalog disabled — taxonomy/catalog YAML invalid: %s", exc)
             catalog = None
     else:
         logger.warning(
@@ -298,7 +300,8 @@ async def _build_skills(settings, embedding_gateway, tool_registry, services: di
     services["skill_catalog"] = catalog
     logger.info(
         "Skill marketplace wired: %d registered, %d filtered by catalog",
-        result.total_registered, result.total_skipped_by_catalog,
+        result.total_registered,
+        result.total_skipped_by_catalog,
     )
 
 
@@ -338,7 +341,8 @@ def _build_dispatcher(settings: Any, services: dict[str, Any]) -> None:
     if mode_registry is None or mode_resolver is None:
         logger.info(
             "Dispatcher: skipped (mode_registry=%s mode_resolver=%s)",
-            bool(mode_registry), bool(mode_resolver),
+            bool(mode_registry),
+            bool(mode_resolver),
         )
         return
 
@@ -366,25 +370,18 @@ def _build_dispatcher(settings: Any, services: dict[str, Any]) -> None:
             import importlib.util as _ilu
             import sys as _sys
 
-            wrapper_path = (
-                PROJECT_ROOT / "plugins" / "technology-watch"
-                / "coordinator_wrapper.py"
-            )
+            wrapper_path = PROJECT_ROOT / "plugins" / "technology-watch" / "coordinator_wrapper.py"
             if wrapper_path.is_file():
-                spec = _ilu.spec_from_file_location(
-                    "_tw_wrapper", wrapper_path
-                )
+                spec = _ilu.spec_from_file_location("_tw_wrapper", wrapper_path)
                 if spec is not None and spec.loader is not None:
                     mod = _ilu.module_from_spec(spec)
                     _sys.modules.setdefault("_tw_wrapper", mod)
                     spec.loader.exec_module(mod)
-                    executor_by_playbook["technology-watch"] = (
-                        mod.TechnologyWatchExecutor(coordinator=branch_coordinator)
+                    executor_by_playbook["technology-watch"] = mod.TechnologyWatchExecutor(
+                        coordinator=branch_coordinator
                     )
         except Exception as exc:
-            logger.warning(
-                "Dispatcher: technology-watch executor wiring failed: %s", exc
-            )
+            logger.warning("Dispatcher: technology-watch executor wiring failed: %s", exc)
 
     deps = DispatcherDeps(
         cascade_resolver=cascade,

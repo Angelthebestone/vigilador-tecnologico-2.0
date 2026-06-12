@@ -9,22 +9,16 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.query_expander import (
-    ContextualQueryExpander,
     PriorIterationView,
 )
 
 logger = logging.getLogger(__name__)
 
-_PROMPT_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "prompts"
-    / "evaluation"
-    / "query_expand.txt"
-)
+_PROMPT_PATH = Path(__file__).resolve().parents[4] / "prompts" / "evaluation" / "query_expand.txt"
 
 
 class LlmContextualQueryExpander:
@@ -43,9 +37,7 @@ class LlmContextualQueryExpander:
             prior_iterations=prior_text,
         )
         try:
-            response = await self._llm_client.complete(
-                [{"role": "user", "content": prompt}]
-            )
+            response = await self._llm_client.complete([{"role": "user", "content": prompt}])
             content = _extract_content(response)
             expansions = json.loads(content)
             if isinstance(expansions, list):

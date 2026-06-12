@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Protocol
 
 
 class TaskType(StrEnum):
@@ -12,7 +12,9 @@ class TaskType(StrEnum):
 class EmbeddingGateway(Protocol):
     """Embed documents and queries into vectors."""
 
-    async def embed(self, text: str, task_type: TaskType = TaskType.RETRIEVAL_DOCUMENT) -> list[float]: ...
+    async def embed(
+        self, text: str, task_type: TaskType = TaskType.RETRIEVAL_DOCUMENT
+    ) -> list[float]: ...
 
     async def embed_document(self, text: str) -> list[float]: ...
 

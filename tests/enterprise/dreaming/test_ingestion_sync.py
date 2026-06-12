@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -12,9 +12,7 @@ from vigilancia_multiagente.enterprise.dreaming.phases.ingestion_sync import Ing
 
 
 class FakeConnector:
-    def __init__(
-        self, connector_id: str, docs: list[dict[str, Any]], fail: bool = False
-    ) -> None:
+    def __init__(self, connector_id: str, docs: list[dict[str, Any]], fail: bool = False) -> None:
         self._connector_id = connector_id
         self._docs = docs
         self._fail = fail
@@ -48,7 +46,7 @@ class FakeCheckpointStore:
 def _make_context() -> DreamingContext:
     return DreamingContext(
         cycle_id="test-002",
-        started_at=datetime.now(timezone.utc),
+        started_at=datetime.now(UTC),
         tenant_id="tenant-1",
         llm_available=True,
     )

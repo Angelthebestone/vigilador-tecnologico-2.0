@@ -87,7 +87,9 @@ def _build_intelligence_sections(
     # Crítica adversarial: ataca lo ya ensamblado buscando afirmaciones sin
     # fuente, recomendaciones sin respaldo o disputas silenciadas.
     assembled = "\n".join(parts)
-    critique = AdversarialCritic().critique(all_findings, cast(list[object], recommendations or []), assembled)
+    critique = AdversarialCritic().critique(
+        all_findings, cast(list[object], recommendations or []), assembled
+    )
     section = AdversarialCritic.render_section(critique)
     if section:
         parts.append(section)
@@ -147,10 +149,10 @@ class ReportSynthesizer:
             for item in linked_findings[:3]
         ]
         intelligence = _build_intelligence_sections(
-        branch_results,
-        recommendations=cast(list[Any], recommendations),
-        source_scorer=source_scorer,
-    )
+            branch_results,
+            recommendations=cast(list[Any], recommendations),
+            source_scorer=source_scorer,
+        )
 
         if self._event_publisher is not None:
             await self._event_publisher.publish(
@@ -264,9 +266,7 @@ class ReportSynthesizer:
             if assurance.calibrated_confidence is not None:
                 report.confidence_score = assurance.calibrated_confidence
         if self._assurance_errors:
-            report.errors.extend(
-                e for e in self._assurance_errors if isinstance(e, StepError)
-            )
+            report.errors.extend(e for e in self._assurance_errors if isinstance(e, StepError))
             self._assurance_errors.clear()
         return report
 

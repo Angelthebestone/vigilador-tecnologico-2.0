@@ -436,61 +436,61 @@ class ReportAssurance:
 
 
 __all__ = [
+    "Affiliation",
     # Enums WS-A
     "AffiliationType",
-    "FunderType",
-    "RiskLevel",
-    "SourceType",
-    "ExternalValidationStatus",
-    # Entities WS-A
-    "AuthorReputation",
-    "ConflictOfInterest",
-    "TemporalDecayConfig",
-    "ClaimExternalValidation",
-    "RetractionRecord",
-    "ReproducibilityScore",
-    # Enums WS-B
-    "EvidenceStrength",
-    # Entities WS-B
-    "HybridSearchQuery",
-    "DedupedSource",
-    "ExtractionSchema",
-    "ContentAuthenticitySignal",
-    "ConsensusDisputeMap",
     # Enums WS-C
     "AssumptionSeverity",
-    "DependencyKind",
-    # Entities WS-C
-    "ImplicitAssumption",
-    "SCurveProjection",
-    "CriticalDependency",
-    "CounterfactualScenario",
-    "MetaAnalysisResult",
-    # Enums WS-D
-    "PatentingClassification",
+    # Entities WS-A
+    "AuthorReputation",
+    "BiasAudit",
+    "BiasThresholds",
+    "CalibrationCurve",
+    "ClaimExternalValidation",
+    "CollaborationNetwork",
+    "CollaborationNode",
+    "ConflictOfInterest",
+    "ConsensusDisputeMap",
+    "ContentAuthenticitySignal",
     # Entities WS-D
     "ConvergenceCluster",
-    "CollaborationNode",
-    "CollaborationNetwork",
-    "IdeaLineage",
-    "NarrativeShift",
-    "Affiliation",
-    "TalentMobility",
-    "PatentingGap",
-    # Enums WS-E
-    "GoldenCasePriority",
-    "StakeholderType",
-    "TraceStepType",
+    "CounterfactualScenario",
+    "CriticalDependency",
+    "DedupedSource",
+    "DependencyKind",
+    # Enums WS-B
+    "EvidenceStrength",
     # Entities WS-E
     "ExpectedFinding",
-    "GoldenCase",
-    "GoldenCaseRun",
-    "StakeholderSimulation",
+    "ExternalValidationStatus",
+    "ExtractionSchema",
     "FalsificationScenario",
-    "BiasThresholds",
-    "BiasAudit",
-    "TraceStep",
     "ForensicTrace",
-    "CalibrationCurve",
+    "FunderType",
+    "GoldenCase",
+    # Enums WS-E
+    "GoldenCasePriority",
+    "GoldenCaseRun",
+    # Entities WS-B
+    "HybridSearchQuery",
+    "IdeaLineage",
+    # Entities WS-C
+    "ImplicitAssumption",
+    "MetaAnalysisResult",
+    "NarrativeShift",
+    # Enums WS-D
+    "PatentingClassification",
+    "PatentingGap",
     "ReportAssurance",
+    "ReproducibilityScore",
+    "RetractionRecord",
+    "RiskLevel",
+    "SCurveProjection",
+    "SourceType",
+    "StakeholderSimulation",
+    "StakeholderType",
+    "TalentMobility",
+    "TemporalDecayConfig",
+    "TraceStep",
+    "TraceStepType",
 ]

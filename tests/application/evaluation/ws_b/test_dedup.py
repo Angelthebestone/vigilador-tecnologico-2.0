@@ -26,7 +26,9 @@ class FakeReranker:
     async def rerank(self, query: str, documents: list[str], top_n=None) -> list[RankedDocument]:
         self.call_count += 1
         return [
-            RankedDocument(index=i, text=documents[i], score=0.95 if "same" in documents[i] else 0.3)
+            RankedDocument(
+                index=i, text=documents[i], score=0.95 if "same" in documents[i] else 0.3
+            )
             for i in range(len(documents))
         ]
 

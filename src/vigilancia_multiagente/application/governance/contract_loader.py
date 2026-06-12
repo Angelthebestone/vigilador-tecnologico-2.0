@@ -647,9 +647,19 @@ class GovernanceContractLoader:
                 "next_query": "string",
             },
             quality_criteria=("evidence_per_finding", "coverage_subtopics", "deduplicated_sources"),
-            do_rules=tuple(cast(tuple[str, ...], branch_data.get("do_rules", ("cite_sources", "declare_uncertainty")))),
+            do_rules=tuple(
+                cast(
+                    tuple[str, ...],
+                    branch_data.get("do_rules", ("cite_sources", "declare_uncertainty")),
+                )
+            ),
             dont_rules=tuple(
-                cast(tuple[str, ...], branch_data.get("dont_rules", ("invent_data", "claim_causality_without_support")))
+                cast(
+                    tuple[str, ...],
+                    branch_data.get(
+                        "dont_rules", ("invent_data", "claim_causality_without_support")
+                    ),
+                )
             ),
             uncertainty_handling=str(
                 branch_data.get(

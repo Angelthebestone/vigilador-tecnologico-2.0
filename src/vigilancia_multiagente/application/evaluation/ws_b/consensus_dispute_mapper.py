@@ -16,8 +16,7 @@ from vigilancia_multiagente.domain.evaluation_entities import (
     EvidenceStrength,
 )
 from vigilancia_multiagente.domain.models import Finding
-from vigilancia_multiagente.domain.ports.consensus_dispute import ConsensusDisputeMapper
-from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway, TaskType
+from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +53,12 @@ class ConsensusDisputeMapperImpl:
 
         return maps
 
-    async def _triangulate(
-        self, findings: list[Finding]
-    ) -> list[ConsensusDisputeMap]:
+    async def _triangulate(self, findings: list[Finding]) -> list[ConsensusDisputeMap]:
         maps: list[ConsensusDisputeMap] = []
         texts = [f"{f.topic} {f.statement}" for f in findings]
 
         try:
+            assert self._embedding_gateway is not None
             vectors = await self._embedding_gateway.embed_documents(texts)
         except Exception as exc:
             logger.warning("Embedding failed during triangulation: %s", exc)
@@ -70,9 +68,7 @@ class ConsensusDisputeMapperImpl:
 
         for i in range(len(findings)):
             for j in range(i + 1, len(findings)):
-                dot = sum(
-                    a * b for a, b in zip(vectors[i], vectors[j], strict=False)
-                )
+                dot = sum(a * b for a, b in zip(vectors[i], vectors[j], strict=False))
                 ni = math.sqrt(sum(x * x for x in vectors[i]))
                 nj = math.sqrt(sum(y * y for y in vectors[j]))
                 sim = dot / (ni * nj) if ni * nj > 0 else 0

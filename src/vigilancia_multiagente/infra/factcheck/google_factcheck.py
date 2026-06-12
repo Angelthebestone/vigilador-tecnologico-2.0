@@ -70,7 +70,9 @@ class GoogleFactCheckAdapter:
                 if top.get("claimReview")
                 else ""
             ).lower()
-            if any(neg in text_rating for neg in ("false", "misleading", "incorrect", "pants-fire")):
+            if any(
+                neg in text_rating for neg in ("false", "misleading", "incorrect", "pants-fire")
+            ):
                 status = ExternalValidationStatus.CONTRADICTED
             elif any(pos in text_rating for pos in ("true", "correct", "accurate")):
                 status = ExternalValidationStatus.VERIFIED

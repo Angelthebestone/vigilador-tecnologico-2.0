@@ -55,21 +55,31 @@ logger = logging.getLogger(__name__)
 
 _SAFE_ACTIONS: frozenset[str] = frozenset({"capture", "wait", "list_apps"})
 
-_DESTRUCTIVE_ACTIONS: frozenset[str] = frozenset({
-    "click", "double_click", "right_click", "middle_click",
-    "drag", "scroll", "type", "key", "set_value", "focus_app",
-})
+_DESTRUCTIVE_ACTIONS: frozenset[str] = frozenset(
+    {
+        "click",
+        "double_click",
+        "right_click",
+        "middle_click",
+        "drag",
+        "scroll",
+        "type",
+        "key",
+        "set_value",
+        "focus_app",
+    }
+)
 
 _ALL_ACTIONS: frozenset[str] = _SAFE_ACTIONS | _DESTRUCTIVE_ACTIONS
 
 # Windows 11 hard-blocked key combos. Refused regardless of approval — they
 # either kill the agent's session or the user's host.
 _BLOCKED_KEY_COMBOS: tuple[frozenset[str], ...] = (
-    frozenset({"win", "l"}),                    # lock screen
-    frozenset({"ctrl", "alt", "delete"}),       # secure attention sequence
-    frozenset({"alt", "f4"}),                   # close active window blindly
-    frozenset({"win", "r"}),                    # Run dialog
-    frozenset({"win", "shift", "s"}),           # Snipping tool overlay
+    frozenset({"win", "l"}),  # lock screen
+    frozenset({"ctrl", "alt", "delete"}),  # secure attention sequence
+    frozenset({"alt", "f4"}),  # close active window blindly
+    frozenset({"win", "r"}),  # Run dialog
+    frozenset({"win", "shift", "s"}),  # Snipping tool overlay
 )
 
 # Dangerous text patterns banned from `type`.
@@ -167,9 +177,7 @@ class ComputerUseTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, Any]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, Any]) -> dict[str, object]:
         """Universal ToolWrapper entry. ``tool_name`` must equal ``"computer_use"``."""
         if tool_name != "computer_use":
             raise ValueError(
@@ -193,8 +201,7 @@ class ComputerUseTool:
         action = args.get("action")
         if not isinstance(action, str) or action not in _ALL_ACTIONS:
             raise ValueError(
-                f"ComputerUseTool: unknown action '{action}'. "
-                f"Supported: {sorted(_ALL_ACTIONS)}"
+                f"ComputerUseTool: unknown action '{action}'. Supported: {sorted(_ALL_ACTIONS)}"
             )
 
         # Hard-block: certain combos and text patterns are refused unconditionally.
@@ -222,9 +229,7 @@ class ComputerUseTool:
         if action in _DESTRUCTIVE_ACTIONS and not self._is_allowlisted(args):
             decision = self._request_approval(action, args)
             if decision == "deny":
-                raise PermissionError(
-                    f"ComputerUseTool: action '{action}' denied by approval gate"
-                )
+                raise PermissionError(f"ComputerUseTool: action '{action}' denied by approval gate")
 
         return self._invoke_backend(action, args)
 
@@ -291,7 +296,10 @@ class ComputerUseTool:
             x, y = _coord(args.get("coordinate"))
             res = be.click(
                 element=_int_or_none(args.get("element")),
-                x=x, y=y, button=button, click_count=click_count,
+                x=x,
+                y=y,
+                button=button,
+                click_count=click_count,
                 modifiers=_str_list(args.get("modifiers")),
             )
             return _action_to_dict(res)
@@ -315,7 +323,9 @@ class ComputerUseTool:
                 direction=str(args.get("direction") or "down"),
                 amount=int(args.get("amount") or 3),
                 element=_int_or_none(args.get("element")),
-                x=x, y=y, modifiers=_str_list(args.get("modifiers")),
+                x=x,
+                y=y,
+                modifiers=_str_list(args.get("modifiers")),
             )
             return _action_to_dict(res)
 

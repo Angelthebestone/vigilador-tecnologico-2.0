@@ -43,4 +43,3 @@ async def test_bias_auditor_flags_geographic_overrepresentation() -> None:
     assert audit.critical_bias_detected is True
     assert "geographic" in audit.bias_categories
     assert audit.geographic_distribution["US"] == pytest.approx(0.8)
-

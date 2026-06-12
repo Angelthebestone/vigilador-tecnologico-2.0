@@ -1,4 +1,5 @@
 """Execution services — source scorer, linker, synthesizer, KPIs, memory, reports."""
+
 from __future__ import annotations
 
 from typing import Any, cast
@@ -13,7 +14,9 @@ from vigilancia_multiagente.application.evaluation.golden_cases_runner import Go
 from vigilancia_multiagente.application.evaluation.prompt_regression_service import (
     PromptRegressionService,
 )
-from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer, SourceScorerService
+from vigilancia_multiagente.application.evaluation.source_scorer import (
+    SourceScorer,
+)
 from vigilancia_multiagente.application.fusion.evidence_linker import EvidenceLinker
 from vigilancia_multiagente.application.fusion.report_synthesizer import ReportSynthesizer
 from vigilancia_multiagente.application.graph.knowledge_graph_service import KnowledgeGraphService
@@ -29,9 +32,9 @@ from vigilancia_multiagente.infra.persistence.global_knowledge_repository import
 )
 
 from .assurance import build_assurance_services
-from .source_quality import build_source_quality_services
 from .data_intelligence import build_data_intelligence_services
 from .deep_analysis import build_deep_analysis_services
+from .source_quality import build_source_quality_services
 from .strategic_signals import build_strategic_signals_services
 
 
@@ -71,6 +74,7 @@ def build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str, 
         from vigilancia_multiagente.application.evaluation.hype_detector import (
             set_isotonic_calibrator,
         )
+
         set_isotonic_calibrator(assurance_services["calibrator"])
     e["report_synthesizer"] = ReportSynthesizer(
         event_publisher=event_publisher,
@@ -87,10 +91,12 @@ def build_execution_services(s: dict[str, Any], g: dict[str, Any]) -> dict[str, 
     e["artifact_service"] = SessionArtifactService()
     e["conversation_service"] = ConversationService()
     e["global_knowledge_repository"] = cast(
-        GlobalKnowledgeStore, GlobalKnowledgeRepository(s["database"]),
+        GlobalKnowledgeStore,
+        GlobalKnowledgeRepository(s["database"]),
     )
     e["cross_session_service"] = CrossSessionService(
-        e["global_knowledge_repository"], s["embedding_gateway"],
+        e["global_knowledge_repository"],
+        s["embedding_gateway"],
     )
     e["report_generator"] = ReportGenerator()
     return e

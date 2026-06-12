@@ -66,13 +66,10 @@ class IsotonicConfidenceCalibrator:
 
     async def retrain(self, runs: list[GoldenCaseRun]) -> CalibrationCurve:
         if len(runs) < _MIN_SAMPLES_FOR_FIT:
-            raise ValueError(
-                f"need >= {_MIN_SAMPLES_FOR_FIT} runs to fit, got {len(runs)}"
-            )
-        predicted = np.array([
-            float(np.clip(r.actual_confidence - r.delta_vs_expected, 0.0, 1.0))
-            for r in runs
-        ])
+            raise ValueError(f"need >= {_MIN_SAMPLES_FOR_FIT} runs to fit, got {len(runs)}")
+        predicted = np.array(
+            [float(np.clip(r.actual_confidence - r.delta_vs_expected, 0.0, 1.0)) for r in runs]
+        )
         observed = np.array([1.0 if r.success else 0.0 for r in runs])
         model = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
         model.fit(predicted, observed)

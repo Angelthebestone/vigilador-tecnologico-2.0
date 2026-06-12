@@ -29,14 +29,17 @@ class TestDocxGenerateTool:
     @pytest.mark.asyncio()
     async def test_generates_valid_docx(self, tool: DocxGenerateTool, tmp_path: Path) -> None:
         output = tmp_path / "out.docx"
-        result = await tool.execute("docx_generate", {
-            "title": "Test Doc",
-            "sections": [
-                {"heading": "Intro", "body": "Hello world"},
-                {"heading": "Conclusion", "body": "Done"},
-            ],
-            "output_path": str(output),
-        })
+        result = await tool.execute(
+            "docx_generate",
+            {
+                "title": "Test Doc",
+                "sections": [
+                    {"heading": "Intro", "body": "Hello world"},
+                    {"heading": "Conclusion", "body": "Done"},
+                ],
+                "output_path": str(output),
+            },
+        )
         assert "error" not in result
         assert result["output_path"] == str(output)
         assert output.exists()
@@ -44,10 +47,13 @@ class TestDocxGenerateTool:
 
     @pytest.mark.asyncio()
     async def test_empty_sections_returns_error(self, tool: DocxGenerateTool) -> None:
-        result = await tool.execute("docx_generate", {
-            "title": "Test",
-            "sections": [],
-            "output_path": "/tmp/out.docx",
-        })
+        result = await tool.execute(
+            "docx_generate",
+            {
+                "title": "Test",
+                "sections": [],
+                "output_path": "/tmp/out.docx",
+            },
+        )
         assert "error" in result
         assert "non-empty" in result["error"]

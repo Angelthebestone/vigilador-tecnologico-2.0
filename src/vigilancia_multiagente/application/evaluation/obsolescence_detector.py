@@ -81,9 +81,7 @@ class ObsolescenceDetector:
         return signal
 
     @staticmethod
-    def _narrative_obsolescence(
-        tech_name: str, shifts: list[NarrativeShift]
-    ) -> ObsolescenceSignal:
+    def _narrative_obsolescence(tech_name: str, shifts: list[NarrativeShift]) -> ObsolescenceSignal:
         max_mag = max(s.change_magnitude for s in shifts)
         avg_delta = sum(s.sentiment_pre - s.sentiment_post for s in shifts) / len(shifts)
         confidence = min(0.85, 0.4 + max_mag)
@@ -94,8 +92,10 @@ class ObsolescenceDetector:
                 f"Narrative shift toward negative sentiment detected: "
                 f"{len(shifts)} shift(s), max magnitude={max_mag:.4f}, "
                 f"avg delta={avg_delta:.4f}",
-                *[f"  {s.topic}: pre={s.sentiment_pre:.3f}, post={s.sentiment_post:.3f}"
-                  for s in shifts[:3]],
+                *[
+                    f"  {s.topic}: pre={s.sentiment_pre:.3f}, post={s.sentiment_post:.3f}"
+                    for s in shifts[:3]
+                ],
             ],
             confidence=round(confidence, 2),
             recommendation=(
@@ -107,9 +107,7 @@ class ObsolescenceDetector:
         )
 
     @staticmethod
-    def _s_curve_obsolescence(
-        tech_name: str, proj: SCurveProjection
-    ) -> ObsolescenceSignal:
+    def _s_curve_obsolescence(tech_name: str, proj: SCurveProjection) -> ObsolescenceSignal:
         decline_magnitude = abs(proj.growth_rate)
         confidence = min(0.9, 0.5 + decline_magnitude)
         return ObsolescenceSignal(

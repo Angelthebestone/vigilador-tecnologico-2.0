@@ -1,7 +1,9 @@
 """T081: Brave BaseHTTPProvider migration test."""
+
 import os
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from vigilancia_multiagente.enterprise.tooling.builtin.research.brave import BraveTool
 
@@ -12,6 +14,7 @@ def test_brave_healthcheck_no_key():
     with patch.dict("os.environ", {}, clear=False):
         os.environ.pop("VT_BRAVE_API_KEY", None)
         import asyncio
+
         result = asyncio.run(tool.healthcheck())
         assert result.status == "UNCONFIGURED"
 
@@ -28,14 +31,16 @@ def test_brave_unknown_tool_name():
     tool = BraveTool()
     with pytest.raises(ValueError, match="unknown tool_name"):
         import asyncio
+
         asyncio.run(tool.execute("unknown_tool", {"query": "test"}))
 
 
 def test_brave_missing_query():
     """Missing query raises ValueError."""
     tool = BraveTool()
-    with pytest.raises(ValueError, match="query.*must be a non-empty string"):
+    with pytest.raises(ValueError, match=r"query.*must be a non-empty string"):
         import asyncio
+
         asyncio.run(tool.execute("web_search", {}))
 
 
@@ -45,6 +50,7 @@ def test_brave_web_search_uses_base_get():
     mock_payload = {"web": {"results": [{"title": "Test", "url": "https://example.com"}]}}
     with patch.object(tool, "get", return_value=mock_payload) as mock_get:
         import asyncio
+
         result = asyncio.run(tool.execute("web_search", {"query": "test query", "count": 5}))
         assert result["query"] == "test query"
         assert len(result["results"]) == 1

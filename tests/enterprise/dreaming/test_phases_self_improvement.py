@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 
-from vigilancia_multiagente.enterprise.dreaming.models import DreamingContext, PhaseStatus
+from vigilancia_multiagente.enterprise.dreaming.models import DreamingContext
 from vigilancia_multiagente.enterprise.dreaming.phases.self_improvement import (
     SelfImprovementPhase,
 )
@@ -59,7 +59,7 @@ class FakeABTestManager:
 
 def _ctx(llm: bool = True) -> DreamingContext:
     return DreamingContext(
-        cycle_id="c1", started_at=datetime.now(timezone.utc), tenant_id="t1", llm_available=llm
+        cycle_id="c1", started_at=datetime.now(UTC), tenant_id="t1", llm_available=llm
     )
 
 

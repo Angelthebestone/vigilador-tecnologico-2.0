@@ -4,9 +4,7 @@ from fastapi import APIRouter
 
 from vigilancia_multiagente.api.dependencies import (
     branch_coordinator,
-    branch_result_repository,
     governance_loader,
-    prompt_regression_service,
 )
 from vigilancia_multiagente.api.routes.research_evaluation import router as evaluation_router
 
@@ -59,21 +57,4 @@ async def get_agent_contracts(session_id: UUID) -> dict[str, object]:
     }
 
 
-@router.get("/{session_id}/evaluation")
-async def get_evaluation(session_id: UUID) -> dict[str, object]:
-    results = await branch_result_repository.list_by_session(session_id)
-    evaluations = [
-        {
-            "branch_type": result.branch_type.value,
-            "coverage_kpi": result.coverage_score or 0.0,
-            "precision_kpi": result.confidence_score or 0.0,
-            "latency_ms_kpi": 500,
-            "cost_kpi": 0.0,
-            "prompt_regression_passed": prompt_regression_service.evaluate(
-                result.branch_type.value, 0.0, 0.0
-            ).passed,
-            "golden_case_id": None,
-        }
-        for result in results
-    ]
-    return {"session_id": str(session_id), "by_branch": evaluations}
+

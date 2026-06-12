@@ -83,6 +83,7 @@ async def test_maps_dependencies_for_quantum(mock_graph_service) -> None:
 @pytest.mark.asyncio
 async def test_returns_empty_on_llm_failure(mock_graph_service) -> None:
     """Fallo de LLM -> lista vacia + StepError."""
+
     class FailingLLM:
         async def complete(self, messages):
             raise RuntimeError("LLM error")

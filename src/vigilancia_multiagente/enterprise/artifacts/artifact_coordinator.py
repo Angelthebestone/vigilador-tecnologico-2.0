@@ -16,16 +16,37 @@ from vigilancia_multiagente.enterprise.artifacts.source_inventory_agent import (
 from vigilancia_multiagente.enterprise.artifacts.verifier import Verifier
 
 # Keywords that indicate artifact-development vs app-development
-_ARTIFACT_KEYWORDS = frozenset({
-    "dashboard", "kpi", "métrica", "metrica", "grafica", "gráfica",
-    "reporte", "pipeline de datos", "notebook", "visualización",
-    "visualizacion", "indicador", "ventas mensuales", "chart",
-})
+_ARTIFACT_KEYWORDS = frozenset(
+    {
+        "dashboard",
+        "kpi",
+        "métrica",
+        "metrica",
+        "grafica",
+        "gráfica",
+        "reporte",
+        "pipeline de datos",
+        "notebook",
+        "visualización",
+        "visualizacion",
+        "indicador",
+        "ventas mensuales",
+        "chart",
+    }
+)
 
-_APP_KEYWORDS = frozenset({
-    "herramienta interna", "aplicación", "aplicacion", "producto interno",
-    "sistema completo", "workflow", "crud", "interfaz de usuario",
-})
+_APP_KEYWORDS = frozenset(
+    {
+        "herramienta interna",
+        "aplicación",
+        "aplicacion",
+        "producto interno",
+        "sistema completo",
+        "workflow",
+        "crud",
+        "interfaz de usuario",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -82,16 +103,12 @@ class ArtifactCoordinator:
         # Phase 1: Source Inventory
         inventory = self._inventory.run_inventory(request, declared_paths)
         if not inventory.sources:
-            return CoordinatorResult(
-                success=False, record=None, message=inventory.message
-            )
+            return CoordinatorResult(success=False, record=None, message=inventory.message)
 
         # Phase 2: Metric Model
         model = self._metric.model_metrics(request, inventory.sources, requested_kpis)
         if not model.kpis:
-            return CoordinatorResult(
-                success=False, record=None, message=model.message
-            )
+            return CoordinatorResult(success=False, record=None, message=model.message)
 
         # Phase 3: Pipeline Plan
         plan = self._planner.plan(inventory.sources, model.kpis, model.refresh_policy)

@@ -46,9 +46,7 @@ class ApprovalGate:
         approved = self._port.is_approved(request_id)
 
         if approved:
-            return ApprovalResult(
-                approved=True, reason="human_approved", request_id=request_id
-            )
+            return ApprovalResult(approved=True, reason="human_approved", request_id=request_id)
 
         # Check token again after waiting
         if token.is_expired():
@@ -58,9 +56,7 @@ class ApprovalGate:
                 request_id=request_id,
             )
 
-        return ApprovalResult(
-            approved=False, reason="awaiting_approval", request_id=request_id
-        )
+        return ApprovalResult(approved=False, reason="awaiting_approval", request_id=request_id)
 
 
 class ApprovalResult:

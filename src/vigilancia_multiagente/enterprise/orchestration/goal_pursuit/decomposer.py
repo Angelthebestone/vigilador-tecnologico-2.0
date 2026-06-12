@@ -44,14 +44,10 @@ class GoalDecomposer:
     def __init__(self, llm: LLMDecomposerPort) -> None:
         self._llm = llm
 
-    def decompose(
-        self, objective: str, context: dict[str, object], max_depth: int
-    ) -> GoalDAG:
+    def decompose(self, objective: str, context: dict[str, object], max_depth: int) -> GoalDAG:
         """Decompose objective into GoalDAG. Raises on vague goals or depth exceeded."""
         if not objective.strip():
-            raise DecompositionError(
-                reason="objective is empty", objective=objective
-            )
+            raise DecompositionError(reason="objective is empty", objective=objective)
 
         raw_goals = self._llm.decompose_objective(objective, context)
 
@@ -70,7 +66,8 @@ class GoalDecomposer:
                 id=str(item["id"]),
                 description=str(item["description"]),
                 dependencies=frozenset(
-                    str(d) for d in item.get("dependencies", [])  # type: ignore[union-attr]
+                    str(d)
+                    for d in item.get("dependencies", [])  # type: ignore[union-attr]
                 ),
                 completion_criteria=str(item["completion_criteria"]),
             )
@@ -84,9 +81,7 @@ class GoalDecomposer:
 
     def _validate_depth(self, sub_goals: list[SubGoal], max_depth: int) -> None:
         """Validate that the dependency chain depth does not exceed max_depth."""
-        id_to_deps: dict[str, frozenset[str]] = {
-            sg.id: sg.dependencies for sg in sub_goals
-        }
+        id_to_deps: dict[str, frozenset[str]] = {sg.id: sg.dependencies for sg in sub_goals}
         memo: dict[str, int] = {}
 
         def depth_of(node_id: str) -> int:

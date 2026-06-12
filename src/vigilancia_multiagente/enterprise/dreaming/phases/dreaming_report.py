@@ -80,5 +80,8 @@ class DreamingReportPhase:
             phase_name=self.name,
             status=PhaseStatus.SUCCESS,
             duration_ms=duration_ms,
-            metrics_dict={"pending_approvals": len(pending), "delivered_to": self._delivery_channel},
+            metrics_dict={
+                "pending_approvals": len(pending),
+                "delivered_to": self._delivery_channel,
+            },
         )

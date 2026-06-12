@@ -1,56 +1,41 @@
-"""Jina reader tool — native WRAP-SDK over Jina's free reader/extract endpoints.
+"""Jina reader tool — BaseHTTPProvider subclass.
 
 Spec 021 FR-053/054: native-first, universal Tool abstraction.
 Catalog: ``jina`` / domain ``research`` / capabilities
 ``[reader, extract_content]``.
 
-Strategy: WRAP-SDK using ``httpx``. ``r.jina.ai/<url>`` is the reader API
-that converts any URL to clean Markdown. The API key is optional (anonymous
-calls work but are rate-limited); when present it goes in the
-``Authorization`` header for higher quotas.
+Strategy: Subclass ``BaseHTTPProvider``. Override ``_auth_headers()``
+with optional Bearer token (anonymous tier works without key).
 """
 
 from __future__ import annotations
 
-import os
-from dataclasses import dataclass
+from typing import Any, ClassVar
 
 import httpx
 
 from vigilancia_multiagente.enterprise.governance.url_safety import is_safe_url
-from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
+from vigilancia_multiagente.enterprise.tooling.builtin._base.http_provider import (
+    BaseHTTPProvider,
+)
 
-_JINA_READER_BASE_URL = "https://r.jina.ai"
-_DEFAULT_TIMEOUT_S = 60.0
 
-
-@dataclass(frozen=True)
-class JinaTool:
+class JinaTool(BaseHTTPProvider):
     """Native tool for the Jina reader/extract endpoints."""
 
-    name: str = "jina"
-    domain: str = "research"
-    is_external_mcp: bool = False
-    # Reader works without API key (anonymous tier), so requires_auth=False.
-    requires_auth: bool = False
+    name: ClassVar[str] = "jina"
+    domain: ClassVar[str] = "research"
+    base_url: ClassVar[str] = "https://r.jina.ai"
+    auth_env_var: ClassVar[str | None] = "VT_JINA_API_KEY"
+    requires_auth: ClassVar[bool] = False
 
-    def _api_key(self) -> str | None:
-        return os.getenv("VT_JINA_API_KEY") or None
+    def _auth_headers(self, api_key: str) -> dict[str, str]:
+        headers: dict[str, str] = {"Accept": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        return headers
 
-    async def healthcheck(self) -> HealthcheckResult:
-        """Reader endpoint is always reachable; reports UP unconditionally."""
-        return HealthcheckResult(status="UP")
-
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
-        """Dispatch to the requested capability.
-
-        Supported ``tool_name`` values:
-        * ``reader`` — args: ``url`` (str, required). Returns the URL
-          converted to clean Markdown (no nav/scripts/ads).
-        * ``extract_content`` — alias of reader; same behavior.
-        """
+    async def execute(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
         url = args.get("url")
         if not isinstance(url, str) or not url.strip():
             raise ValueError("JinaTool: 'url' must be a non-empty string")
@@ -61,25 +46,19 @@ class JinaTool:
             )
         if tool_name not in {"reader", "extract_content"}:
             raise ValueError(
-                f"JinaTool: unknown tool_name '{tool_name}' "
-                f"(supported: reader, extract_content)"
+                f"JinaTool: unknown tool_name '{tool_name}' (supported: reader, extract_content)"
             )
         return await self._read(url)
 
-    async def _read(self, url: str) -> dict[str, object]:
-        headers = {"Accept": "application/json"}
-        api_key = self._api_key()
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-
-        async with httpx.AsyncClient(timeout=_DEFAULT_TIMEOUT_S) as client:
-            response = await client.get(
-                f"{_JINA_READER_BASE_URL}/{url}", headers=headers
-            )
-            response.raise_for_status()
-            content_type = response.headers.get("content-type", "")
+    async def _read(self, url: str) -> dict[str, Any]:
+        try:
+            response = await self.get(f"/{url}")
+            content_type = response.get("content-type", "")
             if "application/json" in content_type:
-                payload = response.json()
-                data = payload.get("data") if isinstance(payload, dict) else payload
+                data = response.get("data") if isinstance(response, dict) else response
                 return {"url": url, "content": data}
-            return {"url": url, "content": response.text}
+            return {"url": url, "content": response}
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 429:
+                return {"url": url, "error": "rate_limited", "content": ""}
+            raise

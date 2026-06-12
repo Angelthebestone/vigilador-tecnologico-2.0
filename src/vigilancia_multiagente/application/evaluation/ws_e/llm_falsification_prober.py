@@ -13,16 +13,16 @@ import json
 import logging
 import re
 from typing import cast
-from uuid import UUID, uuid4
+from uuid import uuid4
 
+from vigilancia_multiagente.application.evaluation.prompt_messages import (
+    build_messages_with_fewshot,
+)
 from vigilancia_multiagente.domain.evaluation_entities import FalsificationScenario
 from vigilancia_multiagente.domain.pipeline_errors import (
     StepError,
     StepErrorSeverity,
     Workstream,
-)
-from vigilancia_multiagente.application.evaluation.prompt_messages import (
-    build_messages_with_fewshot,
 )
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
 from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
@@ -55,7 +55,7 @@ class LlmFalsificationProber:
             return []
         try:
             response = await self._llm.complete(messages)
-        except Exception as exc:  # noqa: BLE001 — adapter de frontera externa
+        except Exception as exc:
             logger.warning("LlmFalsificationProber failed: %s", exc, exc_info=True)
             self._record_error(exc, context={"conclusion_excerpt": conclusion[:120]})
             return []

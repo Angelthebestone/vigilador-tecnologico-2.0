@@ -7,7 +7,6 @@ y divide densidades por subdominio.
 from __future__ import annotations
 
 import logging
-from math import log
 
 from vigilancia_multiagente.domain.evaluation_entities import (
     PatentingClassification,

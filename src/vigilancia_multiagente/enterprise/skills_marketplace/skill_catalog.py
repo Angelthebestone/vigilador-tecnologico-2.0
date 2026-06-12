@@ -96,9 +96,7 @@ class SkillCatalog:
 
     def _load_taxonomy(self) -> None:
         if not self._taxonomy_path.is_file():
-            raise SkillCatalogError(
-                f"taxonomy file not found: {self._taxonomy_path}"
-            )
+            raise SkillCatalogError(f"taxonomy file not found: {self._taxonomy_path}")
         try:
             data = yaml.safe_load(self._taxonomy_path.read_text(encoding="utf-8"))
         except yaml.YAMLError as exc:
@@ -107,28 +105,21 @@ class SkillCatalog:
             ) from exc
         if not isinstance(data, dict):
             raise SkillCatalogError(
-                f"taxonomy must be a mapping at top level "
-                f"({self._taxonomy_path})"
+                f"taxonomy must be a mapping at top level ({self._taxonomy_path})"
             )
 
         cats_raw = data.get("categories")
         if not isinstance(cats_raw, list) or not cats_raw:
             raise SkillCatalogError(
-                f"taxonomy.categories must be a non-empty list "
-                f"({self._taxonomy_path})"
+                f"taxonomy.categories must be a non-empty list ({self._taxonomy_path})"
             )
         for cat in cats_raw:
             if not isinstance(cat, dict) or "id" not in cat:
-                raise SkillCatalogError(
-                    "taxonomy category entry missing 'id': "
-                    f"{cat!r}"
-                )
+                raise SkillCatalogError(f"taxonomy category entry missing 'id': {cat!r}")
             sub_defs: list[SubCategoryDefinition] = []
             for sub in cat.get("sub_categories", []) or []:
                 if not isinstance(sub, dict) or "id" not in sub:
-                    raise SkillCatalogError(
-                        f"taxonomy sub_category entry missing 'id': {sub!r}"
-                    )
+                    raise SkillCatalogError(f"taxonomy sub_category entry missing 'id': {sub!r}")
                 sub_defs.append(
                     SubCategoryDefinition(
                         id=str(sub["id"]),
@@ -146,9 +137,7 @@ class SkillCatalog:
         mapping_raw = data.get("mapping") or {}
         if not isinstance(mapping_raw, dict):
             raise SkillCatalogError("taxonomy.mapping must be a mapping")
-        self._mapping = {
-            str(k): str(v) for k, v in mapping_raw.items()
-        }
+        self._mapping = {str(k): str(v) for k, v in mapping_raw.items()}
 
         default_cat = data.get("default_category")
         if isinstance(default_cat, str) and default_cat:
@@ -160,9 +149,7 @@ class SkillCatalog:
                 self._catalog_path.read_text(encoding="utf-8")  # type: ignore[union-attr]
             )
         except yaml.YAMLError as exc:
-            raise SkillCatalogError(
-                f"catalog YAML invalid ({self._catalog_path}): {exc}"
-            ) from exc
+            raise SkillCatalogError(f"catalog YAML invalid ({self._catalog_path}): {exc}") from exc
         if data is None:
             return  # empty file is fine — no overrides
         if not isinstance(data, dict):
@@ -170,41 +157,32 @@ class SkillCatalog:
                 f"catalog must be a mapping at top level ({self._catalog_path})"
             )
 
-        self._aliases = {
-            str(k): str(v) for k, v in (data.get("aliases") or {}).items()
-        }
+        self._aliases = {str(k): str(v) for k, v in (data.get("aliases") or {}).items()}
         disabled_raw = data.get("disabled") or []
         if not isinstance(disabled_raw, list):
             raise SkillCatalogError("catalog.disabled must be a list")
         self._disabled = {str(x) for x in disabled_raw}
-        self._recategorize = {
-            str(k): str(v) for k, v in (data.get("recategorize") or {}).items()
-        }
-        self._sub_category = {
-            str(k): str(v) for k, v in (data.get("sub_category") or {}).items()
-        }
+        self._recategorize = {str(k): str(v) for k, v in (data.get("recategorize") or {}).items()}
+        self._sub_category = {str(k): str(v) for k, v in (data.get("sub_category") or {}).items()}
 
     def _validate(self) -> None:
         # Every mapping target must reference an existing category.
         for hint, cat_id in self._mapping.items():
             if cat_id not in self._categories:
                 raise SkillCatalogError(
-                    f"taxonomy.mapping[{hint!r}] -> {cat_id!r} is not a "
-                    "declared category"
+                    f"taxonomy.mapping[{hint!r}] -> {cat_id!r} is not a declared category"
                 )
         # Every recategorize target must reference an existing category.
         for sid, cat_id in self._recategorize.items():
             if cat_id not in self._categories:
                 raise SkillCatalogError(
-                    f"catalog.recategorize[{sid!r}] -> {cat_id!r} is not "
-                    "a declared category"
+                    f"catalog.recategorize[{sid!r}] -> {cat_id!r} is not a declared category"
                 )
         # Every alias's target must NOT itself be aliased (one-hop only).
         for alias, target in self._aliases.items():
             if target in self._aliases:
                 raise SkillCatalogError(
-                    f"alias chain not allowed: {alias!r} -> {target!r} "
-                    "(target is itself an alias)"
+                    f"alias chain not allowed: {alias!r} -> {target!r} (target is itself an alias)"
                 )
 
     # ------------------------------------------------------------------

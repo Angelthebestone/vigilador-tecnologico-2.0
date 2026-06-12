@@ -13,7 +13,10 @@ from vigilancia_multiagente.enterprise.artifacts.artifact_registry import (
 from vigilancia_multiagente.enterprise.artifacts.builder_agent import BuilderAgent
 from vigilancia_multiagente.enterprise.artifacts.metric_model_agent import MetricModelAgent
 from vigilancia_multiagente.enterprise.artifacts.pipeline_planner import PipelinePlanner
-from vigilancia_multiagente.enterprise.artifacts.ports import BuildResult, DataSource, VerificationResult
+from vigilancia_multiagente.enterprise.artifacts.ports import (
+    BuildResult,
+    DataSource,
+)
 from vigilancia_multiagente.enterprise.artifacts.publisher import Publisher
 from vigilancia_multiagente.enterprise.artifacts.source_inventory_agent import SourceInventoryAgent
 from vigilancia_multiagente.enterprise.artifacts.verifier import Verifier
@@ -52,8 +55,12 @@ class FakeSandbox:
 
 def _build_coordinator(tmp_path: Path) -> ArtifactCoordinator:
     sources = [
-        DataSource(name="ventas.csv", source_type="CSV", location="/data/ventas.csv", available=True),
-        DataSource(name="clientes.csv", source_type="CSV", location="/data/clientes.csv", available=True),
+        DataSource(
+            name="ventas.csv", source_type="CSV", location="/data/ventas.csv", available=True
+        ),
+        DataSource(
+            name="clientes.csv", source_type="CSV", location="/data/clientes.csv", available=True
+        ),
     ]
     fs = FakeFileSystem()
     sandbox = FakeSandbox()
@@ -75,9 +82,27 @@ def test_full_6_phase_flow_produces_artifact() -> None:
     with TemporaryDirectory() as tmp:
         coordinator = _build_coordinator(Path(tmp))
         kpis = [
-            {"name": "Ventas Totales", "formula": "SUM(monto)", "source": "ventas.csv", "granularity": "mensual", "display_format": "bar_chart"},
-            {"name": "Clientes Nuevos", "formula": "COUNT(id)", "source": "clientes.csv", "granularity": "semanal", "display_format": "line_chart"},
-            {"name": "Ticket Promedio", "formula": "AVG(monto)", "source": "ventas.csv", "granularity": "mensual", "display_format": "gauge"},
+            {
+                "name": "Ventas Totales",
+                "formula": "SUM(monto)",
+                "source": "ventas.csv",
+                "granularity": "mensual",
+                "display_format": "bar_chart",
+            },
+            {
+                "name": "Clientes Nuevos",
+                "formula": "COUNT(id)",
+                "source": "clientes.csv",
+                "granularity": "semanal",
+                "display_format": "line_chart",
+            },
+            {
+                "name": "Ticket Promedio",
+                "formula": "AVG(monto)",
+                "source": "ventas.csv",
+                "granularity": "mensual",
+                "display_format": "gauge",
+            },
         ]
 
         result = coordinator.execute(
@@ -97,7 +122,13 @@ def test_metadata_complete_in_registry() -> None:
     with TemporaryDirectory() as tmp:
         coordinator = _build_coordinator(Path(tmp))
         kpis = [
-            {"name": "Revenue", "formula": "SUM(revenue)", "source": "ventas.csv", "granularity": "mensual", "display_format": "bar_chart"},
+            {
+                "name": "Revenue",
+                "formula": "SUM(revenue)",
+                "source": "ventas.csv",
+                "granularity": "mensual",
+                "display_format": "bar_chart",
+            },
         ]
 
         result = coordinator.execute(
@@ -126,6 +157,11 @@ def test_dashboard_request_goes_to_artifact_development() -> None:
 
 def test_app_request_does_not_activate_artifact_playbook() -> None:
     """Solicitud de 'herramienta interna' NO activa este playbook (SC-001, SC-005)."""
-    assert ArtifactCoordinator.should_handle("Construye una herramienta interna para el equipo") is False
-    assert ArtifactCoordinator.should_handle("Necesito una aplicación con CRUD de usuarios") is False
+    assert (
+        ArtifactCoordinator.should_handle("Construye una herramienta interna para el equipo")
+        is False
+    )
+    assert (
+        ArtifactCoordinator.should_handle("Necesito una aplicación con CRUD de usuarios") is False
+    )
     assert ArtifactCoordinator.should_handle("Crea un sistema completo de gestión") is False

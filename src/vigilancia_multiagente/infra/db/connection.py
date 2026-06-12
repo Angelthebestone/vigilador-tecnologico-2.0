@@ -1,6 +1,6 @@
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-import os
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -32,6 +32,12 @@ class Database:
     @property
     def engine(self) -> AsyncEngine:
         return self._engine
+
+    async def initialize(self) -> list[str]:
+        from vigilancia_multiagente.infra.db.migration_runner import MigrationRunner
+
+        runner = MigrationRunner(self._engine)
+        return await runner.apply()
 
     @asynccontextmanager
     async def session(self) -> AsyncIterator[AsyncSession]:

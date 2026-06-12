@@ -15,7 +15,6 @@ from vigilancia_multiagente.domain.evaluation_entities import (
     ExtractionSchema,
     SourceType,
 )
-from vigilancia_multiagente.domain.ports.extraction_schema import ExtractionSchemaRegistry
 from vigilancia_multiagente.infra.db.connection import Database
 
 
@@ -23,9 +22,7 @@ class PostgresExtractionSchemaRepository:
     def __init__(self, database: Database) -> None:
         self._database = database
 
-    async def get_schema(
-        self, source_type: str, domain: str
-    ) -> ExtractionSchema:
+    async def get_schema(self, source_type: str, domain: str) -> ExtractionSchema:
         async with self._database.session() as db:
             result = await db.execute(
                 text(
@@ -38,9 +35,7 @@ class PostgresExtractionSchemaRepository:
             )
             row = result.fetchone()
             if row is None:
-                raise KeyError(
-                    f"No schema for source_type={source_type!r} domain={domain!r}"
-                )
+                raise KeyError(f"No schema for source_type={source_type!r} domain={domain!r}")
             return _row_to_schema(tuple(row))
 
     async def save(self, schema: ExtractionSchema) -> None:
@@ -62,9 +57,7 @@ class PostgresExtractionSchemaRepository:
             )
             await db.commit()
 
-    async def list_versions(
-        self, source_type: str, domain: str
-    ) -> list[ExtractionSchema]:
+    async def list_versions(self, source_type: str, domain: str) -> list[ExtractionSchema]:
         async with self._database.session() as db:
             result = await db.execute(
                 text(

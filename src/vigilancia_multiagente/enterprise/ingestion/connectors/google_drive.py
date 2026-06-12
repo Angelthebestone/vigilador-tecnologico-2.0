@@ -62,9 +62,7 @@ class GoogleDriveConnector:
         token = await self._access_token()
         params: dict[str, str | int] = {
             "pageSize": 100,
-            "fields": (
-                "files(id,name,mimeType,modifiedTime,owners(emailAddress))"
-            ),
+            "fields": ("files(id,name,mimeType,modifiedTime,owners(emailAddress))"),
         }
         root = os.getenv("VT_GDRIVE_ROOT_FOLDER_ID") or ""
         if root:
@@ -92,9 +90,7 @@ class GoogleDriveConnector:
                     mime_type=f.get("mimeType", ""),
                     last_modified=modified,
                     metadata={
-                        "owners": [
-                            o.get("emailAddress", "") for o in f.get("owners", [])
-                        ],
+                        "owners": [o.get("emailAddress", "") for o in f.get("owners", [])],
                     },
                 )
             )

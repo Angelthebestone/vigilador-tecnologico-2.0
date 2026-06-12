@@ -84,9 +84,9 @@ async def test_tool_registry_execute_emits_audit_event(tmp_path: Path):
     assert out == {"value": "ok"}
     events = [
         json.loads(line)
-        for line in (
-            next(iter(tmp_path.glob("events_*.jsonl")))
-        ).read_text(encoding="utf-8").splitlines()
+        for line in (next(iter(tmp_path.glob("events_*.jsonl"))))
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert len(events) == 1
     assert events[0]["event"] == "tool_invocation"
@@ -106,9 +106,9 @@ async def test_tool_registry_execute_emits_audit_on_error(tmp_path: Path):
 
     events = [
         json.loads(line)
-        for line in (
-            next(iter(tmp_path.glob("events_*.jsonl")))
-        ).read_text(encoding="utf-8").splitlines()
+        for line in (next(iter(tmp_path.glob("events_*.jsonl"))))
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert events[0]["event"] == "tool_invocation"
     assert events[0]["outcome"] == "error"
@@ -144,9 +144,9 @@ async def test_complexity_classifier_emits_audit_event(tmp_path: Path):
 
     events = [
         json.loads(line)
-        for line in (
-            next(iter(tmp_path.glob("events_*.jsonl")))
-        ).read_text(encoding="utf-8").splitlines()
+        for line in (next(iter(tmp_path.glob("events_*.jsonl"))))
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert events[0]["event"] == "complexity"
     assert events[0]["level"] == "MODERATE"
@@ -172,9 +172,9 @@ async def test_subagent_spawn_emits_audit_event(tmp_path: Path):
     )
     events = [
         json.loads(line)
-        for line in (
-            next(iter(tmp_path.glob("events_*.jsonl")))
-        ).read_text(encoding="utf-8").splitlines()
+        for line in (next(iter(tmp_path.glob("events_*.jsonl"))))
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     assert events[0]["event"] == "subagent_spawn"
     assert events[0]["depth"] == 0

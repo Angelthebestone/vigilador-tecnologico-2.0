@@ -124,7 +124,7 @@ class PIQuarantineRepository:
                 ),
                 {"approved_at": now, "approved_by": approved_by, "id": str(record_id)},
             )
-            if result.rowcount == 0:
+            if (result.rowcount or 0) == 0:  # type: ignore[union-attr]
                 raise ValueError(f"Quarantine record {record_id} not found or already approved")
             # Fetch content for reinjection
             row = await session.execute(
@@ -138,16 +138,16 @@ class PIQuarantineRepository:
 
     @staticmethod
     def _row_to_record(row: object) -> QuarantineRecord:
-        r = row  # type: ignore[assignment]
-        patterns = r[4] if isinstance(r[4], list) else json.loads(r[4])
+        r = row  # type: ignore[index,reportIndexIssue]
+        patterns = r[4] if isinstance(r[4], list) else json.loads(r[4])  # type: ignore[index]
         return QuarantineRecord(
-            id=UUID(str(r[0])),
-            tenant_id=UUID(str(r[1])),
-            source=r[2],
-            content_excerpt=r[3],
+            id=UUID(str(r[0])),  # type: ignore[index]
+            tenant_id=UUID(str(r[1])),  # type: ignore[index]
+            source=r[2],  # type: ignore[index]
+            content_excerpt=r[3],  # type: ignore[index]
             detected_patterns=patterns,
-            severity=r[5],
-            quarantined_at=r[6],
-            approved_at=r[7],
-            approved_by=r[8],
+            severity=r[5],  # type: ignore[index]
+            quarantined_at=r[6],  # type: ignore[index]
+            approved_at=r[7],  # type: ignore[index]
+            approved_by=r[8],  # type: ignore[index]
         )

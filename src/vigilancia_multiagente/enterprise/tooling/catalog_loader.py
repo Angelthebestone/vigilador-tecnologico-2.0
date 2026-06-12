@@ -22,9 +22,23 @@ VALID_RUNTIMES = frozenset({"python_internal", "process_stdio", "process_http"})
 VALID_LANGUAGES = frozenset({"python", "typescript", "go", "rust", "yaml"})
 
 REQUIRED_FIELDS = (
-    "id", "domain", "source", "strategy", "runtime", "status", "owner",
-    "license", "capabilities", "requires_key", "env_var", "healthcheck",
-    "update_policy", "loc_count", "loc_validated", "language", "mvp",
+    "id",
+    "domain",
+    "source",
+    "strategy",
+    "runtime",
+    "status",
+    "owner",
+    "license",
+    "capabilities",
+    "requires_key",
+    "env_var",
+    "healthcheck",
+    "update_policy",
+    "loc_count",
+    "loc_validated",
+    "language",
+    "mvp",
 )
 
 
@@ -62,7 +76,9 @@ class CatalogValidationError(Exception):
 
     def __init__(self, errors: list[str]) -> None:
         self.errors = errors
-        super().__init__(f"Catalog validation failed with {len(errors)} error(s): {'; '.join(errors)}")
+        super().__init__(
+            f"Catalog validation failed with {len(errors)} error(s): {'; '.join(errors)}"
+        )
 
 
 class CatalogLoader:

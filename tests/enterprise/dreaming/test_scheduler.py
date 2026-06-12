@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
-
 from vigilancia_multiagente.enterprise.dreaming.scheduler import (
     DreamingScheduler,
     DreamingSchedulerConfig,

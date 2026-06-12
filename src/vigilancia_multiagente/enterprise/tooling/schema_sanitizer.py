@@ -100,9 +100,7 @@ def _sanitize_single_tool(tool: dict) -> dict:
     # Strip top-level combinators that strict backends (OpenAI's Codex
     # endpoint at chatgpt.com/backend-api/codex) reject outright. Nested
     # combinators inside properties are preserved.
-    fn["parameters"] = _strip_top_level_combinators(
-        fn["parameters"], path=fn.get("name", "<tool>")
-    )
+    fn["parameters"] = _strip_top_level_combinators(fn["parameters"], path=fn.get("name", "<tool>"))
     return out
 
 
@@ -159,8 +157,7 @@ def strip_nullable_unions(
     """
     if isinstance(schema, list):
         return [
-            strip_nullable_unions(item, keep_nullable_hint=keep_nullable_hint)
-            for item in schema
+            strip_nullable_unions(item, keep_nullable_hint=keep_nullable_hint) for item in schema
         ]
     if not isinstance(schema, dict):
         return schema
@@ -174,9 +171,7 @@ def strip_nullable_unions(
         if not isinstance(variants, list):
             continue
         non_null = [
-            item
-            for item in variants
-            if not (isinstance(item, dict) and item.get("type") == "null")
+            item for item in variants if not (isinstance(item, dict) and item.get("type") == "null")
         ]
         # Only collapse when we actually dropped a null branch AND exactly
         # one non-null branch survives.
@@ -187,9 +182,7 @@ def strip_nullable_unions(
             for meta_key in ("title", "description", "default", "examples"):
                 if meta_key in stripped and meta_key not in replacement:
                     replacement[meta_key] = stripped[meta_key]
-            return strip_nullable_unions(
-                replacement, keep_nullable_hint=keep_nullable_hint
-            )
+            return strip_nullable_unions(replacement, keep_nullable_hint=keep_nullable_hint)
     return stripped
 
 
@@ -216,8 +209,7 @@ def _sanitize_node(node: Any, path: str) -> Any:
             "null",
         }:
             logger.debug(
-                "schema_sanitizer[%s]: replacing bare-string schema %r "
-                "with {'type': %r}",
+                "schema_sanitizer[%s]: replacing bare-string schema %r with {'type': %r}",
                 path,
                 node,
                 node,
@@ -233,8 +225,7 @@ def _sanitize_node(node: Any, path: str) -> Any:
         # Any other stray string is not a schema — drop with a permissive
         # object schema rather than propagate something the backend rejects.
         logger.debug(
-            "schema_sanitizer[%s]: replacing non-schema string %r "
-            "with empty object schema",
+            "schema_sanitizer[%s]: replacing non-schema string %r with empty object schema",
             path,
             node,
         )
@@ -248,7 +239,7 @@ def _sanitize_node(node: Any, path: str) -> Any:
 
     out: dict = {}
     for key, value in node.items():
-        # type: [X, "null"] → type: X.
+        # Handle union type: [X, "null"] → type: X.
         if key == "type" and isinstance(value, list):
             non_null = [t for t in value if t != "null"]
             if len(non_null) == 1 and isinstance(non_null[0], str):
@@ -256,9 +247,7 @@ def _sanitize_node(node: Any, path: str) -> Any:
                 if "null" in value:
                     out.setdefault("nullable", True)
                 continue
-            first_str = next(
-                (t for t in value if isinstance(t, str) and t != "null"), None
-            )
+            first_str = next((t for t in value if isinstance(t, str) and t != "null"), None)
             if first_str:
                 out["type"] = first_str
                 continue
@@ -276,24 +265,17 @@ def _sanitize_node(node: Any, path: str) -> Any:
             else:
                 out[key] = _sanitize_node(value, f"{path}.{key}")
         elif key in {"anyOf", "oneOf", "allOf"} and isinstance(value, list):
-            out[key] = [
-                _sanitize_node(item, f"{path}.{key}[{i}]")
-                for i, item in enumerate(value)
-            ]
+            out[key] = [_sanitize_node(item, f"{path}.{key}[{i}]") for i, item in enumerate(value)]
         elif key in {"required", "enum", "examples"}:
             # Schema "sibling" keywords whose values are NOT schemas:
             #  - ``required``: list of property-name strings
             #  - ``enum``: list of literal values (any JSON type)
             #  - ``examples``: list of example values (any JSON type)
             # Recursing into these would mis-interpret literal strings.
-            out[key] = (
-                copy.deepcopy(value) if isinstance(value, (list, dict)) else value
-            )
+            out[key] = copy.deepcopy(value) if isinstance(value, (list, dict)) else value
         else:
             out[key] = (
-                _sanitize_node(value, f"{path}.{key}")
-                if isinstance(value, (dict, list))
-                else value
+                _sanitize_node(value, f"{path}.{key}") if isinstance(value, (dict, list)) else value
             )
 
     # Object nodes without properties: inject empty properties dict.
@@ -343,12 +325,7 @@ def strip_pattern_and_format(tools: list[dict]) -> tuple[list[dict], int]:
     def _walk(node: Any) -> None:
         nonlocal stripped
         if isinstance(node, dict):
-            is_schema_node = (
-                "type" in node
-                or "anyOf" in node
-                or "oneOf" in node
-                or "allOf" in node
-            )
+            is_schema_node = "type" in node or "anyOf" in node or "oneOf" in node or "allOf" in node
             for key in list(node.keys()):
                 if is_schema_node and key in _STRIP_ON_RECOVERY_KEYS:
                     node.pop(key, None)

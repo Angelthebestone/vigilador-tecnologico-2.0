@@ -48,4 +48,3 @@ async def test_research_outputs_returns_409_on_critical_bias(monkeypatch) -> Non
 
     assert exc_info.value.status_code == 409
     assert exc_info.value.detail["reason"] == "critical_bias_detected"
-

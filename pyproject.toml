@@ -77,6 +77,10 @@ build-backend = "hatchling.build"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = [
+    "**/_cold/**",
+    "**/_roadmap/**",
+]
 
 [tool.ruff.lint]
 select = [
@@ -121,7 +125,7 @@ exclude = ["tests/debug_functions.py"]
 typeCheckingMode = "standard"
 pythonVersion = "3.11"
 include = ["src/vigilancia_multiagente"]
-exclude = ["tests", "scripts", "mock_server.py", "specs", "docs"]
+  exclude = ["tests", "scripts", "mock_server.py", "specs", "docs", "**/_cold/**", "**/_roadmap/**"]
 reportMissingTypeStubs = false
 reportMissingImports = false
 

@@ -1,17 +1,20 @@
 """Orchestration services — orchestrator, coordinator, approve use case."""
+
 from __future__ import annotations
 
 from typing import Any, cast
 
-from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
 from vigilancia_multiagente.application.execution.branch_coordinator import BranchCoordinator
+from vigilancia_multiagente.application.forecasting.trend_forecaster import TrendForecasterService
 from vigilancia_multiagente.application.orchestration.approve_research_usecase import (
     ApproveResearchUseCase,
 )
 from vigilancia_multiagente.application.orchestration.orchestrator_service import (
     OrchestratorService,
 )
-from vigilancia_multiagente.application.research.ad_hoc_tools_service import AdHocResearchToolsService
+from vigilancia_multiagente.application.research.ad_hoc_tools_service import (
+    AdHocResearchToolsService,
+)
 from vigilancia_multiagente.application.research.document_conversion_service import (
     DocumentConversionService,
 )
@@ -23,7 +26,10 @@ from vigilancia_multiagente.infra.persistence.postgres_repositories import (
 
 
 def build_orchestration_services(
-    s: dict[str, Any], g: dict[str, Any], e: dict[str, Any], agents: dict[str, Any],
+    s: dict[str, Any],
+    g: dict[str, Any],
+    e: dict[str, Any],
+    agents: dict[str, Any],
 ) -> dict[str, Any]:
     """Orchestrator, coordinator, approve use case — the top-level flow."""
     o: dict[str, Any] = {}

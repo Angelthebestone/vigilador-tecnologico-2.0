@@ -31,4 +31,14 @@
 #       log_file: ~/.vigilador/mcp-logs/example.jsonl
 # ============================================================================
 
-mcps: []
+mcps:
+  - name: google-workspace-mcp
+    command: npx
+    args: ["-y", "@nicholishen/google-workspace-mcp"]
+    env:
+      GOOGLE_CLIENT_ID: "${VT_GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${VT_GOOGLE_CLIENT_SECRET}"
+      GOOGLE_REDIRECT_URI: "${VT_GOOGLE_REDIRECT_URI}"
+    healthcheck_interval_sec: 60
+    restart_policy: on-failure
+    log_file: ~/.vigilador/mcp-logs/google-workspace.jsonl

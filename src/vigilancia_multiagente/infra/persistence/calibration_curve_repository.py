@@ -80,7 +80,6 @@ def _row_to_curve(row: tuple[object, ...]) -> CalibrationCurve:
         created_at=cast(datetime, row[2]),
         samples_count=int(cast(int, row[3])),
         mappings=[
-            (float(item[0]), float(item[1]))
-            for item in cast(list[list[float]], mappings_data)
+            (float(item[0]), float(item[1])) for item in cast(list[list[float]], mappings_data)
         ],
     )

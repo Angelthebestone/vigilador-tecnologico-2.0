@@ -10,15 +10,17 @@ from vigilancia_multiagente.enterprise.artifacts.ports import (
     SandboxPort,
 )
 
-SUPPORTED_TYPES = frozenset({
-    "dashboard_html",
-    "dashboard_streamlit",
-    "dashboard_react",
-    "pipeline_local",
-    "notebook",
-    "reporte",
-    "grafica_pdf",
-})
+SUPPORTED_TYPES = frozenset(
+    {
+        "dashboard_html",
+        "dashboard_streamlit",
+        "dashboard_react",
+        "pipeline_local",
+        "notebook",
+        "reporte",
+        "grafica_pdf",
+    }
+)
 
 MAX_RETRIES = 2
 
@@ -30,8 +32,7 @@ class UnsupportedArtifactTypeError(Exception):
         self.requested = requested
         available = ", ".join(sorted(SUPPORTED_TYPES))
         super().__init__(
-            f"Tipo de artefacto '{requested}' no soportado. "
-            f"Tipos disponibles: {available}"
+            f"Tipo de artefacto '{requested}' no soportado. Tipos disponibles: {available}"
         )
 
 

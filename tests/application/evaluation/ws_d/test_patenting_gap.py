@@ -26,9 +26,7 @@ def analyzer():
     provider_config = MagicMock(spec=ProviderConfig)
     provider_config.enabled_tools = ["google_search_patents"]
     registry.get.return_value = provider_config
-    return PatentingGapAnalyzerImpl(
-        tool_executor=executor, provider_registry=registry
-    )
+    return PatentingGapAnalyzerImpl(tool_executor=executor, provider_registry=registry)
 
 
 @pytest.mark.asyncio

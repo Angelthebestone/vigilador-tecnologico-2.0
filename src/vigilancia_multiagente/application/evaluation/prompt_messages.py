@@ -55,11 +55,7 @@ def build_messages_with_fewshot(
         MiniMaxMessage(role="system", content=system_prompt),
     ]
     if example_user and example_ai:
-        messages.append(
-            MiniMaxMessage(role="sample_message_user", content=example_user)
-        )
-        messages.append(
-            MiniMaxMessage(role="sample_message_ai", content=example_ai)
-        )
+        messages.append(MiniMaxMessage(role="sample_message_user", content=example_user))
+        messages.append(MiniMaxMessage(role="sample_message_ai", content=example_ai))
     messages.append(MiniMaxMessage(role="user", content=user_content))
     return messages

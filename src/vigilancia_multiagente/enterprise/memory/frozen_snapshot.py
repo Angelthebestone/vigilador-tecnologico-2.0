@@ -156,8 +156,7 @@ class MemoryStore:
         target = target.lower()
         if target not in ("memory", "user"):
             raise ValueError(
-                f"MemoryStore.add: unknown target '{target}' "
-                "(supported: memory, user)"
+                f"MemoryStore.add: unknown target '{target}' (supported: memory, user)"
             )
         limit = self._limit_for(target)
         if len(content) > limit:
@@ -187,8 +186,7 @@ class MemoryStore:
         matches = [i for i, e in enumerate(entries) if substring in e]
         if not matches:
             raise ValueError(
-                f"MemoryStore.remove: no entry in '{target}' contains "
-                f"'{substring[:40]}'"
+                f"MemoryStore.remove: no entry in '{target}' contains '{substring[:40]}'"
             )
         if len(matches) > 1:
             raise ValueError(
@@ -248,7 +246,7 @@ class MemoryStore:
         # Allow both the canonical delimiter AND a leading/trailing one.
         body = raw.strip()
         if body.startswith(ENTRY_DELIMITER.strip()):
-            body = body[len(ENTRY_DELIMITER.strip()):]
+            body = body[len(ENTRY_DELIMITER.strip()) :]
         return [chunk.strip() for chunk in body.split(ENTRY_DELIMITER) if chunk.strip()]
 
     def _persist(self, target: str) -> None:
@@ -287,9 +285,7 @@ class MemoryStore:
     @staticmethod
     def _atomic_write(path: Path, content: str) -> None:
         """Write ``content`` to ``path`` atomically."""
-        tmp_fd, tmp_path = tempfile.mkstemp(
-            prefix=path.name + ".", dir=str(path.parent)
-        )
+        tmp_fd, tmp_path = tempfile.mkstemp(prefix=path.name + ".", dir=str(path.parent))
         try:
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
                 f.write(content)
@@ -300,6 +296,7 @@ class MemoryStore:
             except OSError as cleanup_exc:
                 logger.warning(
                     "MemoryStore: tempfile cleanup failed for %s: %s",
-                    tmp_path, cleanup_exc,
+                    tmp_path,
+                    cleanup_exc,
                 )
             raise

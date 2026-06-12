@@ -26,13 +26,13 @@ from typing import Any
 class UIElement:
     """One interactable element on the current screen."""
 
-    index: int                       # 1-based SOM index
-    role: str                        # accessibility role (Button, Edit, ...)
-    label: str = ""                  # title / description / value snippet
+    index: int  # 1-based SOM index
+    role: str  # accessibility role (Button, Edit, ...)
+    label: str = ""  # title / description / value snippet
     bounds: tuple[int, int, int, int] = (0, 0, 0, 0)  # x, y, w, h (logical px)
-    app: str = ""                    # owning process name
-    pid: int = 0                     # owning process PID
-    window_id: int = 0               # platform-specific window id
+    app: str = ""  # owning process name
+    pid: int = 0  # owning process PID
+    window_id: int = 0  # platform-specific window id
     attributes: dict[str, Any] = field(default_factory=dict)
 
     def center(self) -> tuple[int, int]:
@@ -53,7 +53,7 @@ class CaptureResult:
     """
 
     mode: str
-    width: int                      # screenshot width (logical px)
+    width: int  # screenshot width (logical px)
     height: int
     png_b64: str | None = None
     elements: list[UIElement] = field(default_factory=list)

@@ -61,7 +61,9 @@ class LlmConflictOfInterestAnalyzer:
             provider=source.provider,
         )
         messages = [
-            MiniMaxMessage(role="system", content="You are a financial conflict-of-interest analyst."),
+            MiniMaxMessage(
+                role="system", content="You are a financial conflict-of-interest analyst."
+            ),
             MiniMaxMessage(role="user", content=prompt),
         ]
         try:

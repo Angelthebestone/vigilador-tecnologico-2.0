@@ -24,6 +24,7 @@ class PdfGenerateTool:
         """Verifica que WeasyPrint está disponible."""
         try:
             import weasyprint  # noqa: F401
+
             return HealthcheckResult(status="UP")
         except ImportError:
             return HealthcheckResult(status="DOWN", error="weasyprint not installed")
@@ -56,6 +57,7 @@ class PdfGenerateTool:
         stylesheets = None
         if css_path and Path(css_path).exists():
             from weasyprint import CSS
+
             stylesheets = [CSS(filename=css_path)]
 
         dest = Path(output_path)

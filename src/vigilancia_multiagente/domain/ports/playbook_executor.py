@@ -21,6 +21,4 @@ class ExecutionResult:
 class PlaybookExecutor(Protocol):
     """Executes a playbook within a given mode context."""
 
-    def execute(
-        self, playbook: PlaybookDefinition, context: ModeContext
-    ) -> ExecutionResult: ...
+    def execute(self, playbook: PlaybookDefinition, context: ModeContext) -> ExecutionResult: ...

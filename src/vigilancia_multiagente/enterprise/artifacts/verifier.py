@@ -43,8 +43,7 @@ class Verifier:
         return VerificationResult(
             passed=False,
             details=(
-                f"Verificación falló para '{build_result.artifact_type}': "
-                f"{sandbox_result.error}"
+                f"Verificación falló para '{build_result.artifact_type}': {sandbox_result.error}"
             ),
         )
 

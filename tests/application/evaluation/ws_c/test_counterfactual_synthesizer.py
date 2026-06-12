@@ -5,7 +5,7 @@ Genera >= 3 escenarios.
 
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 
@@ -82,12 +82,15 @@ async def test_scenarios_n_parameter() -> None:
 @pytest.mark.asyncio
 async def test_llm_failure_returns_empty() -> None:
     """Fallo de LLM -> lista vacia + StepError."""
+
     class FailingLLM:
         async def complete(self, messages):
             raise RuntimeError("LLM down")
 
     errors: list = []
-    synthesizer = LlmCounterfactualSynthesizer(FailingLLM(), DummyPromptLoader(), errors_sink=errors)
+    synthesizer = LlmCounterfactualSynthesizer(
+        FailingLLM(), DummyPromptLoader(), errors_sink=errors
+    )
 
     scenarios = await synthesizer.synthesize(_report())
 

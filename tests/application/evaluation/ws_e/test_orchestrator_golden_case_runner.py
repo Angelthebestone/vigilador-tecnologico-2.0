@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from uuid import uuid4
 
 import pytest
@@ -8,7 +7,11 @@ import pytest
 from vigilancia_multiagente.application.evaluation.ws_e.orchestrator_golden_case_runner import (
     OrchestratorGoldenCaseRunner,
 )
-from vigilancia_multiagente.domain.evaluation_entities import ExpectedFinding, GoldenCase, GoldenCasePriority
+from vigilancia_multiagente.domain.evaluation_entities import (
+    ExpectedFinding,
+    GoldenCase,
+    GoldenCasePriority,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -67,4 +70,3 @@ async def test_run_case_matches_expected_findings_and_confidence():
     assert run.success is True
     assert run.actual_confidence == 0.72
     assert repo.recorded[-1] == run
-

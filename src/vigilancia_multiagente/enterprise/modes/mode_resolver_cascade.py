@@ -146,7 +146,8 @@ class CascadeResolver:
         if request.explicit_mode and self.registry.exists(request.explicit_mode):
             logger.info(
                 "ModeResolver: session=%s explicit -> %s",
-                request.session_id, request.explicit_mode,
+                request.session_id,
+                request.explicit_mode,
             )
             return request.explicit_mode
 
@@ -156,16 +157,16 @@ class CascadeResolver:
             if channel_default and self.registry.exists(channel_default):
                 logger.info(
                     "ModeResolver: session=%s channel=%s -> %s",
-                    request.session_id, request.channel_id, channel_default,
+                    request.session_id,
+                    request.channel_id,
+                    channel_default,
                 )
                 return channel_default
 
         # 3. Regex heuristic
         regex_match = heuristic_mode(request.message)
         if regex_match and self.registry.exists(regex_match):
-            logger.info(
-                "ModeResolver: session=%s regex -> %s", request.session_id, regex_match
-            )
+            logger.info("ModeResolver: session=%s regex -> %s", request.session_id, regex_match)
             return regex_match
 
         # 4. LLM classifier fallback
@@ -178,7 +179,8 @@ class CascadeResolver:
             if llm_mode and self.registry.exists(llm_mode):
                 logger.info(
                     "ModeResolver: session=%s llm -> %s",
-                    request.session_id, llm_mode,
+                    request.session_id,
+                    llm_mode,
                 )
                 return llm_mode
 
@@ -192,6 +194,7 @@ class CascadeResolver:
             raise ModeNotAvailableError(self.default_mode, available)
         logger.info(
             "ModeResolver: session=%s default -> %s",
-            request.session_id, self.default_mode,
+            request.session_id,
+            self.default_mode,
         )
         return self.default_mode

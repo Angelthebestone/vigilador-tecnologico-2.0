@@ -62,22 +62,20 @@ class SkillRegistry:
 
     # --- Commands ---
 
-    async def register(
-        self, card: SkillCard, summary: SkillSummary, body_path: str = ""
-    ) -> None:
+    async def register(self, card: SkillCard, summary: SkillSummary, body_path: str = "") -> None:
         """Register a skill. Deduplicates by id with source priority."""
         existing = self._cards.get(card.id)
         if existing is not None:
             if existing.source == card.source:
-                raise ValueError(
-                    f"Duplicate skill id '{card.id}' from same source '{card.source}'"
-                )
+                raise ValueError(f"Duplicate skill id '{card.id}' from same source '{card.source}'")
             existing_prio = _SOURCE_PRIORITY.get(existing.source, 99)
             new_prio = _SOURCE_PRIORITY.get(card.source, 99)
             if new_prio >= existing_prio:
                 logger.info(
                     "Skill '%s' from '%s' shadowed by existing '%s'",
-                    card.id, card.source, existing.source,
+                    card.id,
+                    card.source,
+                    existing.source,
                 )
                 return
 
@@ -93,7 +91,7 @@ class SkillRegistry:
             if cached_vec is not None:
                 self._embeddings[card.id] = cached_vec
                 return
-        
+
         vec = await self._embedding_gw.embed(embed_text)
         self._embeddings[card.id] = vec
         if self._embedding_cache:

@@ -10,13 +10,11 @@ with ``X-Subscription-Token`` header.
 
 from __future__ import annotations
 
-import os
 from typing import Any, ClassVar
 
 from vigilancia_multiagente.enterprise.tooling.builtin._base.http_provider import (
     BaseHTTPProvider,
 )
-from vigilancia_multiagente.enterprise.tooling.tool_wrapper import HealthcheckResult
 
 
 class BraveTool(BaseHTTPProvider):
@@ -32,9 +30,7 @@ class BraveTool(BaseHTTPProvider):
         """Override: Brave uses X-Subscription-Token instead of Bearer."""
         return {"X-Subscription-Token": api_key, "Accept": "application/json"}
 
-    async def execute(
-        self, tool_name: str, args: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def execute(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -51,13 +47,10 @@ class BraveTool(BaseHTTPProvider):
         if tool_name == "local_search":
             return await self._local_search(query, args)
         raise ValueError(
-            f"BraveTool: unknown tool_name '{tool_name}' "
-            f"(supported: web_search, local_search)"
+            f"BraveTool: unknown tool_name '{tool_name}' (supported: web_search, local_search)"
         )
 
-    async def _web_search(
-        self, query: str, args: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _web_search(self, query: str, args: dict[str, Any]) -> dict[str, Any]:
         count = args.get("count", 10)
         if not isinstance(count, int) or count <= 0:
             count = 10
@@ -68,9 +61,7 @@ class BraveTool(BaseHTTPProvider):
         web_results = (payload.get("web") or {}).get("results", [])
         return {"query": query, "results": web_results}
 
-    async def _local_search(
-        self, query: str, args: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def _local_search(self, query: str, args: dict[str, Any]) -> dict[str, Any]:
         count = args.get("count", 5)
         if not isinstance(count, int) or count <= 0:
             count = 5

@@ -28,13 +28,9 @@ from vigilancia_multiagente.application.evaluation.ws_b.embedding_dedup import (
 from vigilancia_multiagente.application.evaluation.ws_b.llm_multilingual import (
     LlmMultilingualNormalizer,
 )
-from vigilancia_multiagente.application.evaluation.ws_b.pydantic_schema_registry import (
-    PydanticExtractionSchemaRegistry,
-)
 from vigilancia_multiagente.domain.models import (
     BranchConfig,
     BranchType,
-    Finding,
     ResearchSession,
     SourceRef,
 )
@@ -73,18 +69,13 @@ class FakeSchemaRegistry:
 
 
 class FakeLLM:
-    complete = AsyncMock(
-        return_value={
-            "choices": [{"message": {"content": '{"language": "en"}'}}]
-        }
-    )
+    complete = AsyncMock(return_value={"choices": [{"message": {"content": '{"language": "en"}'}}]})
 
 
 class FakeReranker:
     async def rerank(self, query, documents, top_n=None):
         return [
-            RankedDocument(index=i, text=documents[i], score=0.5)
-            for i in range(len(documents))
+            RankedDocument(index=i, text=documents[i], score=0.5) for i in range(len(documents))
         ]
 
 
@@ -104,8 +95,10 @@ def ctx() -> ToolLoopContext:
         for i in range(3)
     ]
     _session = ResearchSession(
-        id=session_id, user_query="test",
-        created_at=datetime.now(UTC), updated_at=datetime.now(UTC),
+        id=session_id,
+        user_query="test",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
         status=SessionStatus.DRAFT,
     )
     _branch = BranchConfig(
@@ -144,8 +137,10 @@ async def test_data_intelligence_step_runs_all_phases(ctx):
 
 async def test_data_intelligence_step_empty_executions():
     _session = ResearchSession(
-        id=uuid4(), user_query="test",
-        created_at=datetime.now(UTC), updated_at=datetime.now(UTC),
+        id=uuid4(),
+        user_query="test",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
         status=SessionStatus.DRAFT,
     )
     _branch = BranchConfig(
@@ -174,8 +169,10 @@ async def test_data_intelligence_step_graceful_failure():
             raise RuntimeError("Search failed")
 
     _session = ResearchSession(
-        id=uuid4(), user_query="test",
-        created_at=datetime.now(UTC), updated_at=datetime.now(UTC),
+        id=uuid4(),
+        user_query="test",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
         status=SessionStatus.DRAFT,
     )
     _branch = BranchConfig(

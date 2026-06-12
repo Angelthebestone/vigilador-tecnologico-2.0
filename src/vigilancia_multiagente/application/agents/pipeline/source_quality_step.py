@@ -123,9 +123,7 @@ class SourceQualityStep:
 
         return ann
 
-    async def _safe_call(
-        self, step_name: str, coro: Any, ctx: ToolLoopContext
-    ) -> Any:
+    async def _safe_call(self, step_name: str, coro: Any, ctx: ToolLoopContext) -> Any:
         try:
             return await coro
         except Exception as exc:
@@ -187,7 +185,14 @@ def _extract_doi(url: str) -> str | None:
 
 def _infer_domain(finding: Finding) -> str:
     domain_keywords = {
-        "AI": ("ai", "machine learning", "deep learning", "neural", "llm", "artificial intelligence"),
+        "AI": (
+            "ai",
+            "machine learning",
+            "deep learning",
+            "neural",
+            "llm",
+            "artificial intelligence",
+        ),
         "BIO": ("bio", "genome", "protein", "dna", "cell", "molecular biology"),
         "MATH": ("math", "algebra", "theorem", "proof", "topology"),
         "NANO": ("nano", "quantum dot", "nanoparticle"),

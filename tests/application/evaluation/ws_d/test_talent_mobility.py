@@ -25,20 +25,20 @@ def analyzer():
     provider_config = MagicMock(spec=ProviderConfig)
     provider_config.enabled_tools = ["google_search_patents"]
     registry.get.return_value = provider_config
-    return TalentMobilityAnalyzerImpl(
-        tool_executor=executor, provider_registry=registry
-    )
+    return TalentMobilityAnalyzerImpl(tool_executor=executor, provider_registry=registry)
 
 
 @pytest.mark.asyncio
 async def test_analyze_returns_mobility_for_known_authors(analyzer):
-    results = await analyzer.analyze([
-        "researcher-001",
-        "researcher-002",
-        "researcher-003",
-        "researcher-004",
-        "researcher-005",
-    ])
+    results = await analyzer.analyze(
+        [
+            "researcher-001",
+            "researcher-002",
+            "researcher-003",
+            "researcher-004",
+            "researcher-005",
+        ]
+    )
     assert len(results) >= 1, "Should return mobility data for at least one author"
     for mob in results:
         assert mob.author_id

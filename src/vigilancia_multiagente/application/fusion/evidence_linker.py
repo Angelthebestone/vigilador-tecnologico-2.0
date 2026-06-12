@@ -1,3 +1,5 @@
+import contextlib
+
 from vigilancia_multiagente.application.evaluation.source_scorer import SourceScorer
 from vigilancia_multiagente.domain.models import BranchResult, BranchType, Finding, SourceRef
 
@@ -33,12 +35,10 @@ class EvidenceLinker:
         get_map = getattr(repo, "get_score_map", None)
         if get_map is None:
             return
-        try:
+        # El scoring aprendido es best-effort: si la BD falla, se sigue
+        # con lo que el agente reportó (no se bloquea la fusión).
+        with contextlib.suppress(Exception):
             self._source_scorer.learned_scores = await get_map()
-        except Exception:
-            # El scoring aprendido es best-effort: si la BD falla, se sigue
-            # con lo que el agente reportó (no se bloquea la fusión).
-            pass
 
     def deduplicate_sources(
         self, branch_results: list[BranchResult], use_scoring: bool = True

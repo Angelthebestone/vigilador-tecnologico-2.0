@@ -90,9 +90,7 @@ class PlaybookError(RuntimeError):
 class AgentExecutor(Protocol):
     """The minimal surface ``PlaybookRunner`` needs from agents."""
 
-    async def execute(
-        self, agent_id: str, inputs: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def execute(self, agent_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
         """Run ``agent_id`` against ``inputs`` and return a dict (output)."""
         ...
 
@@ -123,9 +121,7 @@ def load_playbook(path: Path) -> PlaybookConfig:
     elif isinstance(mode_raw, list):
         mode_compatible = tuple(str(x) for x in mode_raw)
     else:
-        raise PlaybookError(
-            f"playbook {pb_id!r}: mode_compatible must be string or list"
-        )
+        raise PlaybookError(f"playbook {pb_id!r}: mode_compatible must be string or list")
 
     agents_raw = data.get("runner_agents") or data.get("agents") or []
     if not isinstance(agents_raw, list):
@@ -133,9 +129,7 @@ def load_playbook(path: Path) -> PlaybookConfig:
     agents: list[AgentSpec] = []
     for entry in agents_raw:
         if not isinstance(entry, dict) or "id" not in entry:
-            raise PlaybookError(
-                f"playbook {pb_id!r}: agent entry missing 'id': {entry!r}"
-            )
+            raise PlaybookError(f"playbook {pb_id!r}: agent entry missing 'id': {entry!r}")
         agents.append(
             AgentSpec(
                 id=str(entry["id"]),
@@ -150,8 +144,7 @@ def load_playbook(path: Path) -> PlaybookConfig:
     flow_type = str(flow.get("type", "")).lower()
     if flow_type not in ("sequential", "rounds"):
         raise PlaybookError(
-            f"playbook {pb_id!r}: flow.type must be 'sequential' or 'rounds' "
-            f"(got {flow_type!r})"
+            f"playbook {pb_id!r}: flow.type must be 'sequential' or 'rounds' (got {flow_type!r})"
         )
     flow_steps_raw = flow.get("steps") or []
     if not isinstance(flow_steps_raw, list):
@@ -227,9 +220,7 @@ class PlaybookRunner:
             rounds_max = int(playbook.flow_rounds.get("max", 1))
             round_agents = list(playbook.flow_rounds.get("agents", []))
             if not round_agents:
-                raise PlaybookError(
-                    f"playbook {playbook.id!r}: flow.rounds.agents empty"
-                )
+                raise PlaybookError(f"playbook {playbook.id!r}: flow.rounds.agents empty")
             for r in range(rounds_max):
                 self._enforce_runtime(started, max_runtime, playbook.id)
                 total_llm_calls = self._enforce_llm_budget(
@@ -256,7 +247,10 @@ class PlaybookRunner:
         duration = time.monotonic() - started
         logger.info(
             "PlaybookRunner: %s completed in %.2fs (%d steps, %d LLM calls)",
-            playbook.id, duration, completed, total_llm_calls,
+            playbook.id,
+            duration,
+            completed,
+            total_llm_calls,
         )
         return PlaybookRunResult(
             playbook_id=playbook.id,
@@ -276,14 +270,11 @@ class PlaybookRunner:
         if "*" in compat or active_mode in compat:
             return
         raise PlaybookError(
-            f"playbook {playbook.id!r} not compatible with mode "
-            f"{active_mode!r} (compat={compat!r})"
+            f"playbook {playbook.id!r} not compatible with mode {active_mode!r} (compat={compat!r})"
         )
 
     @staticmethod
-    def _resolve_inputs(
-        step: dict[str, Any], outputs: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _resolve_inputs(step: dict[str, Any], outputs: dict[str, Any]) -> dict[str, Any]:
         inputs: dict[str, Any] = {}
         for k, v in step.items():
             if k == "agent":
@@ -305,23 +296,16 @@ class PlaybookRunner:
         return inputs
 
     @staticmethod
-    def _enforce_llm_budget(
-        used: int, budget: int, pb_id: str, step: int
-    ) -> int:
+    def _enforce_llm_budget(used: int, budget: int, pb_id: str, step: int) -> int:
         if budget > 0 and used >= budget:
             raise PlaybookError(
-                f"playbook {pb_id!r}: max_total_llm_calls={budget} reached "
-                f"after step {step}"
+                f"playbook {pb_id!r}: max_total_llm_calls={budget} reached after step {step}"
             )
         return used
 
     @staticmethod
-    def _enforce_runtime(
-        started: float, limit: float | None, pb_id: str
-    ) -> None:
+    def _enforce_runtime(started: float, limit: float | None, pb_id: str) -> None:
         if limit is None:
             return
         if time.monotonic() - started > limit:
-            raise PlaybookError(
-                f"playbook {pb_id!r}: max_runtime_s={limit:.1f}s exceeded"
-            )
+            raise PlaybookError(f"playbook {pb_id!r}: max_runtime_s={limit:.1f}s exceeded")

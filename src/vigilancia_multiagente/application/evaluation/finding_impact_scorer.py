@@ -98,7 +98,7 @@ class FindingImpactScorer:
     def _convergence(topic: str, topic_branches: dict[str, set[str]]) -> float:
         """Un tema confirmado por varias ramas independientes es más sólido.
         1 rama => 0.7 (neutro), escala hasta 1.0 con 3+ ramas."""
-# STATUS: ACTIVE
+        # STATUS: ACTIVE
 
         branch_count = len(topic_branches.get(topic, ()))
         return min(1.0, 0.7 + 0.15 * max(0, branch_count - 1))

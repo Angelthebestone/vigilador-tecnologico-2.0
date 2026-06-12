@@ -7,8 +7,15 @@ import time
 import pytest
 
 from vigilancia_multiagente.enterprise.modes.mode_loader import ModeRegistry011
-from vigilancia_multiagente.enterprise.modes.mode_resolver import ModeNotAvailableError, ModeResolver
-from vigilancia_multiagente.enterprise.modes.mode_schema import ModeConfig, PlaybooksConfig, ToolsConfig
+from vigilancia_multiagente.enterprise.modes.mode_resolver import (
+    ModeNotAvailableError,
+    ModeResolver,
+)
+from vigilancia_multiagente.enterprise.modes.mode_schema import (
+    ModeConfig,
+    PlaybooksConfig,
+    ToolsConfig,
+)
 
 
 def _make_mode(mode_id: str) -> ModeConfig:

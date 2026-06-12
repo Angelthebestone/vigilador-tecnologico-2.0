@@ -138,9 +138,7 @@ def test_category_for_falls_back_to_default(minimal_taxonomy):
 
 
 def test_recategorize_overrides_mapping(minimal_taxonomy, overrides_yaml):
-    cat = SkillCatalog(
-        taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml
-    )
+    cat = SkillCatalog(taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml)
     # Without override: would have been "research" via the k_dense mapping.
     assert cat.category_for("k_dense.tensorflow", "k_dense") == "engineering"
     # Other entries still use mapping default.
@@ -148,17 +146,13 @@ def test_recategorize_overrides_mapping(minimal_taxonomy, overrides_yaml):
 
 
 def test_sub_category_for_returns_override(minimal_taxonomy, overrides_yaml):
-    cat = SkillCatalog(
-        taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml
-    )
+    cat = SkillCatalog(taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml)
     assert cat.sub_category_for("k_dense.adaptyv") == "bio"
     assert cat.sub_category_for("k_dense.tensorflow") is None
 
 
 def test_alias_makes_skill_inactive(minimal_taxonomy, overrides_yaml):
-    cat = SkillCatalog(
-        taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml
-    )
+    cat = SkillCatalog(taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml)
     # alias key is inactive (loader will skip it).
     assert cat.is_active("k_dense.alias-of-bio") is False
     # canonical_for resolves the alias.
@@ -168,9 +162,7 @@ def test_alias_makes_skill_inactive(minimal_taxonomy, overrides_yaml):
 
 
 def test_disabled_makes_skill_inactive(minimal_taxonomy, overrides_yaml):
-    cat = SkillCatalog(
-        taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml
-    )
+    cat = SkillCatalog(taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml)
     assert cat.is_active("k_dense.disabled-skill") is False
 
 
@@ -234,9 +226,7 @@ async def test_loader_skips_alias_and_tags_canonical_category(
         encoding="utf-8",
     )
 
-    catalog = SkillCatalog(
-        taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml
-    )
+    catalog = SkillCatalog(taxonomy_path=minimal_taxonomy, catalog_path=overrides_yaml)
     registry = SkillRegistry(_Embed(), _ToolReg())
     loader = SkillLoader(
         registry=registry,
@@ -332,7 +322,4 @@ def test_real_taxonomy_loads_cleanly():
     # All catalog.recategorize targets must reference declared categories;
     # construction would have raised otherwise. We assert at least one
     # known override resolves correctly.
-    assert (
-        catalog.category_for("k_dense.tensorflow", "k_dense")
-        in {"ai-ml", "research"}
-    )
+    assert catalog.category_for("k_dense.tensorflow", "k_dense") in {"ai-ml", "research"}

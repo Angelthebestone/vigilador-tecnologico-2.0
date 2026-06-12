@@ -9,7 +9,11 @@ from vigilancia_multiagente.enterprise.artifacts.builder_agent import (
     BuildFailedError,
     UnsupportedArtifactTypeError,
 )
-from vigilancia_multiagente.enterprise.artifacts.ports import BuildResult, KPIDefinition, PipelinePlan
+from vigilancia_multiagente.enterprise.artifacts.ports import (
+    BuildResult,
+    KPIDefinition,
+    PipelinePlan,
+)
 
 
 class FakeSandbox:
@@ -24,17 +28,31 @@ class FakeSandbox:
             result = self._results[self._call_count]
             self._call_count += 1
             return result
-        return BuildResult(success=True, artifact_type=artifact_type, artifact_path=f"/sandbox/{artifact_type}/output")
+        return BuildResult(
+            success=True,
+            artifact_type=artifact_type,
+            artifact_path=f"/sandbox/{artifact_type}/output",
+        )
 
 
 def _kpis() -> tuple[KPIDefinition, ...]:
     return (
-        KPIDefinition(name="Ventas", formula="SUM(monto)", source="ventas.csv", granularity="mensual", display_format="bar_chart"),
+        KPIDefinition(
+            name="Ventas",
+            formula="SUM(monto)",
+            source="ventas.csv",
+            granularity="mensual",
+            display_format="bar_chart",
+        ),
     )
 
 
 def _plan() -> PipelinePlan:
-    return PipelinePlan(steps=("extract:ventas.csv:CSV", "transform:Ventas", "load:visualization"), transformations=("compute:Ventas:SUM(monto)",), refresh_policy="diario")
+    return PipelinePlan(
+        steps=("extract:ventas.csv:CSV", "transform:Ventas", "load:visualization"),
+        transformations=("compute:Ventas:SUM(monto)",),
+        refresh_policy="diario",
+    )
 
 
 def test_dashboard_built_in_sandbox() -> None:
@@ -75,8 +93,12 @@ def test_unsupported_type_informs_available() -> None:
 def test_build_error_retries_max_2() -> None:
     """Error de construcción reintenta max 2 veces (EC-03)."""
     failures = [
-        BuildResult(success=False, artifact_type="dashboard_html", artifact_path="", error="dep missing"),
-        BuildResult(success=False, artifact_type="dashboard_html", artifact_path="", error="dep missing v2"),
+        BuildResult(
+            success=False, artifact_type="dashboard_html", artifact_path="", error="dep missing"
+        ),
+        BuildResult(
+            success=False, artifact_type="dashboard_html", artifact_path="", error="dep missing v2"
+        ),
     ]
     sandbox = FakeSandbox(results=failures)
     agent = BuilderAgent(sandbox)

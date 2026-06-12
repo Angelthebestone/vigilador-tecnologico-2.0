@@ -47,20 +47,13 @@ class FileSystemTool:
             error=f"Root directory not found: {self._root}",
         )
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested file operation.
 
         tool_name must be one of: read_file, write_file, list_dir, patch_file.
         """
         if tool_name not in _CAPABILITIES:
-            return {
-                "error": (
-                    f"Unknown capability '{tool_name}'. "
-                    f"Valid: {sorted(_CAPABILITIES)}"
-                )
-            }
+            return {"error": (f"Unknown capability '{tool_name}'. Valid: {sorted(_CAPABILITIES)}")}
 
         try:
             if tool_name == "read_file":

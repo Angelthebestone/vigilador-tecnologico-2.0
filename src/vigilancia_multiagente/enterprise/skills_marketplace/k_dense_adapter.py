@@ -58,7 +58,11 @@ class KDenseAdapter:
         for skill_dir in sorted(skills_dir.iterdir()):
             if not skill_dir.is_dir():
                 continue
-            is_cold = skill_dir.name == "_cold" or "/_cold/" in str(skill_dir) or "\\_cold\\" in str(skill_dir)
+            is_cold = (
+                skill_dir.name == "_cold"
+                or "/_cold/" in str(skill_dir)
+                or "\\_cold\\" in str(skill_dir)
+            )
             # FR-037: Skip _cold unless explicitly enabled
             if is_cold and not self._cold_skills_enabled:
                 continue
@@ -91,7 +95,7 @@ class KDenseAdapter:
         try:
             # FR-003: Frontmatter-only read to save I/O during boot
             # Read only the first 2KB to capture frontmatter
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 content_snippet = f.read(2048)
         except OSError as exc:
             logger.warning("KDenseAdapter: cannot read %s: %s", path, exc)
@@ -115,7 +119,9 @@ class KDenseAdapter:
         description = str(frontmatter.get("description", ""))
         author = str(frontmatter.get("author", ""))
         compatibility = str(frontmatter.get("compatibility", ""))
-        metadata = frontmatter.get("metadata") if isinstance(frontmatter.get("metadata"), dict) else {}
+        metadata = (
+            frontmatter.get("metadata") if isinstance(frontmatter.get("metadata"), dict) else {}
+        )
         version = str(metadata.get("version", "")) if metadata else ""
 
         # Tags: K-Dense skills are scientific tools; emit category from

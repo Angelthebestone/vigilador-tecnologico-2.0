@@ -42,7 +42,6 @@ def load_yaml_config(path: Path, schema: type[T]) -> T:
         return schema.model_validate(data)
     except ValidationError as exc:
         fields = "; ".join(
-            f"{'.'.join(str(loc) for loc in e['loc'])}: {e['msg']}"
-            for e in exc.errors()
+            f"{'.'.join(str(loc) for loc in e['loc'])}: {e['msg']}" for e in exc.errors()
         )
         raise ConfigLoadError(path, f"schema validation failed — {fields}") from exc

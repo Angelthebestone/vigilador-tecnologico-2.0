@@ -6,8 +6,15 @@ from dataclasses import dataclass
 
 import pytest
 
-from vigilancia_multiagente.enterprise.modes.mode_schema import ModeConfig, PlaybooksConfig, ToolsConfig
-from vigilancia_multiagente.enterprise.modes.mode_tool_filter import ModeToolFilter, ToolNotAllowedError
+from vigilancia_multiagente.enterprise.modes.mode_schema import (
+    ModeConfig,
+    PlaybooksConfig,
+    ToolsConfig,
+)
+from vigilancia_multiagente.enterprise.modes.mode_tool_filter import (
+    ModeToolFilter,
+    ToolNotAllowedError,
+)
 
 
 @dataclass(frozen=True)

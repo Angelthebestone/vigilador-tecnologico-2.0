@@ -53,9 +53,7 @@ def set_override(name: str, content: str) -> None:
         raise ValueError(f"Unknown template name: {name}")
     content_bytes = content.encode("utf-8")
     if len(content_bytes) > MAX_PROMPT_SIZE_BYTES:
-        raise ValueError(
-            f"Prompt content exceeds max size ({MAX_PROMPT_SIZE_BYTES} bytes)"
-        )
+        raise ValueError(f"Prompt content exceeds max size ({MAX_PROMPT_SIZE_BYTES} bytes)")
     _overrides_dir().mkdir(parents=True, exist_ok=True)
     (_overrides_dir() / f"{name}.txt").write_text(content, encoding="utf-8")
 
@@ -85,13 +83,16 @@ def list_overrides() -> list[dict]:
             size = 0
             try:
                 from vigilancia_multiagente.infra.prompts.loader import load_prompt
+
                 default_content = load_prompt(f"evaluation/{name}")
                 size = len(default_content.encode("utf-8"))
             except Exception:
                 pass
-        templates.append({
-            "name": name,
-            "modified": modified,
-            "size": size,
-        })
+        templates.append(
+            {
+                "name": name,
+                "modified": modified,
+                "size": size,
+            }
+        )
     return templates

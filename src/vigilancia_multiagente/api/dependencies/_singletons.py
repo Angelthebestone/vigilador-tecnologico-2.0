@@ -3,30 +3,28 @@
 Uses @lru_cache to ensure only one instance of each expensive object
 is created during the application lifecycle.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any, cast
+from typing import cast
 
-from vigilancia_multiagente.config.settings import Settings, get_settings
+from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.ports.embedding_gateway import EmbeddingGateway
 from vigilancia_multiagente.domain.ports.llm_client import LLMClient
+from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
+from vigilancia_multiagente.domain.ports.reranker import Reranker
+from vigilancia_multiagente.domain.ports.source_trust_store import SourceTrustStore
 from vigilancia_multiagente.infra.db.connection import database
 from vigilancia_multiagente.infra.embeddings.gemini_gateway import GeminiEmbeddingGateway
 from vigilancia_multiagente.infra.llm.minimax_client import MiniMaxClient
 from vigilancia_multiagente.infra.mcp.mcp_cache import MCPSmartCache
 from vigilancia_multiagente.infra.mcp.provider_registry import MCPProviderRegistry
-from vigilancia_multiagente.infra.persistence.global_knowledge_repository import (
-    GlobalKnowledgeRepository,
-)
 from vigilancia_multiagente.infra.persistence.source_trust_repository import (
     SourceTrustRepository,
 )
 from vigilancia_multiagente.infra.prompts.loader import FilesystemPromptLoader
 from vigilancia_multiagente.infra.reranking.semantic_reranker import SemanticReranker
-from vigilancia_multiagente.domain.ports.prompt_loader import PromptLoader
-from vigilancia_multiagente.domain.ports.reranker import Reranker
-from vigilancia_multiagente.domain.ports.source_trust_store import SourceTrustStore
 
 
 @lru_cache(maxsize=1)

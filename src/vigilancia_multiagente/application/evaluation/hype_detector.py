@@ -124,7 +124,7 @@ class HypeDetector:
             report.verdict = "real"
             report.analysis = f"{tech_name} appears grounded in real research/companies"
 
-        s_curve = getattr(self, '_s_curve_projection', None)
+        s_curve = getattr(self, "_s_curve_projection", None)
         self._infer_maturity(report, signals, s_curve_projection=s_curve)
         return report
 
@@ -189,11 +189,7 @@ class HypeDetector:
         sin llamar a proveedores en vivo. Mantiene compatibilidad con
         consumidores que esperan un único HypeReport agregado.
         """
-        statements = [
-            finding.statement
-            for result in branch_results
-            for finding in result.findings
-        ]
+        statements = [finding.statement for result in branch_results for finding in result.findings]
         signals = _count_signals(statements)
         report = HypeReport(tech="", signals=signals)
         cls._infer_maturity(report, signals)
@@ -295,12 +291,23 @@ def _count_signals(statements: list[str]) -> dict[str, int]:
 _SIGNAL_KEYWORDS: dict[str, tuple[str, ...]] = {
     "academic_papers": ("paper", "study", "research", "arxiv", "preprint", "investigación"),
     "working_prototypes": (
-        "prototype", "demo", "beta", "pilot", "deployment",
-        "prototipo", "piloto", "despliegue",
+        "prototype",
+        "demo",
+        "beta",
+        "pilot",
+        "deployment",
+        "prototipo",
+        "piloto",
+        "despliegue",
     ),
     "companies_with_funding": (
-        "funding", "raised", "series", "investment", "startup",
-        "inversión", "financiación",
+        "funding",
+        "raised",
+        "series",
+        "investment",
+        "startup",
+        "inversión",
+        "financiación",
     ),
     "patents": ("patent", "patente", "trademark"),
 }

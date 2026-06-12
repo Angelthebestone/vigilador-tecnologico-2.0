@@ -33,8 +33,6 @@ from vigilancia_multiagente.application.evaluation.ws_b.pydantic_schema_registry
 from vigilancia_multiagente.domain.evaluation_entities import (
     ContentAuthenticitySignal,
     DedupedSource,
-    ExtractionSchema,
-    SourceType,
 )
 from vigilancia_multiagente.domain.models import SourceRef
 from vigilancia_multiagente.domain.ports.hybrid_search import HybridSearchEngine
@@ -72,8 +70,7 @@ class DataIntelligenceStep:
         ctx = await self._run_schema_validate(ctx)
         ctx = await self._run_authenticity(ctx, sources)
         ctx = await self._run_multilingual(ctx, sources)
-        ctx = await self._run_consensus_dispute(ctx)
-        return ctx
+        return await self._run_consensus_dispute(ctx)
 
     async def _run_hybrid_search(
         self, ctx: ToolLoopContext, sources: list[SourceRef]
@@ -88,9 +85,7 @@ class DataIntelligenceStep:
                 HybridSearchQuery,
             )
 
-            hq = HybridSearchQuery(
-                text=query_text, vector=[], keywords=query_text.lower().split()
-            )
+            hq = HybridSearchQuery(text=query_text, vector=[], keywords=query_text.lower().split())
             ranked = await self._hybrid_search.search(hq, sources)
             _annotate_ranking(ctx, ranked)
         except Exception as exc:
@@ -103,9 +98,7 @@ class DataIntelligenceStep:
             )
         return ctx
 
-    async def _run_dedup(
-        self, ctx: ToolLoopContext, sources: list[SourceRef]
-    ) -> ToolLoopContext:
+    async def _run_dedup(self, ctx: ToolLoopContext, sources: list[SourceRef]) -> ToolLoopContext:
         if self._deduplicator is None:
             return ctx
         try:
@@ -152,9 +145,7 @@ class DataIntelligenceStep:
         for src in sources:
             try:
                 raw_text = src.title or src.url
-                signal = await self._authenticity_detector.analyze(
-                    src, raw_text, raw_freshness=1.0
-                )
+                signal = await self._authenticity_detector.analyze(src, raw_text, raw_freshness=1.0)
                 signals.append(signal)
             except Exception as exc:
                 add_step_error(

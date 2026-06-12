@@ -65,7 +65,11 @@ class AgencyAgentsAdapter:
         for division_dir in sorted(self._root.iterdir()):
             if not division_dir.is_dir():
                 continue
-            is_cold = division_dir.name == "_cold" or "/_cold/" in str(division_dir) or "\\_cold\\" in str(division_dir)
+            is_cold = (
+                division_dir.name == "_cold"
+                or "/_cold/" in str(division_dir)
+                or "\\_cold\\" in str(division_dir)
+            )
             # FR-037: Skip _cold unless explicitly enabled
             if is_cold and not self._cold_skills_enabled:
                 continue
@@ -87,9 +91,7 @@ class AgencyAgentsAdapter:
                     triple = self._parse_one(md_file, division_dir.name)
                     if triple is not None:
                         out.append((triple.card, triple.summary, triple.body))
-        logger.info(
-            "AgencyAgentsAdapter: scanned %d agents under %s", len(out), self._root
-        )
+        logger.info("AgencyAgentsAdapter: scanned %d agents under %s", len(out), self._root)
         return out
 
     # ------------------------------------------------------------------
@@ -99,7 +101,7 @@ class AgencyAgentsAdapter:
     def _parse_one(self, path: Path, division: str) -> _Triple | None:
         try:
             # FR-003: Frontmatter-only read to save I/O during boot
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 content_snippet = f.read(2048)
         except OSError as exc:
             logger.warning("AgencyAgentsAdapter: cannot read %s: %s", path, exc)

@@ -94,7 +94,7 @@ def test_agency_adapter_emits_division_tagged_skill(tmp_path):
         tmp_path,
         "engineering",
         "ai-data-remediation",
-        'name: AI Data Remediation Engineer\n'
+        "name: AI Data Remediation Engineer\n"
         'description: "Specialist in self-healing data pipelines"\n'
         'color: green\nemoji: 🧬\nvibe: "Surgical precision"',
         "# Body\nlong agent prompt.",
@@ -118,8 +118,9 @@ def test_agency_adapter_skips_well_known_meta_dirs(tmp_path):
     # .github, examples, scripts, integrations must be skipped.
     _write_agent(tmp_path, ".github", "config", 'name: x\ndescription: "y"')
     _write_agent(tmp_path, "examples", "demo", 'name: x\ndescription: "y"')
-    _write_agent(tmp_path, "engineering", "real_agent",
-                 'name: real_agent\ndescription: "y"\ncolor: blue')
+    _write_agent(
+        tmp_path, "engineering", "real_agent", 'name: real_agent\ndescription: "y"\ncolor: blue'
+    )
     triples = AgencyAgentsAdapter(tmp_path).scan()
     assert len(triples) == 1
     assert triples[0][0].id.startswith("agency_agents.engineering.")
@@ -130,8 +131,9 @@ def test_agency_adapter_handles_multiple_divisions(tmp_path):
     _write_agent(tmp_path, "design", "b", 'name: b\ndescription: "y"')
     _write_agent(tmp_path, "marketing", "c", 'name: c\ndescription: "z"')
     triples = AgencyAgentsAdapter(tmp_path).scan()
-    divisions = {tag for t in triples for tag in t[0].tags
-                 if tag in ("engineering", "design", "marketing")}
+    divisions = {
+        tag for t in triples for tag in t[0].tags if tag in ("engineering", "design", "marketing")
+    }
     assert divisions == {"engineering", "design", "marketing"}
 
 
@@ -151,8 +153,7 @@ def test_no_id_collisions_across_marketplaces(tmp_path):
     kdense_root = tmp_path / "kdense"
     agency_root = tmp_path / "agency"
     _write_kdense_skill(kdense_root, "engineering", 'name: engineering\ndescription: "x"')
-    _write_agent(agency_root, "engineering", "engineering",
-                 'name: engineering\ndescription: "y"')
+    _write_agent(agency_root, "engineering", "engineering", 'name: engineering\ndescription: "y"')
     kd = KDenseAdapter(kdense_root).scan()
     ag = AgencyAgentsAdapter(agency_root).scan()
     all_ids = [t[0].id for t in kd + ag]

@@ -7,8 +7,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
-import pytest
-
 from vigilancia_multiagente.enterprise.governance.audit_persistence import AuditPersistence
 from vigilancia_multiagente.enterprise.governance.models import (
     ModificationRecord,

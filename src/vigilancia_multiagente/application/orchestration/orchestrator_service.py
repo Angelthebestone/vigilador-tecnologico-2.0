@@ -13,7 +13,7 @@ from vigilancia_multiagente.application.orchestration.null_services import (
     NullSourceScorer,
     NullTrendForecaster,
 )
-from vigilancia_multiagente.domain.models import ResearchPlan, ResearchSession
+from vigilancia_multiagente.domain.models import ResearchSession
 from vigilancia_multiagente.domain.repositories import SessionRepository
 from vigilancia_multiagente.domain.session_state import SessionStatus, ensure_transition
 
@@ -24,16 +24,16 @@ class OrchestratorService:
     def __init__(
         self,
         session_repository: SessionRepository,
-        cross_session_service: Any = NullCrossSessionService(),
-        trend_forecaster: Any = NullTrendForecaster(),
-        source_scorer: Any = NullSourceScorer(),
-        report_generator: Any = NullReportGenerator(),
+        cross_session_service: Any = None,
+        trend_forecaster: Any = None,
+        source_scorer: Any = None,
+        report_generator: Any = None,
     ) -> None:
         self._session_repository = session_repository
-        self._cross_session_service = cross_session_service
-        self.trend_forecaster = trend_forecaster
-        self.source_scorer = source_scorer
-        self.report_generator = report_generator
+        self._cross_session_service = cross_session_service or NullCrossSessionService()
+        self.trend_forecaster = trend_forecaster or NullTrendForecaster()
+        self.source_scorer = source_scorer or NullSourceScorer()
+        self.report_generator = report_generator or NullReportGenerator()
 
     async def start_session(
         self, user_query: str, scope: dict[str, str] | None = None

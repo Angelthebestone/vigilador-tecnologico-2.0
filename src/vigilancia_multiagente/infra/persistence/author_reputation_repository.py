@@ -134,9 +134,7 @@ def _row_to_reputation(row: tuple[object, ...]) -> AuthorReputation:
         if isinstance(weights_raw, dict):
             domain_weights = {k: float(v) for k, v in cast(dict[str, float], weights_raw).items()}
         elif isinstance(weights_raw, str) and weights_raw.strip():
-            domain_weights = {
-                k: float(v) for k, v in json.loads(weights_raw).items()
-            }
+            domain_weights = {k: float(v) for k, v in json.loads(weights_raw).items()}
     return AuthorReputation(
         author_id=str(row[0]),
         display_name=str(row[1]),

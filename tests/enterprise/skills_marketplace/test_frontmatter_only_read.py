@@ -1,4 +1,5 @@
 """T048: Verify adapters read only frontmatter during scan."""
+
 import tempfile
 from pathlib import Path
 

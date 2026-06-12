@@ -33,10 +33,13 @@ class TestPdfGenerateTool:
     @pytest.mark.asyncio()
     async def test_generates_valid_pdf(self, tool: PdfGenerateTool, tmp_path: Path) -> None:
         output = tmp_path / "out.pdf"
-        result = await tool.execute("pdf_generate", {
-            "html_content": "<html><body><h1>Hello</h1><p>World</p></body></html>",
-            "output_path": str(output),
-        })
+        result = await tool.execute(
+            "pdf_generate",
+            {
+                "html_content": "<html><body><h1>Hello</h1><p>World</p></body></html>",
+                "output_path": str(output),
+            },
+        )
         assert "error" not in result
         assert result["output_path"] == str(output)
         assert output.exists()
@@ -44,8 +47,11 @@ class TestPdfGenerateTool:
 
     @pytest.mark.asyncio()
     async def test_missing_html_returns_error(self, tool: PdfGenerateTool) -> None:
-        result = await tool.execute("pdf_generate", {
-            "html_content": "",
-            "output_path": "/tmp/out.pdf",
-        })
+        result = await tool.execute(
+            "pdf_generate",
+            {
+                "html_content": "",
+                "output_path": "/tmp/out.pdf",
+            },
+        )
         assert "error" in result

@@ -102,7 +102,9 @@ class TestDetection:
             result = detector.detect(payload, source="test")
             if not result.is_suspicious:
                 missed.append(payload)
-        assert missed == [], f"Missed {len(missed)}/{len(MALICIOUS_PAYLOADS)} payloads: {missed[:5]}"
+        assert missed == [], (
+            f"Missed {len(missed)}/{len(MALICIOUS_PAYLOADS)} payloads: {missed[:5]}"
+        )
 
     def test_clean_input_not_suspicious(self, detector: PromptInjectionDetector) -> None:
         result = detector.detect("This is a normal business document.", source="test")

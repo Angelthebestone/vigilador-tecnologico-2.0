@@ -27,9 +27,7 @@ def mock_author_response() -> dict:
         "display_name": "Jane Test Author",
         "cited_by_count": 1500,
         "summary_stats": {"h_index": 28, "i10_index": 40},
-        "last_known_institutions": [
-            {"display_name": "MIT", "ror": "https://ror.org/03yrm5c26"}
-        ],
+        "last_known_institutions": [{"display_name": "MIT", "ror": "https://ror.org/03yrm5c26"}],
         "concepts": [
             {"display_name": "Artificial Intelligence", "score": 0.95},
             {"display_name": "Machine Learning", "score": 0.88},
@@ -75,17 +73,19 @@ async def test_search_by_name_returns_list() -> None:
     gateway = OpenAlexAuthorReputationGateway()
 
     with patch.object(gateway._client, "get", new_callable=AsyncMock) as mock_get:
-        mock_get.return_value = _mock_response(json_data={
-            "results": [
-                {
-                    "id": "https://openalex.org/A1",
-                    "display_name": "Author One",
-                    "cited_by_count": 500,
-                    "summary_stats": {"h_index": 15},
-                    "concepts": [],
-                }
-            ]
-        })
+        mock_get.return_value = _mock_response(
+            json_data={
+                "results": [
+                    {
+                        "id": "https://openalex.org/A1",
+                        "display_name": "Author One",
+                        "cited_by_count": 500,
+                        "summary_stats": {"h_index": 15},
+                        "concepts": [],
+                    }
+                ]
+            }
+        )
 
         results = await gateway.search_by_name("Author One")
 

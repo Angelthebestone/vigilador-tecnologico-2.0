@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -34,9 +32,7 @@ class FakePhase:
         if self._fail:
             raise RuntimeError(f"{self._name} failed intentionally")
         self.executed = True
-        return PhaseResult(
-            phase_name=self._name, status=PhaseStatus.SUCCESS, duration_ms=1.0
-        )
+        return PhaseResult(phase_name=self._name, status=PhaseStatus.SUCCESS, duration_ms=1.0)
 
 
 class PausingPhase:
@@ -54,9 +50,7 @@ class PausingPhase:
     async def execute(self, context: DreamingContext) -> PhaseResult:
         self.executed = True
         self._orchestrator.pause()
-        return PhaseResult(
-            phase_name=self._name, status=PhaseStatus.SUCCESS, duration_ms=1.0
-        )
+        return PhaseResult(phase_name=self._name, status=PhaseStatus.SUCCESS, duration_ms=1.0)
 
 
 @pytest.fixture
@@ -125,7 +119,7 @@ async def test_resume_allows_next_cycle(audit_dir: Path) -> None:
     orch.register_phase(p2)
 
     # First cycle: p1 triggers pause, p2 not executed
-    report = await orch.run_cycle()
+    await orch.run_cycle()
     assert orch.status == OrchestratorStatus.PAUSED
     assert not p2.executed
 

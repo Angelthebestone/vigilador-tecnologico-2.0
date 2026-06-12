@@ -1,4 +1,5 @@
 """Agent services — all 6 branch agents wired with governance and execution."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -7,7 +8,9 @@ from vigilancia_multiagente.domain.models import BranchType
 
 
 def build_agent_services(
-    s: dict[str, Any], g: dict[str, Any], e: dict[str, Any],
+    s: dict[str, Any],
+    g: dict[str, Any],
+    e: dict[str, Any],
 ) -> dict[str, Any]:
     """All 6 branch agents wired with governance and execution."""
     from vigilancia_multiagente.application.agents.avances_agent import AvancesAgent

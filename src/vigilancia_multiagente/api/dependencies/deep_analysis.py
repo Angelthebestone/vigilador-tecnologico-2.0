@@ -1,4 +1,5 @@
 """Deep Analysis services — WS-C."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -42,6 +43,7 @@ def build_deep_analysis_services(
     from vigilancia_multiagente.application.graph.knowledge_graph_service import (
         KnowledgeGraphService,
     )
+
     da["dependency_mapper"] = LlmCriticalDependencyMapper(
         llm=s["llm_client"],
         graph_service=KnowledgeGraphService(),

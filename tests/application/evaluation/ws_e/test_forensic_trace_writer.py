@@ -27,4 +27,3 @@ async def test_forensic_trace_writer_preserves_order_and_confidence_chain() -> N
 
     assert trace.chain == steps
     assert trace.confidence_at_each_step == [0.91, 0.83, 0.77]
-

@@ -141,7 +141,9 @@ def _build_client(base_url: str) -> httpx.Client | None:
     return None
 
 
-def get_session_id(method: str, path: str, body: dict[str, Any] | None, client: httpx.Client, base_url: str) -> str | None:
+def get_session_id(
+    method: str, path: str, body: dict[str, Any] | None, client: httpx.Client, base_url: str
+) -> str | None:
     """Crea una sesión de prueba y retorna su ID."""
     try:
         resp = client.request(method, path, json=body)
@@ -159,7 +161,13 @@ def get_session_id(method: str, path: str, body: dict[str, Any] | None, client: 
         return None
 
 
-def fetch_data(client: httpx.Client, method: str, path: str, body: dict[str, Any] | None, params: dict[str, Any] | None) -> Any:
+def fetch_data(
+    client: httpx.Client,
+    method: str,
+    path: str,
+    body: dict[str, Any] | None,
+    params: dict[str, Any] | None,
+) -> Any:
     """Hace una request HTTP y retorna el JSON parseado o un dict de error."""
     try:
         kwargs: dict[str, Any] = {}
@@ -219,7 +227,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compara estructuras de respuesta entre mock server y backend real"
     )
-    parser.add_argument("--backend-url", default="http://localhost:8000", help="URL del backend real")
+    parser.add_argument(
+        "--backend-url", default="http://localhost:8000", help="URL del backend real"
+    )
     parser.add_argument("--mock-url", default="http://localhost:8001", help="URL del mock server")
     parser.add_argument("-v", "--verbose", action="store_true", help="Muestra keys detalladas")
     args = parser.parse_args()
@@ -260,7 +270,10 @@ def main() -> None:
     print(f"  Mock sessionId:     {mock_sid}")
 
     # --- Ejecutar clarify en ambos para avanzar el estado ---
-    for sid, client, _label in [(backend_sid, backend_client, "backend"), (mock_sid, mock_client, "mock")]:
+    for sid, client, _label in [
+        (backend_sid, backend_client, "backend"),
+        (mock_sid, mock_client, "mock"),
+    ]:
         with contextlib.suppress(Exception):
             client.request(
                 "POST", f"/api/v2/research/{sid}/clarify", json={"answers": {"q1": "test"}}
@@ -279,7 +292,9 @@ def main() -> None:
         mock_data = fetch_data(mock_client, method, mk_path, body, params)
 
         if isinstance(backend_data, dict) and "__http_error__" in backend_data:
-            print(f"  \u26a0 {name}: backend error HTTP {backend_data['__http_error__']} -- omitiendo")
+            print(
+                f"  \u26a0 {name}: backend error HTTP {backend_data['__http_error__']} -- omitiendo"
+            )
             continue
         if isinstance(mock_data, dict) and "__http_error__" in mock_data:
             print(f"  \u26a0 {name}: mock error HTTP {mock_data['__http_error__']} -- omitiendo")
@@ -295,7 +310,9 @@ def main() -> None:
         print(f"\u274c {failures}/{total} endpoints con discrepancias estructurales")
         sys.exit(1)
     else:
-        print(f"\u2705 {total}/{total} endpoints: keys estructurales coinciden entre backend y mock")
+        print(
+            f"\u2705 {total}/{total} endpoints: keys estructurales coinciden entre backend y mock"
+        )
         sys.exit(0)
 
 

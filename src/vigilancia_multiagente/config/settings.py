@@ -155,9 +155,7 @@ class Settings(BaseSettings):
     skills_curated_path: str = "config/skills/curated"
     skills_learned_path: str = "config/skills/learned"
     # Spec 021 D2 — repos clonados dentro de src/
-    skills_vendor_dir: str = (
-        "src/vigilancia_multiagente/enterprise/skills_marketplace/_vendor"
-    )
+    skills_vendor_dir: str = "src/vigilancia_multiagente/enterprise/skills_marketplace/_vendor"
     # Spec 022 FR-037 — cold skills activation
     cold_skills_enabled: bool = False
 

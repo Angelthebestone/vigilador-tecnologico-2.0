@@ -51,9 +51,7 @@ class PlaywrightTool:
             )
         return HealthcheckResult(status="UP")
 
-    async def execute(
-        self, tool_name: str, args: dict[str, object]
-    ) -> dict[str, object]:
+    async def execute(self, tool_name: str, args: dict[str, object]) -> dict[str, object]:
         """Dispatch to the requested capability.
 
         Supported ``tool_name`` values:
@@ -70,19 +68,14 @@ class PlaywrightTool:
         if not isinstance(url, str) or not url.strip():
             raise ValueError("PlaywrightTool: 'url' must be a non-empty string")
         if not is_safe_url(url):
-            raise PermissionError(
-                f"PlaywrightTool: URL safety check rejected '{url}'"
-            )
+            raise PermissionError(f"PlaywrightTool: URL safety check rejected '{url}'")
 
         try:
             from playwright.async_api import async_playwright
         except ImportError as exc:
-            raise RuntimeError(
-                "PlaywrightTool: playwright package not installed"
-            ) from exc
+            raise RuntimeError("PlaywrightTool: playwright package not installed") from exc
 
-        headless = (os.getenv("VT_PLAYWRIGHT_HEADLESS", "true").lower()
-                    not in {"0", "false", "no"})
+        headless = os.getenv("VT_PLAYWRIGHT_HEADLESS", "true").lower() not in {"0", "false", "no"}
 
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=headless)

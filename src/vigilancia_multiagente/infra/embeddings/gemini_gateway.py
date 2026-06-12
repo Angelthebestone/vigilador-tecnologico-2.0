@@ -9,7 +9,6 @@ import httpx
 from vigilancia_multiagente.config.settings import get_settings
 from vigilancia_multiagente.domain.ports.embedding_gateway import TaskType
 
-
 _TASK_PREFIXES: dict[str, str] = {
     TaskType.RETRIEVAL_QUERY: "query: ",
     TaskType.RETRIEVAL_DOCUMENT: "document: ",
@@ -28,7 +27,7 @@ class GeminiEmbeddingGateway:
         """Embed a document. Equivalent to ``embed(text, RETRIEVAL_DOCUMENT)``."""
         return await self.embed(text, TaskType.RETRIEVAL_DOCUMENT)
 
-    @functools.lru_cache(maxsize=1000)
+    @functools.lru_cache(maxsize=1000)  # noqa: B019 — async singleton, no leak risk
     async def embed(
         self, text: str, task_type: TaskType = TaskType.RETRIEVAL_DOCUMENT
     ) -> list[float]:

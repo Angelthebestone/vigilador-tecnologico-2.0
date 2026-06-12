@@ -14,9 +14,7 @@ from vigilancia_multiagente.application.evaluation.analytics.vader_narrative_shi
 
 @pytest.fixture
 def detector():
-    return VaderNarrativeShiftDetector(
-        window_days=90, z_score_threshold=1.0, min_samples=3
-    )
+    return VaderNarrativeShiftDetector(window_days=90, z_score_threshold=1.0, min_samples=3)
 
 
 @pytest.fixture
@@ -53,9 +51,7 @@ def twelve_month_timeline_with_shift():
 
 @pytest.mark.asyncio
 async def test_detects_narrative_shift(detector, twelve_month_timeline_with_shift):
-    shifts = await detector.detect(
-        "AI Technology", twelve_month_timeline_with_shift
-    )
+    shifts = await detector.detect("AI Technology", twelve_month_timeline_with_shift)
     assert len(shifts) >= 1, "Should detect at least one narrative shift"
 
     shift = shifts[0]

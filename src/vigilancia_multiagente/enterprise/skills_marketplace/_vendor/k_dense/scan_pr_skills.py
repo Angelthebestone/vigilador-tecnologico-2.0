@@ -17,14 +17,13 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
+from scan_skills import build_scanner, severity_badge
 from skill_scanner.core.loader import SkillLoadError
 from skill_scanner.core.models import Report
-
-from scan_skills import build_scanner, severity_badge
 
 load_dotenv()
 
@@ -97,13 +96,15 @@ def _loc(finding) -> str | None:
 
 
 def format_comment(report: Report, scanned_dirs: list[Path]) -> str:
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     lines: list[str] = [COMMENT_MARKER, "## 🛡️ Skill Security Scan", ""]
     lines.append(f"_Generated at {now}_")
     lines.append("")
 
     if not scanned_dirs:
-        lines.append("No skill directories with a `SKILL.md` were changed in this PR — nothing to scan.")
+        lines.append(
+            "No skill directories with a `SKILL.md` were changed in this PR — nothing to scan."
+        )
         return "\n".join(lines)
 
     lines.append(f"**Skills scanned:** {report.total_skills_scanned}  ")

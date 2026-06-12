@@ -86,9 +86,7 @@ def _iter_blocklist_file_rules(path: Path) -> list[str]:
         logger.warning("Shared blocklist file not found (skipping): %s", path)
         return []
     except (OSError, UnicodeDecodeError) as exc:
-        logger.warning(
-            "Failed to read shared blocklist file %s (skipping): %s", path, exc
-        )
+        logger.warning("Failed to read shared blocklist file %s (skipping): %s", path, exc)
         return []
 
     rules: list[str] = []
@@ -117,13 +115,9 @@ def _load_policy_config(config_path: Path | None = None) -> dict[str, Any]:
         with open(config_path, encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
     except yaml.YAMLError as exc:
-        raise WebsitePolicyError(
-            f"Invalid config YAML at {config_path}: {exc}"
-        ) from exc
+        raise WebsitePolicyError(f"Invalid config YAML at {config_path}: {exc}") from exc
     except OSError as exc:
-        raise WebsitePolicyError(
-            f"Failed to read config file {config_path}: {exc}"
-        ) from exc
+        raise WebsitePolicyError(f"Failed to read config file {config_path}: {exc}") from exc
     if not isinstance(config, dict):
         raise WebsitePolicyError("config root must be a mapping")
 
@@ -166,21 +160,15 @@ def load_website_blocklist(config_path: Path | None = None) -> dict[str, Any]:
 
     raw_domains = policy.get("domains", []) or []
     if not isinstance(raw_domains, list):
-        raise WebsitePolicyError(
-            "security.website_blocklist.domains must be a list"
-        )
+        raise WebsitePolicyError("security.website_blocklist.domains must be a list")
 
     raw_shared_files = policy.get("shared_files", []) or []
     if not isinstance(raw_shared_files, list):
-        raise WebsitePolicyError(
-            "security.website_blocklist.shared_files must be a list"
-        )
+        raise WebsitePolicyError("security.website_blocklist.shared_files must be a list")
 
     enabled = policy.get("enabled", True)
     if not isinstance(enabled, bool):
-        raise WebsitePolicyError(
-            "security.website_blocklist.enabled must be a boolean"
-        )
+        raise WebsitePolicyError("security.website_blocklist.enabled must be a boolean")
 
     rules: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -243,9 +231,7 @@ def _extract_host_from_urlish(url: str) -> str:
     return ""
 
 
-def check_website_access(
-    url: str, config_path: Path | None = None
-) -> dict[str, str] | None:
+def check_website_access(url: str, config_path: Path | None = None) -> dict[str, str] | None:
     """Check whether a URL is allowed by the website blocklist policy.
 
     Returns ``None`` if access is allowed, or a dict with block metadata
@@ -272,9 +258,7 @@ def check_website_access(
         logger.warning("Website policy config error (failing open): %s", exc)
         return None
     except Exception as exc:
-        logger.warning(
-            "Unexpected error loading website policy (failing open): %s", exc
-        )
+        logger.warning("Unexpected error loading website policy (failing open): %s", exc)
         return None
 
     if not policy.get("enabled"):

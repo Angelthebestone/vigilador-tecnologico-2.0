@@ -25,9 +25,7 @@ class VectorIndex(Protocol):
 
     async def upsert(self, record: Any) -> None: ...
 
-    async def list_by_session(
-        self, session_id: Any, limit: int = 100
-    ) -> list[Any]: ...
+    async def list_by_session(self, session_id: Any, limit: int = 100) -> list[Any]: ...
 
 
 @runtime_checkable

@@ -13,18 +13,14 @@ This package splits the monolithic dependencies.py into submodules:
 - agents: all 6 branch agents
 - orchestration: orchestrator, coordinator, approve use case
 """
+
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
-
-from vigilancia_multiagente.config.settings import get_settings
-
-from .session import build_session_services, settings, database, PROJECT_ROOT
-from .governance import build_governance_services
-from .execution import build_execution_services
 from .agents import build_agent_services
+from .execution import build_execution_services
+from .governance import build_governance_services
 from .orchestration import build_orchestration_services
+from .session import build_session_services
 
 # ── Composition root ────────────────────────────────────────────────────
 _s = build_session_services()

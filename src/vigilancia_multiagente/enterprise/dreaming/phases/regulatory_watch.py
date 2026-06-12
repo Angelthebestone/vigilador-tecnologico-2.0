@@ -78,13 +78,15 @@ class RegulatoryWatchPhase:
             results = await self._searcher.search(query)
             if results:
                 for result in results:
-                    await self._proposal_store.store_proposal({
-                        "query": query,
-                        "source": result.get("source", ""),
-                        "citation": result.get("citation", ""),
-                        "summary": result.get("summary", ""),
-                        "consulted_at": context.started_at.isoformat(),
-                    })
+                    await self._proposal_store.store_proposal(
+                        {
+                            "query": query,
+                            "source": result.get("source", ""),
+                            "citation": result.get("citation", ""),
+                            "summary": result.get("summary", ""),
+                            "consulted_at": context.started_at.isoformat(),
+                        }
+                    )
                     proposals_count += 1
             else:
                 await self._proposal_store.store_uncertainty(
